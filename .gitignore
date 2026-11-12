@@ -7,3 +7,7 @@ java/agent/libs/*.jar
 
 # PoC run artifacts
 integrations/attic/out/
+
+# Desktop build outputs
+dist/
+apps/desktop/src-tauri/target/
