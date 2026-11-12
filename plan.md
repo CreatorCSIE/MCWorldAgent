@@ -230,16 +230,16 @@ Before implementing the full Java Core integration, create a static UI prototype
 
 Tasks:
 
-- [ ] Establish the Vue 3 project structure.
-- [ ] Integrate the selected component library.
-- [ ] Implement the main application shell.
-- [ ] Implement resizable side panels.
-- [ ] Implement the 3D viewport placeholder.
-- [ ] Implement Explorer and Inspector placeholders.
-- [ ] Implement the bottom Console panel.
-- [ ] Establish theme and typography conventions.
-- [ ] Verify the layout inside Tauri.
-- [ ] Evaluate Electron compatibility.
+- [x] Establish the Vue 3 project structure.
+- [x] Integrate the selected component library.
+- [x] Implement the main application shell.
+- [x] Implement resizable side panels. (collapse/resize verified; physical pointer drag pending manual confirmation)
+- [x] Implement the 3D viewport placeholder.
+- [x] Implement Explorer and Inspector placeholders.
+- [x] Implement the bottom Console panel.
+- [x] Establish theme and typography conventions.
+- [x] Verify the layout inside Tauri.
+- ~~Evaluate Electron compatibility.~~ **CANCELLED** — shell decided: Tauri only (see §11 "Desktop shell").
 
 The prototype should validate the application layout and interaction model without requiring real Minecraft data.
 
@@ -735,13 +735,13 @@ The following phases represent an initial dependency-oriented roadmap, not a fix
 - [ ] Define World Data Model.
 - [ ] Define Java Core communication.
 - [ ] Implement Java Runtime Bootstrap.
-- [ ] Establish desktop UI foundation.
-- [ ] Integrate shadcn-vue or the selected component system.
-- [ ] Implement the main application shell.
-- [ ] Implement Explorer, Inspector and Console panels.
-- [ ] Implement the 3D viewport placeholder.
-- [ ] Verify Tauri desktop behavior.
-- [ ] Evaluate Electron compatibility.
+- [x] Establish desktop UI foundation.
+- [x] Integrate shadcn-vue or the selected component system.
+- [x] Implement the main application shell.
+- [x] Implement Explorer, Inspector and Console panels.
+- [x] Implement the 3D viewport placeholder.
+- [x] Verify Tauri desktop behavior.
+- ~~[ ] Evaluate Electron compatibility.~~ **CANCELLED** (shell decided: Tauri only).
 - [ ] Define error and logging conventions.
 
 **Exit criteria:** Desktop application can communicate with Java Core, identify a supported Minecraft version and provide a usable static workspace prototype.
@@ -892,10 +892,11 @@ The following decisions are intentionally unresolved.
 | Topic | Current Proposal | Required Investigation |
 |---|---|---|
 | Renderer | Three.js / WebGL2 | Performance and Tauri integration |
-| UI component system | shadcn-vue | Compatibility and customization |
+| UI component system | shadcn-vue | **In use** (reka-nova, Tailwind v4, dark-first); reka-ui 2.11 forwardRef pitfall documented in docs/ui/phase1-desktop-shell/notes.md §3 |
 | Main UI layout | Blender / VS Code hybrid | Workflow validation |
 | Desktop host | Tauri preferred | Host integration and platform behavior |
 | Electron support | Optional compatibility | Shared UI and runtime integration |
+| Desktop shell | **DECIDED: Tauri only** — single shell, no Attic-style dual-shell | Component base: shadcn-vue template; workspace paradigm: Blender + VS Code (§3.2) |
 | Java Core protocol | Local RPC | Process lifecycle and cross-platform behavior |
 | World Model | Unified version-aware model | Historical data structure differences |
 | Chunk caching | Lazy loading and dirty tracking | Actual storage and memory behavior |
