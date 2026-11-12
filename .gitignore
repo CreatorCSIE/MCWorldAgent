@@ -8,6 +8,9 @@ java/agent/libs/*.jar
 # PoC run artifacts
 integrations/attic/out/
 
+# Trae local spec workspace (not part of the repo)
+.trae/
+
 # Desktop build outputs
 dist/
 apps/desktop/src-tauri/target/
