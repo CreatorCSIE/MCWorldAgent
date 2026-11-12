@@ -1,0 +1,9 @@
+# Build outputs
+java/agent/out/
+node_modules/
+
+# Downloaded dependencies (fetched by java/agent/build.ps1)
+java/agent/libs/*.jar
+
+# PoC run artifacts
+integrations/attic/out/
