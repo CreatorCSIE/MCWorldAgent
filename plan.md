@@ -1,7 +1,7 @@
 # MCWorldAgent
 ## Minecraft Classic World Agent
 
-> **Status:** Draft / Initial Planning
+> **Status:** Phase 0 complete — agent vertical slice verified on infdev 20100327 (2026-11-12); remaining planning sections still draft
 > **Date:** 2026-11-12
 > **Project Type:** Standalone Desktop Application
 > **Target:** Minecraft Classic, Indev, Infdev, Alpha and Beta (pre-release history)
@@ -22,12 +22,14 @@ The two documents have different responsibilities:
 | `plan.md` | Describes the proposed project architecture, development direction, module boundaries, UI structure and implementation roadmap. |
 | Research Integration Memo | Maps confirmed research findings onto this plan: module cross-references, mandatory registry facts, vertical-slice version candidates and Phase 0 gaps. |
 | Archaeology Workspace Handbook | The `minecraft-verification-analysis` workspace operating manual: version-existence indexes, evidence discipline (jar tri-state, SHA1 gate, source-tree-first-then-bytecode), physical jar base locations, standard forensics commands and a per-version readable source-tree corpus. |
+| Phase 0 PoC Case File | Verified vertical-slice evidence: hook fingerprint table, Attic harness chain, old-verifier lesson, and the G1/G2/G3 answers that later phases must design against. |
 
 Concrete locations:
 
 - Preliminary Source-Code Research: [minecraft-classic-to-infdev-internal-level-api-external-reuse-analysis.md](file:///E:/4k/github-projects/minecraft-verification-analysis/minecraft-classic-to-infdev-internal-level-api-external-reuse-analysis.md) (verification-analysis workspace; Classic→Infdev 20100327 scope, evidence-graded ✓/◐/？)
 - Research Integration Memo: [docs/research/research-integration.md](file:///E:/4k/github-projects/MCWorldAgent/docs/research/research-integration.md)
 - Archaeology Workspace Handbook: [README.md](file:///E:/4k/github-projects/minecraft-verification-analysis/README.md), with authoritative indexes [version-index.md](file:///E:/4k/github-projects/minecraft-verification-analysis/indexes/version-index.md) (client) and [server-index.md](file:///E:/4k/github-projects/minecraft-verification-analysis/indexes/server-index.md) (server)
+- Phase 0 PoC Case File: [docs/research/phase0-agent-poc.md](./docs/research/phase0-agent-poc.md)
 
 **Note:** Any further source-code investigation MCWorldAgent requires (e.g. the Alpha/Beta Phase 0 gap) should be conducted directly in the archaeology workspace following its handbook workflow, reusing its indexes, readable source trees (`src-minecraft/`, 112 trees covering Pre-Classic→Beta, including 26 Beta trees) and jar base, instead of re-establishing tooling or version facts from scratch.
 
@@ -120,6 +122,8 @@ The registry should describe:
 - Known limitations and unsupported features.
 
 A version should be marked as supported only when its relevant operations have been verified.
+
+First registry entry: **infdev 20100327** — runtime-agent observation operations verified (hook fingerprints, storage layout `saves/<world>/<base36-x>/<base36-z>` loose `.dat` + `level.dat`, save semantics, lighting trust semantics); see case file for the full fact sheet. Write operations not yet verified.
 
 ---
 
@@ -454,6 +458,8 @@ The system should prefer reporting an unsupported hook over applying an uncertai
 
 Minecraft classes should generally be discovered as Minecraft loads them. The Agent should avoid unnecessarily forcing their loading during `premain()`.
 
+**Phase 0 status:** the observation half of this module is built and live-verified (`java/agent/`: premain, fingerprint table, two-pass weaving, handle-①, tick drain, logs). Remaining Phase-1 work: external submit channel (harness → agent), write-side hooks (`setBlock` chain, `getChunkFromChunkCoords` layer) and explicit-save execution through handle-①.
+
 ### 4.6 Player Controller
 
 **Priority: Medium**
@@ -671,6 +677,8 @@ Toolkit communicates through the Agent Bridge.
 
 The Toolkit should not directly write the same world files while Minecraft is running.
 
+Per Phase 0 finding G1: the game cannot be relied on to persist agent mutations — Agent Mode must explicitly invoke `saveWorld` through handle-① (queued to the tick boundary) after committed changes.
+
 ### 7.3 Large Operations
 
 Bulk modifications should support:
@@ -692,20 +700,32 @@ The following phases represent an initial dependency-oriented roadmap, not a fix
 
 ### Phase 0 — Research Consolidation and Feasibility
 
-- [ ] Review the existing preliminary source-code research.
-- [ ] Map existing research findings to proposed modules.
-- [ ] Identify confirmed facts and unresolved assumptions.
-- [ ] Inspect existing repositories.
-- [ ] Investigate target Minecraft versions.
-- [ ] Document world storage formats.
-- [ ] Identify important runtime classes.
-- [ ] Test Java Agent instrumentation.
+- [x] Review the existing preliminary source-code research.
+- [x] Map existing research findings to proposed modules.
+- [x] Identify confirmed facts and unresolved assumptions.
+- [x] Inspect existing repositories.
+- [x] Investigate target Minecraft versions.
+- [x] Document world storage formats.
+- [x] Identify important runtime classes.
+- [x] Test Java Agent instrumentation.
 - [ ] Evaluate Three.js rendering integration.
 - [ ] Evaluate the selected UI component system.
-- [ ] Establish initial capability matrix.
-- [ ] Identify major compatibility blockers.
+- [x] Establish initial capability matrix. (first entry: infdev 20100327)
+- [x] Identify major compatibility blockers.
 
 **Exit criteria:** A technically verified architecture for at least one representative historical version, with major UI and integration assumptions evaluated.
+
+**Status: MET for the runtime/agent half** (infdev 20100327 vertical slice, full-chain live run 2026-11-12, see case file). The UI evaluation items (Three.js, component system) are deferred to the Phase 1 static prototype, where they will actually be exercised.
+
+#### Phase 0 verified findings (design constraints for all later phases)
+
+1. **Agent chain works on shipped runtimes.** premain + ASM strict-fingerprint weaving, five hooks, handle-① live-World capture, tick drain queue and log evidence chain all verified end-to-end on the Attic-launched infdev 20100327 client (including its legacyfix javaagent), with clean exit and no behavioral damage.
+2. **Old verifier constraint (class major=49).** Passing an uninitialized `this` as an INVOKESTATIC argument inside a constructor throws VerifyError, and the Applet launcher swallows it as a "clean exit". Instrumentation of pre-Alpha versions must follow the two-part handle pattern (constructor ENTRY captures reference-slot args only; live object captured from a guaranteed early method call such as the constructor-tail `saveWorld(false)`).
+3. **G1 — no in-session autosave to rely on.** Vanilla 0327 bytecode autosaves every 200 world-ticks, but the shipped runtime's legacyfix `AutoSavePatch` rewrites that interval to (by default) 5 minutes — accepted as a known cost of mounting legacyfix as an additional javaagent, not pursued further. **Agent Mode must explicitly invoke `saveWorld` through handle-① after mutations; "quit-to-title" is not a save guarantee either.**
+4. **G2 — lighting data is trusted from disk.** `readChunkNBTData` loads SkyLight/BlockLight/HeightMap as-is; `generateHeightMap` runs only when the data is missing/invalid. Verified invariant `lightRecalc == chunkMiss` (recalc only accompanies newly generated chunks). World-writing components must therefore produce valid light/height data alongside blocks, or deliberately trigger recalc.
+5. **Hook-layer coverage limit.** Disk chunk count exceeded the `ChunkProviderLoadOrGenerate.loadChunk` miss count (1729 vs 639), proving generation/loading paths bypass that layer. Chunk-level interception in Phase 1+ must hook the `World.getChunkFromChunkCoords` layer for complete accounting.
+6. **Attic integration path settled.** Attic exposes no CLI; the harness `require`s its `@attic/runtime` CJS dist, uses `dryRunLaunch` for the LaunchConfig and spawns the JVM itself with `-javaagent` injected — zero changes to the Attic repository, SHA1-gated jar.
+7. **Version mapping drift is real.** Obfuscation names from adjacent versions (e.g. 0325 maps) are invalid for 0327; every version requires fresh javap fingerprinting before any hook claim.
 
 ### Phase 1 — Foundation and UI Prototype
 
@@ -753,6 +773,8 @@ The following phases represent an initial dependency-oriented roadmap, not a fix
 **Exit criteria:** A supported world can be explored in 3D through the desktop application.
 
 ### Phase 4 — Runtime Agent
+
+Foundation partly pre-laid by Phase 0 (agent observation chain live-verified on infdev 20100327; see §4.5 status).
 
 - [ ] Implement Java Agent.
 - [ ] Implement strict class and method matching.
@@ -877,12 +899,12 @@ The following decisions are intentionally unresolved.
 | Java Core protocol | Local RPC | Process lifecycle and cross-platform behavior |
 | World Model | Unified version-aware model | Historical data structure differences |
 | Chunk caching | Lazy loading and dirty tracking | Actual storage and memory behavior |
-| Agent hooks | Premain + ASM | Per-version class fingerprints |
-| World editing | Shared World API | Safe write paths and rollback |
+| Agent hooks | Premain + ASM | **Verified on 0327** (strict matching, two-pass, old-verifier rules); per-version drift re-forensics remains |
+| World editing | Shared World API | Write path unverified; explicit saveWorld required (G1) |
 | Generator | Original Minecraft JAR | Headless compatibility per version |
-| Lighting | Capability-driven | Exact historical implementation |
+| Lighting | Capability-driven | **0327 answered**: trusted from disk, recalc only on missing/invalid (G2); other versions pending |
 | Entity model | Common entity abstraction | Version-specific entity structures |
-| Attic integration | Launcher Provider | Existing Attic APIs and host constraints |
+| Attic integration | Launcher Provider | **Settled**: no CLI; harness requires `@attic/runtime` dist + self-spawn, Attic zero-change |
 | MCP | Shared World API | Appropriate operation boundaries |
 
 **All items in this section may be changed after source-code research and prototype validation.**

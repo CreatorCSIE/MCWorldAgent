@@ -128,5 +128,5 @@ node integrations/attic/launch-poc.cjs --timeout 600       # 起游戏（SHA1 �
 
 - `chunkHit` 含 in-memory 缓存命中，非纯磁盘读；后续如需区分磁盘 IO，钩 `AnvilChunkLoader`/readChunk 层。
 - 测量层缺口：磁盘 chunk 总数（World2=1729）> 钩子观测的 `loadChunk` miss（639），说明 0327 的生成/载入还有旁路 `ChunkProviderLoadOrGenerate.loadChunk` 的路径（如上层 provider 批量生成、构造器 bulk-load）；G2 的 `lightRecalc==chunkMiss` 不变量在观测层成立，但绝对数受钩层覆盖度限制，Phase 1 如需精确磁盘账目应改钩 `World.getChunkFromChunkCoords` 层。
-- AutoSavePatch 的 6000 常量系补丁自述+行为自洽推定；如需钉死可 `--no-legacyfix` 对照跑 >5min 或 dump 织入后 `World.class` 比对（未做，非 Phase 0 必需）。
+- AutoSavePatch 的 6000 常量系补丁自述+行为自洽推定，**已定性为挂 legacyfix 这个 javaagent 的已知代价，接受、不再钉死**（设计结论不依赖精确常量：反正不能指望游戏自动存）。
 - 把手①已可用：下一步（Phase 1）在 `onTick` drain 队列上执行世界修改 + 显式 `saveWorld` 落盘验证。
