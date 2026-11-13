@@ -75,6 +75,13 @@ public final class MCAHooks {
             log("WORLD_CREATED world=" + world.getClass().getName()
                     + "@" + Integer.toHexString(System.identityHashCode(world))
                     + " dir=" + (capturedSaveDir == null ? "?" : capturedSaveDir.getAbsolutePath()));
+            // Phase 1 写侧：第一块砖（此处仍在 saveWorld 栈帧内，必须 submit 排队到 tick 边界）
+            final Object w = world;
+            submit(new Runnable() {
+                public void run() {
+                    FirstBrick.run(w);
+                }
+            });
         }
         log("SAVE_WORLD #" + n
                 + " id=" + Integer.toHexString(System.identityHashCode(world))

@@ -1,8 +1,8 @@
 # MCWorldAgent
 ## Minecraft Classic World Agent
 
-> **Status:** Phase 0 complete — agent vertical slice verified on infdev 20100327 (2026-11-12); remaining planning sections still draft
-> **Date:** 2026-11-12
+> **Status:** Phase 0 complete (2026-11-12); Phase 1 write-side takeover verified — "first brick" place→explicit-save→re-enter read-back closed loop live-run on infdev 20100327 (2026-11-13); remaining planning sections still draft
+> **Date:** 2026-11-13
 > **Project Type:** Standalone Desktop Application
 > **Target:** Minecraft Classic, Indev, Infdev, Alpha and Beta (pre-release history)
 >
@@ -23,6 +23,7 @@ The two documents have different responsibilities:
 | Research Integration Memo | Maps confirmed research findings onto this plan: module cross-references, mandatory registry facts, vertical-slice version candidates and Phase 0 gaps. |
 | Archaeology Workspace Handbook | The `minecraft-verification-analysis` workspace operating manual: version-existence indexes, evidence discipline (jar tri-state, SHA1 gate, source-tree-first-then-bytecode), physical jar base locations, standard forensics commands and a per-version readable source-tree corpus. |
 | Phase 0 PoC Case File | Verified vertical-slice evidence: hook fingerprint table, Attic harness chain, old-verifier lesson, and the G1/G2/G3 answers that later phases must design against. |
+| Phase 1 First-Brick Case File | Verified write-side evidence: set-side obfuscated names, place→explicit-save→re-enter read-back runs, UNSUPPORTED failure semantics, and the kill-race lesson (never force-kill while the player is in-world). |
 
 Concrete locations:
 
@@ -30,6 +31,7 @@ Concrete locations:
 - Research Integration Memo: [docs/research/research-integration.md](file:///E:/4k/github-projects/MCWorldAgent/docs/research/research-integration.md)
 - Archaeology Workspace Handbook: [README.md](file:///E:/4k/github-projects/minecraft-verification-analysis/README.md), with authoritative indexes [version-index.md](file:///E:/4k/github-projects/minecraft-verification-analysis/indexes/version-index.md) (client) and [server-index.md](file:///E:/4k/github-projects/minecraft-verification-analysis/indexes/server-index.md) (server)
 - Phase 0 PoC Case File: [docs/research/phase0-agent-poc.md](./docs/research/phase0-agent-poc.md)
+- Phase 1 First-Brick Case File: [docs/research/phase1-first-brick.md](./docs/research/phase1-first-brick.md)
 
 **Note:** Any further source-code investigation MCWorldAgent requires (e.g. the Alpha/Beta Phase 0 gap) should be conducted directly in the archaeology workspace following its handbook workflow, reusing its indexes, readable source trees (`src-minecraft/`, 112 trees covering Pre-Classic→Beta, including 26 Beta trees) and jar base, instead of re-establishing tooling or version facts from scratch.
 
@@ -123,7 +125,7 @@ The registry should describe:
 
 A version should be marked as supported only when its relevant operations have been verified.
 
-First registry entry: **infdev 20100327** — runtime-agent observation operations verified (hook fingerprints, storage layout `saves/<world>/<base36-x>/<base36-z>` loose `.dat` + `level.dat`, save semantics, lighting trust semantics); see case file for the full fact sheet. Write operations not yet verified.
+First registry entry: **infdev 20100327** — runtime-agent observation operations verified (hook fingerprints, storage layout `saves/<world>/<base36-x>/<base36-z>` loose `.dat` + `level.dat`, save semantics, lighting trust semantics); write operations now also verified (setBlockWithNotify placement with render notify, explicit saveWorld, re-enter read-back, failure-path semantics — see Phase 1 case file). Metadata/entity writes remain unverified.
 
 ---
 
@@ -458,7 +460,9 @@ The system should prefer reporting an unsupported hook over applying an uncertai
 
 Minecraft classes should generally be discovered as Minecraft loads them. The Agent should avoid unnecessarily forcing their loading during `premain()`.
 
-**Phase 0 status:** the observation half of this module is built and live-verified (`java/agent/`: premain, fingerprint table, two-pass weaving, handle-①, tick drain, logs). Remaining Phase-1 work: external submit channel (harness → agent), write-side hooks (`setBlock` chain, `getChunkFromChunkCoords` layer) and explicit-save execution through handle-①.
+**Phase 0 status:** the observation half of this module is built and live-verified (`java/agent/`: premain, fingerprint table, two-pass weaving, handle-①, tick drain, logs).
+
+**Phase 1 status:** the write side is live-verified end-to-end — "first brick" reflection path (`FirstBrick.java`: setBlockWithNotify → explicit saveWorld → re-enter read-back → UNSUPPORTED failure semantics), zero new bytecode injection, full evidence in the Phase 1 case file. Remaining: external submit channel (harness/UI → agent), deeper hook layer (`getChunkFromChunkCoords`), metadata/entity writes.
 
 ### 4.6 Player Controller
 
@@ -677,7 +681,9 @@ Toolkit communicates through the Agent Bridge.
 
 The Toolkit should not directly write the same world files while Minecraft is running.
 
-Per Phase 0 finding G1: the game cannot be relied on to persist agent mutations — Agent Mode must explicitly invoke `saveWorld` through handle-① (queued to the tick boundary) after committed changes.
+Per Phase 0 finding G1: the game cannot be relied on to persist agent mutations — Agent Mode must explicitly invoke `saveWorld` through handle-① (queued to the tick boundary) after committed changes. **Verified in Phase 1 first-brick**: explicit saveWorld on the tick boundary persisted the placement and survived re-entry.
+
+Kill-race discipline (Phase 1 lesson): never force-kill the game process while the player is still in-world — confirm the user is back at the title screen first, or the kill×save race can intermittently corrupt level/chunk NBT.
 
 ### 7.3 Large Operations
 
@@ -728,6 +734,8 @@ The following phases represent an initial dependency-oriented roadmap, not a fix
 7. **Version mapping drift is real.** Obfuscation names from adjacent versions (e.g. 0325 maps) are invalid for 0327; every version requires fresh javap fingerprinting before any hook claim.
 
 ### Phase 1 — Foundation and UI Prototype
+
+**Write-side takeover pre-laid and verified (2026-11-13):** the "first brick" closed loop — place via setBlockWithNotify on the tick boundary → explicit `saveWorld` → re-enter read-back → failure-path semantics — is live-verified on infdev 20100327 (see Phase 1 case file). The checklist below covers the remaining foundation/UI scope.
 
 - [ ] Create the Toolkit repository.
 - [ ] Establish project structure.
@@ -901,7 +909,7 @@ The following decisions are intentionally unresolved.
 | World Model | Unified version-aware model | Historical data structure differences |
 | Chunk caching | Lazy loading and dirty tracking | Actual storage and memory behavior |
 | Agent hooks | Premain + ASM | **Verified on 0327** (strict matching, two-pass, old-verifier rules); per-version drift re-forensics remains |
-| World editing | Shared World API | Write path unverified; explicit saveWorld required (G1) |
+| World editing | Shared World API | **0327 write path verified** (first-brick: setBlockWithNotify + explicit saveWorld + re-enter read-back); shared World API and broader write coverage pending |
 | Generator | Original Minecraft JAR | Headless compatibility per version |
 | Lighting | Capability-driven | **0327 answered**: trusted from disk, recalc only on missing/invalid (G2); other versions pending |
 | Entity model | Common entity abstraction | Version-specific entity structures |
