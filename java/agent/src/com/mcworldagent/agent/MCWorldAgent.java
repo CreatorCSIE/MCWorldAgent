@@ -15,6 +15,7 @@ public final class MCWorldAgent {
     static PrintWriter transformLog; // 包内可见：离线调试工具可注入 stdout
     static java.util.Set<String> disabled = java.util.Collections.emptySet();
     static File dumpDir;
+    static String cmdDir; // cmd= 覆盖命令通道目录；null=默认 <gameDir>\mca
 
     public static void premain(String args, Instrumentation inst) {
         String logPath = null;
@@ -39,6 +40,8 @@ public final class MCWorldAgent {
                         //noinspection ResultOfMethodCallIgnored
                         dumpDir.mkdirs();
                     }
+                } else if ("cmd".equals(k)) {
+                    cmdDir = v;
                 }
             }
         }
@@ -55,6 +58,7 @@ public final class MCWorldAgent {
         logTransform("PREMAIN mcworldagent-agent args=[" + args + "] java="
                 + System.getProperty("java.version") + " os=" + System.getProperty("os.name"));
         inst.addTransformer(new Transformers());
+        CommandChannel.start(cmdDir);
 
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             @Override

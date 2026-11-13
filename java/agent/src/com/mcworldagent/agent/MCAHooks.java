@@ -27,6 +27,11 @@ public final class MCAHooks {
     public static volatile File capturedSaveDir;
 
     private static final AtomicLong TICKS = new AtomicLong();
+
+    /** 当前 tick 计数（命令通道 outbox/日志用）。 */
+    public static long tickCount() {
+        return TICKS.get();
+    }
     private static final ConcurrentLinkedQueue<Runnable> QUEUE =
             new ConcurrentLinkedQueue<Runnable>();
 
@@ -70,11 +75,19 @@ public final class MCAHooks {
     /** G1 + 把手①后半：World.saveWorld(boolean) 入口（this 已初始化，可安全引用）。 */
     public static void onSaveWorld(Object world, boolean indirect) {
         int n = SAVE_CALLS.incrementAndGet();
-        if (capturedWorld == null) {
-            capturedWorld = world;
+        boolean first = capturedWorld == null;
+        if (first) {
             log("WORLD_CREATED world=" + world.getClass().getName()
                     + "@" + Integer.toHexString(System.identityHashCode(world))
                     + " dir=" + (capturedSaveDir == null ? "?" : capturedSaveDir.getAbsolutePath()));
+        } else if (capturedWorld != world) {
+            // 同进程重进世界：新 World 实例（从盘读回）——把手必须跟进最新活体，
+            // 否则命令通道会读到退出时的旧对象，持久化验证失真（cmdchannel-1 实跑发现）。
+            log("WORLD_SWITCHED old=@" + Integer.toHexString(System.identityHashCode(capturedWorld))
+                    + " new=@" + Integer.toHexString(System.identityHashCode(world)));
+        }
+        capturedWorld = world;
+        if (first) {
             // Phase 1 写侧：第一块砖（此处仍在 saveWorld 栈帧内，必须 submit 排队到 tick 边界）
             final Object w = world;
             submit(new Runnable() {

@@ -1,0 +1,428 @@
+package com.mcworldagent.agent;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * 外部命令通道 v1（案卷 agent-command-channel v2，载体 A 文件队列）。
+ *
+ * 线程模型（§5）：premain 期创建的 daemon 轮询线程负责全部文件 I/O 与 JSON 解析；
+ * 只有经过校验的命令以 Runnable 经 MCAHooks.submit()（ConcurrentLinkedQueue，线程安全已核）
+ * 进入队列，由游戏线程在 tick 边界 drain 执行。磁盘慢不卡 tick。
+ *
+ * 生命周期（§3）：tmp→rename→inbox；读取成功先移 processed/（=ACCEPTED，写 outbox 临时态）
+ * 再 submit；执行后 outbox 原子替换终态（OK/REJECTED/UNSUPPORTED/ERROR）。
+ * ACCEPTED 滞留 = agent 在接收后执行前崩溃的诊断信号。
+ *
+ * 限额（§4-3）：单文件 ≤4KB、单次轮询 ≤8 条、积压 >64 拒绝（queue-full）。
+ * 幂等（§3）：会话内 id 去重（processed/ 文件名 + 内存集合）。
+ */
+public final class CommandChannel {
+
+    private CommandChannel() {
+    }
+
+    private static final int PROTO = 1;
+    private static final int MAX_FILE = 4096;
+    private static final int MAX_PER_POLL = 8;
+    private static final int MAX_BACKLOG = 64;
+    private static final long POLL_MS = 250; // 20TPS 下约每 5 tick
+
+    private static final Set<String> KNOWN_OPS = new HashSet<String>(
+            Arrays.asList("place", "dig", "getblock", "save"));
+
+    private static String cmdDirArg;
+    private static File baseDir; // 解析后的 mca/ 根
+    private static final Set<String> seenIds = new HashSet<String>(); // 仅轮询线程访问
+
+    /** premain 调用。cmdDirArg=null 时默认 <gameDir>\mca（gameDir 由捕获的世界目录回溯）。 */
+    public static void start(String dirArg) {
+        cmdDirArg = dirArg;
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                pollLoop();
+            }
+        }, "MCWorldAgent-CommandChannel");
+        t.setDaemon(true);
+        t.start();
+        MCAHooks.log("CHANNEL_START dirArg=" + (dirArg == null ? "<default>" : dirArg));
+    }
+
+    private static void pollLoop() {
+        while (true) {
+            try {
+                Thread.sleep(POLL_MS);
+                File dir = resolveDir();
+                if (dir == null) {
+                    continue; // 默认目录需等世界捕获；无 cmd= 时通道静默等待
+                }
+                pollOnce(dir);
+            } catch (InterruptedException ie) {
+                return;
+            } catch (Throwable t) {
+                // 通道故障只记日志，永不外溢（崩溃隔离）
+                MCAHooks.log("CHANNEL_ERROR " + t);
+            }
+        }
+    }
+
+    private static File resolveDir() {
+        if (baseDir != null) {
+            return baseDir;
+        }
+        String path = cmdDirArg;
+        if (path == null) {
+            File saveDir = MCAHooks.capturedSaveDir; // <gameDir>\saves\<World>
+            if (saveDir == null) {
+                return null;
+            }
+            File gameDir = saveDir.getParentFile() == null ? null
+                    : saveDir.getParentFile().getParentFile();
+            if (gameDir == null) {
+                MCAHooks.log("CHANNEL_DIR_FAIL cannot derive gameDir from " + saveDir);
+                return null;
+            }
+            path = new File(gameDir, "mca").getAbsolutePath();
+        }
+        File dir = new File(path).getAbsoluteFile();
+        // §4-4 归属校验：拒绝指向 saves\ 内（规范化后禁止 …\saves\… 前缀）
+        String np = normalize(dir.getAbsolutePath()).toLowerCase();
+        if (np.contains("\\saves\\") || np.endsWith("\\saves")) {
+            MCAHooks.log("CHANNEL_DIR_FAIL refuses saves path: " + np);
+            return null;
+        }
+        if (!dir.isDirectory() && !dir.mkdirs() && !dir.isDirectory()) {
+            MCAHooks.log("CHANNEL_DIR_FAIL cannot create " + dir);
+            return null;
+        }
+        mkdirs(new File(dir, "inbox"));
+        mkdirs(new File(dir, "processed"));
+        mkdirs(new File(dir, "outbox"));
+        baseDir = dir;
+        MCAHooks.log("CHANNEL_DIR " + dir);
+        return dir;
+    }
+
+    private static void pollOnce(File dir) {
+        File inbox = new File(dir, "inbox");
+        File[] all = inbox.listFiles();
+        List<File> files = new ArrayList<File>();
+        if (all != null) {
+            for (File f : all) {
+                if (f.isFile() && f.getName().toLowerCase().endsWith(".json")) {
+                    files.add(f);
+                }
+            }
+        }
+        Collections.sort(files, NAME_ORDER);
+        boolean backlogFull = files.size() > MAX_BACKLOG;
+        int n = Math.min(files.size(), MAX_PER_POLL);
+        for (int i = 0; i < n; i++) {
+            consume(files.get(i), dir, backlogFull);
+        }
+    }
+
+    private static final Comparator<File> NAME_ORDER = new Comparator<File>() {
+        @Override
+        public int compare(File a, File b) {
+            return a.getName().compareTo(b.getName());
+        }
+    };
+
+    /** 单条命令独立校验独立处理，错误不阻塞队列（§4-3）。 */
+    private static void consume(File f, File dir, boolean backlogFull) {
+        String id = null;
+        try {
+            if (f.length() > MAX_FILE) {
+                moveToProcessed(f);
+                writeStatus(dir, safeId(f), "REJECTED", "file too large", 0);
+                return;
+            }
+            String text = read(f);
+            Map<String, Object> env;
+            try {
+                env = MiniJson.parse(text);
+            } catch (IllegalArgumentException je) {
+                moveToProcessed(f);
+                writeStatus(dir, safeId(f), "REJECTED", "bad-json: " + je.getMessage(), 0);
+                return;
+            }
+            String vErr = validate(env);
+            if (vErr != null) {
+                moveToProcessed(f);
+                writeStatus(dir, safeId(f), "REJECTED", vErr, 0);
+                return;
+            }
+            id = (String) env.get("id");
+            if (backlogFull) {
+                moveToProcessed(f);
+                writeStatus(dir, id, "REJECTED", "queue-full", 0);
+                return;
+            }
+            if (seenIds.contains(id)) {
+                moveToProcessed(f);
+                writeStatus(dir, id, "REJECTED", "duplicate-id", 0);
+                return;
+            }
+            seenIds.add(id);
+
+            // 先移 processed/（=ACCEPTED）再 submit（§4-1）
+            if (!moveToProcessed(f)) {
+                seenIds.remove(id);
+                return; // 移动失败，下轮重试
+            }
+            writeStatus(dir, id, "ACCEPTED", null, MCAHooks.tickCount());
+
+            final Command c = Command.from(id, env);
+            MCAHooks.submit(new Runnable() {
+                @Override
+                public void run() {
+                    execute(c);
+                }
+            });
+            MCAHooks.log("CHANNEL_ACCEPT id=" + id + " op=" + c.op);
+        } catch (Throwable t) {
+            MCAHooks.log("CHANNEL_CONSUME_ERROR " + f.getName() + " " + t);
+        }
+    }
+
+    /** 游戏线程执行（tick 边界 drain）。 */
+    private static void execute(Command c) {
+        File dir = baseDir;
+        String status;
+        String detail;
+        try {
+            Object world = MCAHooks.capturedWorld;
+            if (world == null) {
+                status = "REJECTED";
+                detail = "not-ready";
+            } else {
+                try {
+                    WorldOps.resolve(world.getClass());
+                } catch (WorldOps.UnsupportedOp u) {
+                    status = "UNSUPPORTED";
+                    detail = u.getMessage();
+                    finish(dir, c, status, detail);
+                    return;
+                }
+                try {
+                    detail = runOp(world, c);
+                    status = "OK";
+                } catch (WorldOps.Rejected r) {
+                    status = "REJECTED";
+                    detail = r.getMessage();
+                } catch (java.lang.reflect.InvocationTargetException ite) {
+                    status = "ERROR";
+                    detail = WorldOps.unwrap(ite);
+                }
+            }
+        } catch (Throwable t) {
+            status = "ERROR";
+            detail = String.valueOf(t);
+        }
+        finish(dir, c, status, detail);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static String runOp(Object world, Command c) throws Exception {
+        Map<String, Object> a = (Map<String, Object>) c.env.get("args");
+        if ("save".equals(c.op)) {
+            WorldOps.saveWorld(world);
+            return "saveWorld(false) called";
+        }
+        int x = intArg(a, "x");
+        int y = intArg(a, "y");
+        int z = intArg(a, "z");
+        WorldOps.validateCoords(x, y, z);
+        if ("getblock".equals(c.op)) {
+            int got = WorldOps.getBlockId(world, x, y, z);
+            return "x=" + x + " y=" + y + " z=" + z + " id=" + got;
+        }
+        int blockId = "dig".equals(c.op) ? 0 : intArg(a, "blockId");
+        WorldOps.validateBlockId(blockId);
+        boolean ok = WorldOps.setBlock(world, x, y, z, blockId);
+        if (!ok) {
+            throw new WorldOps.Rejected("setBlockWithNotify returned false");
+        }
+        String r = (blockId == 0 ? "dug" : "placed") + " x=" + x + " y=" + y + " z=" + z + " id=" + blockId;
+        boolean save = !Boolean.FALSE.equals(c.env.get("save")); // 写操作默认 true（§3）
+        if (save) {
+            WorldOps.saveWorld(world);
+            r += " saved=true";
+        }
+        return r;
+    }
+
+    private static int intArg(Map<String, Object> a, String k) throws WorldOps.Rejected {
+        Object v = a == null ? null : a.get(k);
+        if (!(v instanceof Long)) {
+            throw new WorldOps.Rejected("arg '" + k + "' must be integer");
+        }
+        long l = ((Long) v).longValue();
+        if (l < Integer.MIN_VALUE || l > Integer.MAX_VALUE) {
+            throw new WorldOps.Rejected("arg '" + k + "' out of int range");
+        }
+        return (int) l;
+    }
+
+    /** 信封校验：protocolVersion==1、id 形态、op 已知。返回 null=通过，否则=拒绝原因。 */
+    private static String validate(Map<String, Object> env) {
+        Object pv = env.get("protocolVersion");
+        if (!(pv instanceof Long)) {
+            return "protocolVersion must be integer";
+        }
+        if (((Long) pv).longValue() != PROTO) {
+            return "unsupported protocolVersion " + pv + " (agent speaks " + PROTO + ")";
+        }
+        Object id = env.get("id");
+        if (!(id instanceof String)) {
+            return "id must be string";
+        }
+        if (!((String) id).matches("[A-Za-z0-9_-]{1,64}")) {
+            return "bad id (charset/length)";
+        }
+        Object op = env.get("op");
+        if (!(op instanceof String)) {
+            return "op must be string";
+        }
+        if (!KNOWN_OPS.contains(op)) {
+            return "unknown op '" + op + "'";
+        }
+        Object args = env.get("args");
+        if (args != null && !(args instanceof Map)) {
+            return "args must be object";
+        }
+        return null;
+    }
+
+    private static void finish(File dir, Command c, String status, String detail) {
+        writeStatus(dir, c.id, status, detail, MCAHooks.tickCount());
+        MCAHooks.log("CHANNEL_DONE id=" + c.id + " op=" + c.op + " status=" + status
+                + " tick=" + MCAHooks.tickCount() + " detail=" + detail);
+    }
+
+    // ---------- 文件工具（全部仅轮询/游戏线程的原子 rename） ----------
+
+    private static boolean moveToProcessed(File inboxFile) {
+        File p = new File(inboxFile.getParentFile().getParentFile(), "processed");
+        return inboxFile.renameTo(new File(p, inboxFile.getName()));
+    }
+
+    /** outbox 原子写：~<id>.json → <id>.json（同目录 rename）。 */
+    private static void writeStatus(File dir, String id, String status, String detail, long tick) {
+        try {
+            File outbox = new File(dir, "outbox");
+            mkdirs(outbox);
+            File tmp = new File(outbox, "~" + id + ".json");
+            File fin = new File(outbox, id + ".json");
+            StringBuilder b = new StringBuilder();
+            b.append("{\"protocolVersion\":").append(PROTO)
+                    .append(",\"id\":\"").append(esc(id))
+                    .append("\",\"status\":\"").append(status).append('"');
+            if (detail != null) {
+                b.append(",\"detail\":\"").append(esc(detail)).append('"');
+            }
+            b.append(",\"tick\":").append(tick).append("}\n");
+            FileOutputStream fo = new FileOutputStream(tmp);
+            try {
+                fo.write(b.toString().getBytes("UTF-8"));
+            } finally {
+                fo.close();
+            }
+            if (!tmp.renameTo(fin)) {
+                //noinspection ResultOfMethodCallIgnored
+                fin.delete();
+                //noinspection ResultOfMethodCallIgnored
+                tmp.renameTo(fin);
+            }
+        } catch (Throwable t) {
+            MCAHooks.log("CHANNEL_OUTBOX_ERROR id=" + id + " " + t);
+        }
+    }
+
+    private static String safeId(File f) {
+        String n = f.getName().replaceAll("\\.json$", "");
+        return n.matches("[A-Za-z0-9_-]{1,64}") ? n : "unknown";
+    }
+
+    private static String esc(String s) {
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '"' || c == '\\') {
+                b.append('\\').append(c);
+            } else if (c < 0x20 || c > 0x7e) {
+                b.append(String.format("\\u%04x", Integer.valueOf(c)));
+            } else {
+                b.append(c);
+            }
+        }
+        return b.toString();
+    }
+
+    private static String read(File f) throws IOException {
+        InputStream in = new FileInputStream(f);
+        try {
+            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            byte[] buf = new byte[4096];
+            int n;
+            int total = 0;
+            while ((n = in.read(buf)) > 0) {
+                total += n;
+                if (total > MAX_FILE) {
+                    throw new IOException("file too large");
+                }
+                bos.write(buf, 0, n);
+            }
+            return new String(bos.toByteArray(), "UTF-8");
+        } finally {
+            in.close();
+        }
+    }
+
+    private static String normalize(String p) {
+        try {
+            return new File(p).getCanonicalPath();
+        } catch (IOException e) {
+            return new File(p).getAbsolutePath();
+        }
+    }
+
+    private static void mkdirs(File d) {
+        if (!d.isDirectory()) {
+            //noinspection ResultOfMethodCallIgnored
+            d.mkdirs();
+        }
+    }
+
+    /** 已校验命令的不可变记录。 */
+    private static final class Command {
+        final String id;
+        final String op;
+        final Map<String, Object> env;
+
+        Command(String id, String op, Map<String, Object> env) {
+            this.id = id;
+            this.op = op;
+            this.env = env;
+        }
+
+        @SuppressWarnings("unchecked")
+        static Command from(String id, Map<String, Object> env) {
+            return new Command(id, (String) env.get("op"), env);
+        }
+    }
+}

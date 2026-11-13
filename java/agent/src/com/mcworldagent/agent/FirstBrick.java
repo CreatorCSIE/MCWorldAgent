@@ -25,8 +25,15 @@ public final class FirstBrick {
 
     private static final int COBBLESTONE_ID = 4;
 
+    /** 一次性闸门：达到终态（放置/验证/占用/拒绝）后本进程不再执行；PROBE_FAIL 允许重试。
+     *  防 save 命令触发 saveWorld 钩后重复补砖（案卷 v2 §7）。 */
+    private static volatile boolean once;
+
     /** 在活体 World 上执行一次"读回或放置"。只在游戏线程调用。 */
     public static void run(Object world) {
+        if (once) {
+            return;
+        }
         try {
             Class<?> wc = world.getClass();
             Method setBlock = wc.getMethod("c", int.class, int.class, int.class, int.class);
@@ -50,6 +57,7 @@ public final class FirstBrick {
 
             int topId = ((Integer) getBlock.invoke(world, x, y0, z)).intValue();
             if (topId == COBBLESTONE_ID) {
+                once = true;
                 MCAHooks.log("FIRST_BRICK_VERIFY_OK x=" + x + " y=" + y0 + " z=" + z
                         + " id=" + topId + "（上一 run 放置的砖仍在，重进载入成功）");
                 return;
@@ -57,6 +65,7 @@ public final class FirstBrick {
 
             int aboveId = ((Integer) getBlock.invoke(world, x, y0 + 1, z)).intValue();
             if (aboveId != 0) {
+                once = true;
                 MCAHooks.log("FIRST_BRICK_OCCUPIED x=" + x + " y=" + (y0 + 1) + " z=" + z
                         + " id=" + aboveId + " 目标格非空，放弃");
                 return;
@@ -66,6 +75,7 @@ public final class FirstBrick {
                     Integer.valueOf(x), Integer.valueOf(y0 + 1), Integer.valueOf(z),
                     Integer.valueOf(COBBLESTONE_ID))).booleanValue();
             if (!placed) {
+                once = true;
                 MCAHooks.log("FIRST_BRICK_PLACE_REJECTED x=" + x + " y=" + (y0 + 1) + " z=" + z);
                 return;
             }
@@ -77,7 +87,9 @@ public final class FirstBrick {
             saveWorld.setAccessible(true);
             saveWorld.invoke(world, Boolean.FALSE);
             MCAHooks.log("FIRST_BRICK_SAVED saveWorld(false) 已调用");
+            once = true;
         } catch (Throwable t) {
+            once = true;
             MCAHooks.log("FIRST_BRICK_UNSUPPORTED " + t);
         }
     }

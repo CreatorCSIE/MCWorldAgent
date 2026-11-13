@@ -24,6 +24,7 @@ The two documents have different responsibilities:
 | Archaeology Workspace Handbook | The `minecraft-verification-analysis` workspace operating manual: version-existence indexes, evidence discipline (jar tri-state, SHA1 gate, source-tree-first-then-bytecode), physical jar base locations, standard forensics commands and a per-version readable source-tree corpus. |
 | Phase 0 PoC Case File | Verified vertical-slice evidence: hook fingerprint table, Attic harness chain, old-verifier lesson, and the G1/G2/G3 answers that later phases must design against. |
 | Phase 1 First-Brick Case File | Verified write-side evidence: set-side obfuscated names, place→explicit-save→re-enter read-back runs, UNSUPPORTED failure semantics, and the kill-race lesson (never force-kill while the player is in-world). |
+| Phase 1 Command-Channel Case File | Verified external submit channel v1: file-queue protocol (ACCEPTED→terminal, idempotent, strict JSON subset), place/dig/getblock/save live ops, dig-persistence across re-entry, and the stale-handle fix (WORLD_SWITCHED). |
 
 Concrete locations:
 
@@ -32,6 +33,7 @@ Concrete locations:
 - Archaeology Workspace Handbook: [README.md](file:///E:/4k/github-projects/minecraft-verification-analysis/README.md), with authoritative indexes [version-index.md](file:///E:/4k/github-projects/minecraft-verification-analysis/indexes/version-index.md) (client) and [server-index.md](file:///E:/4k/github-projects/minecraft-verification-analysis/indexes/server-index.md) (server)
 - Phase 0 PoC Case File: [docs/research/phase0-agent-poc.md](./docs/research/phase0-agent-poc.md)
 - Phase 1 First-Brick Case File: [docs/research/phase1-first-brick.md](./docs/research/phase1-first-brick.md)
+- Phase 1 Command-Channel Case File: [docs/research/phase1-command-channel.md](./docs/research/phase1-command-channel.md)
 
 **Note:** Any further source-code investigation MCWorldAgent requires (e.g. the Alpha/Beta Phase 0 gap) should be conducted directly in the archaeology workspace following its handbook workflow, reusing its indexes, readable source trees (`src-minecraft/`, 112 trees covering Pre-Classic→Beta, including 26 Beta trees) and jar base, instead of re-establishing tooling or version facts from scratch.
 
@@ -462,7 +464,7 @@ Minecraft classes should generally be discovered as Minecraft loads them. The Ag
 
 **Phase 0 status:** the observation half of this module is built and live-verified (`java/agent/`: premain, fingerprint table, two-pass weaving, handle-①, tick drain, logs).
 
-**Phase 1 status:** the write side is live-verified end-to-end — "first brick" reflection path (`FirstBrick.java`: setBlockWithNotify → explicit saveWorld → re-enter read-back → UNSUPPORTED failure semantics), zero new bytecode injection, full evidence in the Phase 1 case file. Remaining: external submit channel (harness/UI → agent), deeper hook layer (`getChunkFromChunkCoords`), metadata/entity writes.
+**Phase 1 status:** the write side is live-verified end-to-end — "first brick" reflection path (`FirstBrick.java`: setBlockWithNotify → explicit saveWorld → re-enter read-back → UNSUPPORTED failure semantics), zero new bytecode injection, full evidence in the Phase 1 case file. The external submit channel is now ALSO live-verified (file-queue v1: place/dig/getblock/save, dig+place persistence across re-entry — see Command-Channel case file). Remaining: deeper hook layer (`getChunkFromChunkCoords`), metadata/entity writes, settime/setspawn/tp (need javap names), batch writes, desktop-shell command panel.
 
 ### 4.6 Player Controller
 
@@ -735,7 +737,7 @@ The following phases represent an initial dependency-oriented roadmap, not a fix
 
 ### Phase 1 — Foundation and UI Prototype
 
-**Write-side takeover pre-laid and verified (2026-11-13):** the "first brick" closed loop — place via setBlockWithNotify on the tick boundary → explicit `saveWorld` → re-enter read-back → failure-path semantics — is live-verified on infdev 20100327 (see Phase 1 case file). The checklist below covers the remaining foundation/UI scope.
+**Write-side takeover pre-laid and verified (2026-11-13):** the "first brick" closed loop — place via setBlockWithNotify on the tick boundary → explicit `saveWorld` → re-enter read-back → failure-path semantics — is live-verified on infdev 20100327 (see Phase 1 case file). The external submit channel (file-queue v1, place/dig/getblock/save, persistence verified) is live-verified the same day (see Command-Channel case file). The checklist below covers the remaining foundation/UI scope.
 
 - [ ] Create the Toolkit repository.
 - [ ] Establish project structure.
