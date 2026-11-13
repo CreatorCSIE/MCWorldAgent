@@ -52,6 +52,7 @@ mca/
 - `protocolVersion`：**必填**，未知版本一律 REJECTED（防新 CLI×旧 agent 静默互误解）。
 - `id`：CLI 生成**全局唯一**（epochms+rand）；会话内以 processed/ 文件名去重，重复 id 返回已有状态不重执行；跨 run 去重边界=单次 run（processed 随 run 归档）。**CLI 超时≠失败**——先查 outbox 再决定是否重发。
 - 参数方块 id 命名 `blockId`（避免与 envelope `id` 混淆，评审抓对）。
+- `targetGeneration`：**可选**（P1 世界世代，2026-11-13 已实现）。带=会话定向：执行时（tick 边界）比对 `capturedWorldGeneration`（初值 1，WORLD_SWITCHED 自增），不符 REJECTED `generation-mismatch expected=X actual=Y`，防"旧世界提交、新世界激活后误执行"；不带=执行时绑定当前世界（CLI 普通命令语义），两者不混同。
 
 状态生命周期（评审采纳：**接收≠执行**）：
 

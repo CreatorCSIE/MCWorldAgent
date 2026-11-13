@@ -210,6 +210,19 @@ public final class CommandChannel {
                 status = "REJECTED";
                 detail = "not-ready";
             } else {
+                // P1 世代定向：带 targetGeneration 的会话命令执行时须命中当前世界会话，
+                // 防"旧世界提交、新世界激活后误执行"（案卷 §5）。
+                // 无该字段 = 执行时绑定当前世界（CLI 普通命令语义），两者不混同。
+                Object tg = c.env.get("targetGeneration");
+                if (tg != null) {
+                    long want = ((Long) tg).longValue();
+                    int actual = MCAHooks.capturedWorldGeneration;
+                    if (want != actual) {
+                        finish(dir, c, "REJECTED",
+                                "generation-mismatch expected=" + want + " actual=" + actual);
+                        return;
+                    }
+                }
                 try {
                     WorldOps.resolve(world.getClass());
                 } catch (WorldOps.UnsupportedOp u) {
@@ -278,7 +291,7 @@ public final class CommandChannel {
         return (int) l;
     }
 
-    /** 信封校验：protocolVersion==1、id 形态、op 已知。返回 null=通过，否则=拒绝原因。 */
+    /** 信封校验：protocolVersion==1、id 形态、op 已知、targetGeneration（可选）为整数。返回 null=通过，否则=拒绝原因。 */
     private static String validate(Map<String, Object> env) {
         Object pv = env.get("protocolVersion");
         if (!(pv instanceof Long)) {
@@ -304,6 +317,11 @@ public final class CommandChannel {
         Object args = env.get("args");
         if (args != null && !(args instanceof Map)) {
             return "args must be object";
+        }
+        // P1 世代定向（案卷 §5）：信封可选字段，仅形态校验；语义比对在执行时（tick 边界）做
+        Object tg = env.get("targetGeneration");
+        if (tg != null && !(tg instanceof Long)) {
+            return "targetGeneration must be integer";
         }
         return null;
     }

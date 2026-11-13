@@ -42,6 +42,9 @@ public final class MCWorldAgent {
                     }
                 } else if ("cmd".equals(k)) {
                     cmdDir = v;
+                } else if ("noFirstBrick".equals(k)) {
+                    // P0 fixture 化：禁用首次捕获时的自动补砖（PoC 写入污染测试世界）
+                    MCAHooks.noFirstBrick = "true".equalsIgnoreCase(v);
                 }
             }
         }

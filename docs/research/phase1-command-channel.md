@@ -39,14 +39,27 @@
 
 ## 4. 状态与下一步
 
-命令通道 v1（place/dig/getblock/save 四 op）验收完毕。待办：settime/setspawn/tp 需 javap 钉混淆名；批量写（setTileNoUpdate+脏区标记）第二批；桌面壳"命令台+事件流"底部面板（VS Code 式，速记→封包翻译器）为壳 Phase 2 首件；mca/ 证据已归档 `out/cmdchannel-2/mca-archive/`。
+命令通道 v1（place/dig/getblock/save 四 op）验收完毕。§5 判决的 P0 fixture 化（`noFirstBrick=`）与 P1 世界世代（`capturedWorldGeneration` + 信封 `targetGeneration`）已落码并实跑验收（2026-11-13，run `p0p1-gen`，见 §6）。待办：settime/setspawn/tp 需 javap 钉混淆名；批量写（setTileNoUpdate+脏区标记）第二批；桌面壳"命令台+事件流"底部面板（VS Code 式，速记→封包翻译器）为壳 Phase 2 首件；mca/ 证据已归档 `out/cmdchannel-2/mca-archive/`。
 
 ## 5. 外部评审吸收与 v2 待办（2026-11-13，ChatGPT review 判决）
 
 | 评审意见 | 判决 | 落档待办 |
 |---|---|---|
-| WorldSession 五字段对象（worldInstance/saveDir/generation/createdAtTick/lifecycleState） | **采纳内核、砍无证据外壳**：0327 拿不到 LOADING/UNLOADING 可靠信号（无卸载钩子，saveWorld 仅在存盘触发），lifecycleState 违反"行为必须来自取证"戒律；saveDir/createdAtTick 已有等价物 | **P1**：`capturedWorldGeneration`（WORLD_SWITCHED 时自增）+ 命令可选 `targetGeneration`——普通命令"执行时绑定当前世界"，会话定向命令带世代，不符 REJECTED。防"提交-执行跨世界切换"窄竞态 |
+| WorldSession 五字段对象（worldInstance/saveDir/generation/createdAtTick/lifecycleState） | **采纳内核、砍无证据外壳**：0327 拿不到 LOADING/UNLOADING 可靠信号（无卸载钩子，saveWorld 仅在存盘触发），lifecycleState 违反"行为必须来自取证"戒律；saveDir/createdAtTick 已有等价物 | **P1**：`capturedWorldGeneration`（WORLD_SWITCHED 时自增）+ 命令可选 `targetGeneration`——普通命令"执行时绑定当前世界"，会话定向命令带世代，不符 REJECTED。防"提交-执行跨世界切换"窄竞态。**已实现（2026-11-13）**：MCAHooks 世代计数初值 1、WORLD_SWITCHED 分支自增并记入日志；CommandChannel validate 仅形态校验（非整数→REJECTED），执行时（tick 边界）比对不符→`generation-mismatch expected=X actual=Y`；无字段=绑定当前世界，两者不混同 |
 | setBlockWithNotify false ≠ 异常，增设 NO_CHANGE 态 | **全采**：dig 空气/重复 place = "调用成功但无变化"，混入 REJECTED（请求非法）污染语义。v1 归档账目不动 | **v2 协议修订**：终态扩为 OK/NO_CHANGE/REJECTED/UNSUPPORTED/ERROR |
-| FirstBrick 应标记为 PoC Fixture，自动写入须可关 | **全采且提为 P0**（成本最低收益立现：一个 agent 参数，复用 `disable=` 解析路径；本 run 已被锚点污染咬过一次，见教训 9） | **P0**：`noFirstBrick=` 启动参数；后续 dig/批量写/清世界测试一律带参跑 |
+| FirstBrick 应标记为 PoC Fixture，自动写入须可关 | **全采且提为 P0**（成本最低收益立现：一个 agent 参数，复用 `disable=` 解析路径；本 run 已被锚点污染咬过一次，见教训 9） | **P0**：`noFirstBrick=` 启动参数；后续 dig/批量写/清世界测试一律带参跑。**已实现（2026-11-13）**：premain 解析 `noFirstBrick=true`（风格对齐现有 key=value），置 MCAHooks 静态开关；onSaveWorld first 分支跳过 submit 并记 `FIRST_BRICK_SKIPPED`（WORLD_CREATED 日志保留）；不带参=默认行为不变 |
 | 优先级：生命周期+World Properties 先于批量写 | **接受**，与我们上轮结论同向；补取证前提：tp 在 0327 必须走 `setPosition`（AABB-first 管线）+ 同步 lastTick/prev，配方已钉 ingame-console §7 | 排序：P0 fixture 化 → P1 世代 → settime/setspawn → tp → 批量写 → 命令台 |
 | 命令台订阅 Agent 事件（WORLD_CREATED/COMMAND_ACCEPTED/…） | **接受且几乎免费**：所列事件全部已是 hooks 日志行，面板事件流=tail 日志+watch outbox，无需另造事件系统 | 并入独立案卷 [shell-command-panel.md](../architecture/shell-command-panel.md) |
+
+## 6. P0/P1 实跑验收（2026-11-13，run `integrations/attic/out/p0p1-gen/`）
+
+启动参数追加 `cmd=<run>\mca;noFirstBrick=true`，游戏自然退出 code=0，证据归档 `mca-archive/`。全绿：
+
+| 断言 | 证据 |
+|---|---|
+| P0 零自动写入 | `WORLD_CREATED … generation=1` + `FIRST_BRICK_SKIPPED`；`SUMMARY chunkMiss=0 lightRecalc=0`（重进既有世界纯读回特征）；getblock 读回 id=4 系历史砖，本 run 未新放 |
+| 世代定向命中 | `targetGeneration:1` → OK；无字段普通命令 → OK（执行时绑定语义并存） |
+| 世代不符拒绝 | `targetGeneration:99` → REJECTED `generation-mismatch expected=99 actual=1`；形态非法 `"1"` → REJECTED `targetGeneration must be integer`（validate 层，tick=0 未入队） |
+| 真实切换后旧会话失效 | 存退重进 → `WORLD_SWITCHED … generation=2`；`targetGeneration:1` → REJECTED `expected=1 actual=2`；`targetGeneration:2` → OK |
+
+无头断言同步扩至 36/36（validate 三态 + 世代计数 + 跳过/回归）。下一件按 §5 排序：settime/setspawn（先 javap 钉混淆名）。

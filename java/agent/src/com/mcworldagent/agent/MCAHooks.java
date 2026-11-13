@@ -26,6 +26,17 @@ public final class MCAHooks {
     public static volatile Object capturedWorld;
     public static volatile File capturedSaveDir;
 
+    /**
+     * 把手①世代（P1，案卷 §5）：世界实例切换计数。
+     * 初值 1 = 本进程捕获的第一个世界实例；每次 WORLD_SWITCHED 自增。
+     * 命令信封带 targetGeneration 时，执行时（tick 边界）比对，不符 REJECTED；
+     * 不带 = "执行时绑定当前世界"语义，两者不混同。
+     */
+    public static volatile int capturedWorldGeneration = 1;
+
+    /** P0 fixture 开关：true=首次捕获世界不再自动提交 FirstBrick（防测试锚点污染，教训 9）。 */
+    public static volatile boolean noFirstBrick;
+
     private static final AtomicLong TICKS = new AtomicLong();
 
     /** 当前 tick 计数（命令通道 outbox/日志用）。 */
@@ -79,22 +90,29 @@ public final class MCAHooks {
         if (first) {
             log("WORLD_CREATED world=" + world.getClass().getName()
                     + "@" + Integer.toHexString(System.identityHashCode(world))
-                    + " dir=" + (capturedSaveDir == null ? "?" : capturedSaveDir.getAbsolutePath()));
+                    + " dir=" + (capturedSaveDir == null ? "?" : capturedSaveDir.getAbsolutePath())
+                    + " generation=" + capturedWorldGeneration);
         } else if (capturedWorld != world) {
             // 同进程重进世界：新 World 实例（从盘读回）——把手必须跟进最新活体，
             // 否则命令通道会读到退出时的旧对象，持久化验证失真（cmdchannel-1 实跑发现）。
+            capturedWorldGeneration++;
             log("WORLD_SWITCHED old=@" + Integer.toHexString(System.identityHashCode(capturedWorld))
-                    + " new=@" + Integer.toHexString(System.identityHashCode(world)));
+                    + " new=@" + Integer.toHexString(System.identityHashCode(world))
+                    + " generation=" + capturedWorldGeneration);
         }
         capturedWorld = world;
         if (first) {
             // Phase 1 写侧：第一块砖（此处仍在 saveWorld 栈帧内，必须 submit 排队到 tick 边界）
-            final Object w = world;
-            submit(new Runnable() {
-                public void run() {
-                    FirstBrick.run(w);
-                }
-            });
+            if (noFirstBrick) {
+                log("FIRST_BRICK_SKIPPED noFirstBrick=true（PoC fixture 已禁用，世界零自动写入）");
+            } else {
+                final Object w = world;
+                submit(new Runnable() {
+                    public void run() {
+                        FirstBrick.run(w);
+                    }
+                });
+            }
         }
         log("SAVE_WORLD #" + n
                 + " id=" + Integer.toHexString(System.identityHashCode(world))
