@@ -29,6 +29,13 @@ public final class WorldOps {
         }
     }
 
+    /** 批量写零变更（映射 NO_CHANGE，协议 v2 终态；唯一生产者=fill）。message=完整 detail。 */
+    public static final class NoChange extends Exception {
+        public NoChange(String m) {
+            super(m);
+        }
+    }
+
     // 0327 写侧实名（与 FirstBrick 一致；多版本化时移入登记表）
     private static final String M_SET_BLOCK = "c";   // setBlockWithNotify (IIII)Z public final
     private static final String M_GET_BLOCK = "a";   // getBlockId (III)I public final
@@ -60,6 +67,16 @@ public final class WorldOps {
     private static final String E_YAW = "m";
     private static final String E_PITCH = "n";
 
+    // getplayer 面（javap 取证，EntityLiving=a.c.e）：W=Health（public int，NBT "Health" 双向绑定实锤，默认 10）。
+    // W 在子类，World.c 声明类型=Entity 基类——execute 期按实例类惰性解析（失败→UnsupportedOp，不静默）。
+    private static final String E_HEALTH = "W";
+
+    // 区域批量写读上限（fill/getblocks 共用）：16³=4096。
+    // 取证：v1 fill=循环 c(IIII)Z（place/dig 同路径）；Chunk.setTile 内部已含 heightmap 重算
+    // （g→f→world.d 观察者区间通知）+tile 移除+onPlace+isModified 脏位，快路径（a(IIII)Z）省不出数量级。
+    // 副作用实锤：provider b(II) 对未加载坐标就地生成整 chunk——cap 即 tick 预算限幅，fill-1 计时后议调。
+    public static final int MAX_REGION_VOLUME = 4096;
+
     private static volatile Method setBlock;
     private static volatile Method getBlock;
     private static volatile Method saveWorld;
@@ -73,6 +90,7 @@ public final class WorldOps {
     private static volatile Field ePosX, ePosY, ePosZ;
     private static volatile Field eMotX, eMotY, eMotZ;
     private static volatile Field eYaw, ePitch;
+    private static volatile Field eHealth; // 惰性：EntityLiving 子类字段，按实例类解析
 
     /** 签名探测（可在任意线程调用；NoSuchMethod/NoSuchField → UnsupportedOp）。 */
     static synchronized void resolve(Class<?> wc) throws UnsupportedOp {
@@ -190,6 +208,119 @@ public final class WorldOps {
         if (time < 0) {
             throw new Rejected("time must be >= 0: " + time);
         }
+    }
+
+    /**
+     * 区域校验+归一化（fill/getblocks 共用）：两角各自 validateCoords，
+     * min/max 归一，体积（含边界）≤ MAX_REGION_VOLUME（long 乘法防溢出）。
+     * 返回 {minX,minY,minZ,maxX,maxY,maxZ}。
+     */
+    public static int[] normalizeRegion(int x1, int y1, int z1, int x2, int y2, int z2)
+            throws Rejected {
+        validateCoords(x1, y1, z1);
+        validateCoords(x2, y2, z2);
+        int mnx = Math.min(x1, x2);
+        int mxx = Math.max(x1, x2);
+        int mny = Math.min(y1, y2);
+        int mxy = Math.max(y1, y2);
+        int mnz = Math.min(z1, z2);
+        int mxz = Math.max(z1, z2);
+        long vol = (long) (mxx - mnx + 1) * (long) (mxy - mny + 1) * (long) (mxz - mnz + 1);
+        if (vol > MAX_REGION_VOLUME) {
+            throw new Rejected("volume-too-large: " + vol + " > " + MAX_REGION_VOLUME);
+        }
+        return new int[]{mnx, mny, mnz, mxx, mxy, mxz};
+    }
+
+    /**
+     * 区域批量写（op=fill）。v1=循环 setBlockWithNotify（取证：快路径省不出数量级，正确性优先）。
+     * 零变更（全区域已是同 id）→ NoChange(detail)（映射 NO_CHANGE，跳过 save——磁盘态未动）。
+     */
+    public static String fill(Object world, int x1, int y1, int z1, int x2, int y2, int z2,
+                              int blockId) throws Exception {
+        validateBlockId(blockId);
+        int[] r = normalizeRegion(x1, y1, z1, x2, y2, z2);
+        int changed = 0;
+        for (int y = r[1]; y <= r[4]; y++) {
+            for (int x = r[0]; x <= r[3]; x++) {
+                for (int z = r[2]; z <= r[5]; z++) {
+                    if (setBlock(world, x, y, z, blockId)) {
+                        changed++;
+                    }
+                }
+            }
+        }
+        String detail = "filled [" + r[0] + ".." + r[3] + "] [" + r[1] + ".." + r[4] + "] ["
+                + r[2] + ".." + r[5] + "] id=" + blockId + " changed=" + changed;
+        if (changed == 0) {
+            throw new NoChange(detail);
+        }
+        return detail;
+    }
+
+    /**
+     * 区域批量读（op=getblocks）。循环 getBlockId（游戏同语义；未加载坐标=provider 就地生成，cap 限幅）。
+     * RLE 编码遍历序 y→x→z（y 外层），run 形如 id:count，| 分隔。
+     */
+    public static String getblocks(Object world, int x1, int y1, int z1, int x2, int y2, int z2)
+            throws Exception {
+        int[] r = normalizeRegion(x1, y1, z1, x2, y2, z2);
+        StringBuilder rle = new StringBuilder("rle=");
+        int runId = -1;
+        int runLen = 0;
+        for (int y = r[1]; y <= r[4]; y++) {
+            for (int x = r[0]; x <= r[3]; x++) {
+                for (int z = r[2]; z <= r[5]; z++) {
+                    int id = getBlockId(world, x, y, z);
+                    if (id == runId) {
+                        runLen++;
+                    } else {
+                        if (runLen > 0) {
+                            appendRun(rle, runId, runLen);
+                        }
+                        runId = id;
+                        runLen = 1;
+                    }
+                }
+            }
+        }
+        if (runLen > 0) {
+            appendRun(rle, runId, runLen);
+        }
+        int dx = r[3] - r[0] + 1;
+        int dy = r[4] - r[1] + 1;
+        int dz = r[5] - r[2] + 1;
+        return "getblocks " + dx + "x" + dy + "x" + dz + " " + rle;
+    }
+
+    private static void appendRun(StringBuilder rle, int id, int len) {
+        if (rle.length() > 4) {
+            rle.append('|');
+        }
+        rle.append(id).append(':').append(len);
+    }
+
+    /** 玩家快照（op=getplayer，只读）：pos/motion/rot（tp 轮已 resolve 字段）+ Health（惰性解析 W）。 */
+    public static String getPlayer(Object world) throws Exception {
+        Object p = player.get(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        Field h = eHealth;
+        if (h == null) {
+            try {
+                h = p.getClass().getField(E_HEALTH);
+            } catch (NoSuchFieldException e) {
+                throw new UnsupportedOp("entity health field: " + e);
+            }
+            eHealth = h;
+        }
+        return "x=" + ePosX.getDouble(p) + " y=" + ePosY.getDouble(p)
+                + " z=" + ePosZ.getDouble(p)
+                + " motX=" + eMotX.getDouble(p) + " motY=" + eMotY.getDouble(p)
+                + " motZ=" + eMotZ.getDouble(p)
+                + " yaw=" + eYaw.getFloat(p) + " pitch=" + ePitch.getFloat(p)
+                + " health=" + h.getInt(p);
     }
 
     public static int getBlockId(Object world, int x, int y, int z) throws Exception {

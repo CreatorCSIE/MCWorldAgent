@@ -41,7 +41,8 @@ public final class CommandChannel {
     private static final long POLL_MS = 250; // 20TPS 下约每 5 tick
 
     private static final Set<String> KNOWN_OPS = new HashSet<String>(
-            Arrays.asList("place", "dig", "getblock", "getinfo", "settime", "setspawn", "tp", "save"));
+            Arrays.asList("place", "dig", "getblock", "getinfo", "settime", "setspawn", "tp",
+                    "save", "fill", "getblocks", "getplayer"));
 
     private static String cmdDirArg;
     private static File baseDir; // 解析后的 mca/ 根
@@ -237,6 +238,14 @@ public final class CommandChannel {
                 } catch (WorldOps.Rejected r) {
                     status = "REJECTED";
                     detail = r.getMessage();
+                } catch (WorldOps.NoChange nc) {
+                    // 协议 v2 终态：批量写零变更（唯一生产者=fill），save 已跳过
+                    status = "NO_CHANGE";
+                    detail = nc.getMessage();
+                } catch (WorldOps.UnsupportedOp u) {
+                    // runOp 期惰性签名解析（getplayer 的 W）——与 resolve 段同映射，不静默
+                    status = "UNSUPPORTED";
+                    detail = u.getMessage();
                 } catch (java.lang.reflect.InvocationTargetException ite) {
                     status = "ERROR";
                     detail = WorldOps.unwrap(ite);
@@ -286,6 +295,41 @@ public final class CommandChannel {
                 r += " saved=true";
             }
             return r;
+        }
+        // 区域批量 op（fill/getblocks）：cap=MAX_REGION_VOLUME，tick 边界计时入日志（tick 预算取证）
+        if ("fill".equals(c.op)) {
+            int x1 = intArg(a, "x1");
+            int y1 = intArg(a, "y1");
+            int z1 = intArg(a, "z1");
+            int x2 = intArg(a, "x2");
+            int y2 = intArg(a, "y2");
+            int z2 = intArg(a, "z2");
+            int id = intArg(a, "blockId");
+            long t0 = System.nanoTime();
+            try {
+                return WorldOps.fill(world, x1, y1, z1, x2, y2, z2, id) + saveSuffix(world, c);
+            } finally {
+                MCAHooks.log("FILL_MS id=" + c.id + " ms="
+                        + ((System.nanoTime() - t0) / 1000000L));
+            }
+        }
+        if ("getblocks".equals(c.op)) {
+            int x1 = intArg(a, "x1");
+            int y1 = intArg(a, "y1");
+            int z1 = intArg(a, "z1");
+            int x2 = intArg(a, "x2");
+            int y2 = intArg(a, "y2");
+            int z2 = intArg(a, "z2");
+            long t0 = System.nanoTime();
+            try {
+                return WorldOps.getblocks(world, x1, y1, z1, x2, y2, z2); // 读侧忽略 save
+            } finally {
+                MCAHooks.log("GETBLOCKS_MS id=" + c.id + " ms="
+                        + ((System.nanoTime() - t0) / 1000000L));
+            }
+        }
+        if ("getplayer".equals(c.op)) {
+            return WorldOps.getPlayer(world); // 读侧快照；W 惰性解析失败→UnsupportedOp→UNSUPPORTED
         }
         int x = intArg(a, "x");
         int y = intArg(a, "y");

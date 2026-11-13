@@ -60,6 +60,7 @@ mca/
 |---|---|
 | ACCEPTED | 已读取移入 processed/，等待 tick 执行（outbox 临时态） |
 | OK | 游戏线程执行成功 |
+| NO_CHANGE | 执行成功但零变化（协议 v2，2026-11-13 落；唯一生产者=fill 同 id 区域，save 跳过——磁盘态未动；v1 归档账目不动） |
 | REJECTED | 参数/前置条件不满足（含协议版本、未知 op） |
 | UNSUPPORTED | 当前版本签名不符（对齐织入层三态，不静默） |
 | ERROR | 执行异常 |
@@ -69,8 +70,8 @@ save 策略（评审采纳，按操作类型）：
 
 | 类型 | 默认 |
 |---|---|
-| 写（place/dig/settime/setspawn） | `save=true` |
-| 读（getblock/getinfo） | 忽略 save |
+| 写（place/dig/settime/setspawn/fill） | `save=true`（fill 零变更 NO_CHANGE 时跳过存盘） |
+| 读（getblock/getinfo/getblocks/getplayer） | 忽略 save |
 | 临时态（tp） | `save=false`，显式要求才存 |
 | `save` 独立 op | 显式刷盘用 |
 
@@ -101,8 +102,11 @@ save 策略（评审采纳，按操作类型）：
 | setspawn | `spawnX/Y/Z` = `g/h/i` 直写 | **取证闭环+活体纠正（run setw-1）**：respawn 锚点——死亡重生消费该值（实锤：重生落新点）；重进世界从 `Player.Pos` 恢复、不落 spawn；不动当前玩家（移动属 tp） | L135-137（字节码）+ ✅ run setw-1 磁盘对账 |
 | tp | 直写 `g/h/i`=块中心(x+0.5,y,z+0.5)+清 `j/k/l` → `b(DDDFF)V` setPositionAndRotation（同步 `d/e/f` lastTick+重建 AABB） | **取证闭环（全量 javap 303 类）**：Entity 基类 `a.c.b`：d/e/f=lastTick、g/h/i=pos、j/k/l=motion、m/n=yaw/pitch（全 public）；玩家句柄=`World.c` public 字段（EntityPlayer 构造器自设 `world.c=this`，零新钩子）；配方=游戏 NBT 载入同路径（`Entity.d`←Pos 后调 `b()`）；`b()` 内 h=y+u（u=1.62 眼偏移）→ 脚落 y 平面、眼 y+1.62；mover 每 tick 自愈重算 `pos.y=AABB.bottom+u−O`；`A/B/C` 死字段零读写，无需同步 | `Player.Pos` 持久化已实锤（run setw-1）；✅ run tp-1：目视瞬移+边境之地远距+Pos[1]=y+1.62 磁盘对账+存退重进落 tp 点 |
 | save | `saveWorld(false)` | 已实锤 | ✅ |
+| fill | 循环 `setBlockWithNotify c(IIII)Z`（args x1/y1/z1/x2/y2/z2/blockId 全 int；反角自动归一化；体积 cap 4096=16³，超限 REJECTED `volume-too-large`；changed=0→NO_CHANGE）。取证推翻"快路径"预期：Chunk.setTile 内部已含 heightmap 重算+tile 移除+onPlace+isModified 脏位，`a(IIII)Z` 只省 6 邻光照与逐块观察者标记——省不出数量级，v1 正确性优先，快路径留实测后候选 | **取证闭环（readers 反汇编）** | ✅ run fill-1：243 块含 save=9ms、324 块含 save=7ms——cap 内单 tick 无压力 |
+| getblocks | 循环 `getBlockId a(III)I`（args x1/y1/z1/x2/y2/z2；同 cap；RLE 编码遍历序 y→x→z，run=id:count 竖线分隔） | **取证闭环**：provider `b(II)` 对未加载坐标**就地生成整 chunk**（地形噪声全套）——与游戏同语义，cap 即限幅 | n/a（只读） |
+| getplayer | 直读 Entity `g/h/i`+`j/k/l`+`m/n` + EntityLiving `W`=Health（public int，NBT "Health" 双向绑定实锤，默认 10）；W 在子类→execute 期按实例类惰性 getField，失败→UNSUPPORTED | **取证闭环** | n/a（只读） |
 
-批量写（setTileNoUpdate+脏区标记）第二批。
+批量写第二批已实装并验收（2026-11-13 落码，实跑 run `fill-1` 全项通过——NO_CHANGE 活体实例、同 id 短路 changed=220、存退重进持久化、FILL_MS 243 块含 save=9ms，见 [phase1-command-channel](../research/phase1-command-channel.md) §12）。
 
 ## 7. 戒律（不变项）
 

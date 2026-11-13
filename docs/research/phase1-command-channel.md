@@ -39,7 +39,7 @@
 
 ## 4. 状态与下一步
 
-命令通道 v1（place/dig/getblock/save 四 op）验收完毕。§5 判决的 P0 fixture 化（`noFirstBrick=`）与 P1 世界世代（`capturedWorldGeneration` + 信封 `targetGeneration`）已落码并实跑验收（2026-11-13，run `p0p1-gen`，见 §6）。Query `getinfo` 已落码并实跑验收（2026-11-13，run `getinfo-1`，见 §7）。写侧 `settime`/`setspawn` 已落码并实跑验收（2026-11-13，run `setw-1`，见 §8；setspawn 语义经用户判决纠正为 respawn 锚点）。写侧 `tp` 已落码并实跑验收（2026-11-13，run `tp-1`，见 §10：目视瞬移+边境之地远距+Pos[1]=y+1.62 磁盘对账+存退重进落 tp 点；setw-1 遗留的"实例归属"疑点闭环——当轮未执行重进，见教训 16）。待办：批量写（setTileNoUpdate+脏区标记）第二批；桌面壳"命令台+事件流"底部面板（VS Code 式，速记→封包翻译器）为壳 Phase 2 首件；mca/ 证据已归档各 run `mca-archive/`。
+命令通道 v1（place/dig/getblock/save 四 op）验收完毕。§5 判决的 P0 fixture 化（`noFirstBrick=`）与 P1 世界世代（`capturedWorldGeneration` + 信封 `targetGeneration`）已落码并实跑验收（2026-11-13，run `p0p1-gen`，见 §6）。Query `getinfo` 已落码并实跑验收（2026-11-13，run `getinfo-1`，见 §7）。写侧 `settime`/`setspawn` 已落码并实跑验收（2026-11-13，run `setw-1`，见 §8；setspawn 语义经用户判决纠正为 respawn 锚点）。写侧 `tp` 已落码并实跑验收（2026-11-13，run `tp-1`，见 §10：目视瞬移+边境之地远距+Pos[1]=y+1.62 磁盘对账+存退重进落 tp 点；setw-1 遗留的"实例归属"疑点闭环——当轮未执行重进，见教训 16）。批量写第二批 `fill`/`getblocks` + 顺手钉 `getplayer` 已落码并实跑验收（2026-11-13，run `fill-1`，见 §12：NO_CHANGE 协议 v2 首个活体实例、changed=220 同 id 短路实锤、存退重进 rle=1:324 持久化、FILL_MS 243 块含 save=9ms）。待办：桌面壳"命令台+事件流"底部面板（VS Code 式，速记→封包翻译器）为壳 Phase 2 首件；mca/ 证据已归档各 run `mca-archive/`。
 
 ## 5. 外部评审吸收与 v2 待办（2026-11-13，ChatGPT review 判决）
 
@@ -153,3 +153,29 @@
 
 16. **需要用户手工操作的验证步骤必须拿到"操作确已执行"的明确回执再判定**：setw-1 的"存退重进无 WORLD_SWITCHED"疑点，根因只是当轮与本轮首次都未真正执行重进——验证语义（"我做了 X"）与操作事实之间要用日志独立复核（WORLD_SWITCHED/SUMMARY 行），不匹配即重跑，不记疑点。
 17. **tp 眼高语义（0327）**：`b(DDDFF)` 内 h=y+u(1.62)，tp 到 (x,y,z) 后脚落 y 平面、眼 y+1.62，level.dat `Player.Pos[1]` 即存眼高——对账时 Pos[1]−1.62=tp y，勿按"Pos[1]≠y 即写歪"误判。
+
+## 12. 批量写读 `fill` / `getblocks` + 快照 `getplayer`（2026-11-13，取证闭环 + 落码，实跑待验收）
+
+**取证（readers 反汇编，%TEMP%\mcaut\readers）**：
+
+- **写侧双路径实锤**：`World.a(IIII)Z`（setTileNoUpdate）=边界检查→`Chunk.a(IIII)Z`，零观察者零光照；`c(IIII)Z`（setBlockWithNotify）=`a(IIII)Z` ∧ 遍历 `World.u` 观察者 `a(III)V`（渲染标记）∧ `e(IIII)V`（6 邻格各一次 `i()`→`Block.b(world,x,y,z)`=updateLighting）。
+- **案卷预告被推翻**：`Chunk.a(IIII)Z` 内部已含同 id 短路、旧块 prepareToRemove、heightmap 重算（`g()`→`f()`→**world.d 观察者区间通知**）、tile 移除钩、新块 onPlace、`d=true`（isModified→存盘）。"快路径（setTileNoUpdate+脏区标记）"实际只省 6 邻光照+逐块观察者标记——**省不出数量级**。判决：v1 fill=循环 `c(IIII)Z`（place/dig 同路径，正确性优先），快路径留实测后候选。
+- **tick 预算**：cap=4096 块（16³），超限 REJECTED `volume-too-large`；游戏线程 `System.nanoTime()` 计时，`FILL_MS`/`GETBLOCKS_MS` 入 agent 日志——fill-1 实测数据回写后再议上调或快路径。
+- **getblocks 读配方**：循环 `World.a(III)I`（getBlockId，游戏同语义）。副作用实锤：provider `a.a.c.a.b(II)` 对未加载坐标**就地生成整 chunk**（`Random.setSeed`+32768 byte[]+4×4 噪声网格全套）——读越界=生成卡顿面，cap 即限幅，不另设加载检查（v1 与游戏同语义）。
+- **Health 实名**：`EntityLiving(a.c.e).W` public int，NBT `"Health"` save/load 双向绑定实锤，默认 10（无键时写 10）；顺钉 `Y`=HurtTime、`ab`=DeathTime、`ac`=AttackTime（v1 只取 Health）。`W` 在子类而 `World.c` 声明类型=Entity 基类→getplayer 按实例类惰性 `getField("W")`，失败→UnsupportedOp（execute 的 runOp 段扩捕 UnsupportedOp→UNSUPPORTED，不静默）。
+- **NO_CHANGE（协议 v2 终态，§5 判决"全采"落地）**：仅 outbox 侧新增终态字符串，封包格式与 `protocolVersion=1` 校验不动（v1 归档账目不动）；唯一生产者=fill changed==0（`WorldOps.NoChange` 信号异常，message=完整 detail，save 跳过——磁盘态未动）。
+
+**落码**：`WorldOps`：`MAX_REGION_VOLUME=4096`、`normalizeRegion`（两角 validateCoords+min/max 归一+long 乘法防溢出）、`fill`、`getblocks`（RLE 遍历序 y→x→z，run=`id:count` 竖线分隔）、`getPlayer`（g/h/i+j/k/l+m/n+W）。`CommandChannel`：KNOWN_OPS+三 op（→11）；runOp 三分支（fill 写侧默认 save=true，读侧忽略）；execute 扩捕 NoChange→NO_CHANGE、UnsupportedOp→UNSUPPORTED；FILL_MS/GETBLOCKS_MS 计时日志。MCAHooks/MCWorldAgent/MiniJson/FirstBrick 零改动。
+
+**无头断言**：65/65（53 旧+12 新：三 op validate 放行、反角归一化、4096 恰好放行、4352 拒绝、y=0 角点拒绝、fill changed 计数、零变更 NoChange、RLE 单 run+维度串、getplayer 全字段快照、no-player 拒绝；FakeWorld 写/读返回值可配置面+FakeEntity 带 W）。
+
+**实跑 run `fill-1`（2026-11-13，全项通过，退出码 0，mca-archive/ 归档）**：
+
+- 基线：`gi1` OK；`gp1` OK——**health=18 活体实锤**（W 实名：上轮重生扣血值，非默认 10）。
+- 正向：`fill0` 石砖地基 9×1×9 changed=81；`fill1` 圆石 9×3×9 **changed=220**（243 中 23 块原地形已是圆石——同 id 短路实锤，与 Chunk.setTile 取证一致）；`gb1` 读回 `getblocks 9x4x9 rle=4:81|1:243`（81+243=324 精确）；目视通过（用户确认平台可见）。
+- **NO_CHANGE 协议 v2 首个活体实例**：`fill2` 同区域同 id → `status=NO_CHANGE, changed=0`，save 跳过。
+- 失败路径：`fill3` 4352 块 → REJECTED `volume-too-large: 4352 > 4096`；`fill4` y2=200 → REJECTED `y out of range [1,127]: 200`。
+- 批量挖除：`fill5` blockId=0 changed=324 → `gb5` `rle=0:324`（dig 语义批量成立）。
+- 持久化：`fill6` 复原圆石 changed=324 saved=true（**7ms**）→ 存退重进（WORLD_SWITCHED gen=2，新实例）→ `gb6` **`rle=1:324` 原样读回**；`gp2` health=20（重生后自然回血）、位置恢复落平台。
+- **tick 预算数据**：FILL_MS 243 块含 save=9ms、324 块含 save=7ms，其余亚毫秒（ms=0）；GETBLOCKS_MS 324 块读=0ms——cap 4096 内单 tick 无压力，快路径（v2 候选）暂无必要性证据。
+- 发令戒律补记：`powershell -File` 传含引号/逗号的 JSON 参数会被剥离破坏（bad-json @54 两连 REJECTED）——实跑发令改用内嵌 JSON 的 cmds.txt 批处理（tmp→inbox 同卷 rename，UTF8 无 BOM 不变）。
