@@ -41,7 +41,7 @@ public final class CommandChannel {
     private static final long POLL_MS = 250; // 20TPS 下约每 5 tick
 
     private static final Set<String> KNOWN_OPS = new HashSet<String>(
-            Arrays.asList("place", "dig", "getblock", "getinfo", "settime", "setspawn", "save"));
+            Arrays.asList("place", "dig", "getblock", "getinfo", "settime", "setspawn", "tp", "save"));
 
     private static String cmdDirArg;
     private static File baseDir; // 解析后的 mca/ 根
@@ -273,6 +273,19 @@ public final class CommandChannel {
             WorldOps.validateCoords(sx, sy, sz);
             WorldOps.setSpawn(world, sx, sy, sz);
             return "spawn set x=" + sx + " y=" + sy + " z=" + sz + saveSuffix(world, c);
+        }
+        if ("tp".equals(c.op)) {
+            int tx = intArg(a, "x");
+            int ty = intArg(a, "y");
+            int tz = intArg(a, "z");
+            WorldOps.validateCoords(tx, ty, tz);
+            String r = WorldOps.tp(world, tx, ty, tz);
+            // tp 临时态语义（§3）：save 默认 false，显式 save=true 才落 level.dat
+            if (Boolean.TRUE.equals(c.env.get("save"))) {
+                WorldOps.saveWorld(world);
+                r += " saved=true";
+            }
+            return r;
         }
         int x = intArg(a, "x");
         int y = intArg(a, "y");

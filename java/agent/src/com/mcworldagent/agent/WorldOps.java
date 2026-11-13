@@ -44,6 +44,22 @@ public final class WorldOps {
     private static final String F_SPAWN_Y = "h";     // public int spawnY（NBT "SpawnY"）
     private static final String F_SPAWN_Z = "i";     // public int spawnZ（NBT "SpawnZ"）
 
+    // tp 侧实名（javap 取证，Entity 基类 net.minecraft.a.c.b；全量反汇编 303 类）：
+    //   World.c public Entity 字段 = 活体玩家（EntityPlayer 构造器自设 world.c=this，零新钩子）
+    //   d,e,f=lastTick / g,h,i=pos / j,k,l=motion / m,n=yaw,pitch（public double/float）
+    //   b(DDDFF)V=setPositionAndRotation：d=g=x; e=h=y+u(眼偏移1.62); f=i=z; 末尾 a(DDD) 重建 AABB
+    //   = 游戏 NBT 载入（Entity.d←Player.Pos 后调 b）的同一配方；mover 每 tick 自愈重算 pos.y
+    private static final String F_WORLD_PLAYER = "c"; // public Entity player（World 字段）
+    private static final String M_SET_POS_ROT = "b";  // setPositionAndRotation (DDDFF)V public final
+    private static final String E_POS_X = "g";
+    private static final String E_POS_Y = "h";
+    private static final String E_POS_Z = "i";
+    private static final String E_MOT_X = "j";
+    private static final String E_MOT_Y = "k";
+    private static final String E_MOT_Z = "l";
+    private static final String E_YAW = "m";
+    private static final String E_PITCH = "n";
+
     private static volatile Method setBlock;
     private static volatile Method getBlock;
     private static volatile Method saveWorld;
@@ -52,6 +68,11 @@ public final class WorldOps {
     private static volatile Field spawnX;
     private static volatile Field spawnY;
     private static volatile Field spawnZ;
+    private static volatile Field player;      // World.c（类型=Entity 基类，活体玩家）
+    private static volatile Method setPosRot;  // Entity.b(DDDFF)V
+    private static volatile Field ePosX, ePosY, ePosZ;
+    private static volatile Field eMotX, eMotY, eMotZ;
+    private static volatile Field eYaw, ePitch;
 
     /** 签名探测（可在任意线程调用；NoSuchMethod/NoSuchField → UnsupportedOp）。 */
     static synchronized void resolve(Class<?> wc) throws UnsupportedOp {
@@ -69,6 +90,19 @@ public final class WorldOps {
             Field sx = wc.getField(F_SPAWN_X);
             Field sy = wc.getField(F_SPAWN_Y);
             Field sz = wc.getField(F_SPAWN_Z);
+            // tp 面：World.c 的类型即 Entity 基类，公开成员 getField/getMethod 直取
+            Field pl = wc.getField(F_WORLD_PLAYER);
+            Class<?> ec = pl.getType();
+            Method spr = ec.getMethod(M_SET_POS_ROT,
+                    double.class, double.class, double.class, float.class, float.class);
+            Field pgx = ec.getField(E_POS_X);
+            Field pgy = ec.getField(E_POS_Y);
+            Field pgz = ec.getField(E_POS_Z);
+            Field pjx = ec.getField(E_MOT_X);
+            Field pjy = ec.getField(E_MOT_Y);
+            Field pjz = ec.getField(E_MOT_Z);
+            Field pYaw = ec.getField(E_YAW);
+            Field pPitch = ec.getField(E_PITCH);
             setBlock = sb;
             getBlock = gb;
             saveWorld = sv;
@@ -77,6 +111,16 @@ public final class WorldOps {
             spawnX = sx;
             spawnY = sy;
             spawnZ = sz;
+            player = pl;
+            setPosRot = spr;
+            ePosX = pgx;
+            ePosY = pgy;
+            ePosZ = pgz;
+            eMotX = pjx;
+            eMotY = pjy;
+            eMotZ = pjz;
+            eYaw = pYaw;
+            ePitch = pPitch;
         } catch (NoSuchMethodException e) {
             throw new UnsupportedOp("world signatures: " + e);
         } catch (NoSuchFieldException e) {
@@ -107,6 +151,38 @@ public final class WorldOps {
         spawnX.setInt(world, x);
         spawnY.setInt(world, y);
         spawnZ.setInt(world, z);
+    }
+
+    /**
+     * 传送玩家（op=tp）。复刻游戏 NBT 载入配方（Entity.d←Pos 后调 b(DDDFF)）：
+     * 直写 pos=块中心(x+0.5,y,z+0.5)、清 motion（防残留速度拉扯），
+     * 再经 setPositionAndRotation 同步 lastTick(d,e,f) 与重建 AABB——与"重进世界恢复位置"同路径。
+     * 注意 b() 内部 h=y+u（u=眼偏移 1.62）：脚落 y 平面、眼在 y+1.62，载入配方即如此。
+     * 返回旧位供回滚记录。
+     */
+    public static String tp(Object world, int x, int y, int z) throws Exception {
+        Object p = player.get(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        double ox = ePosX.getDouble(p);
+        double oy = ePosY.getDouble(p);
+        double oz = ePosZ.getDouble(p);
+        float yaw = eYaw.getFloat(p);
+        float pitch = ePitch.getFloat(p);
+        double nx = x + 0.5;
+        double ny = y;
+        double nz = z + 0.5;
+        ePosX.setDouble(p, nx);
+        ePosY.setDouble(p, ny);
+        ePosZ.setDouble(p, nz);
+        eMotX.setDouble(p, 0.0);
+        eMotY.setDouble(p, 0.0);
+        eMotZ.setDouble(p, 0.0);
+        setPosRot.invoke(p, Double.valueOf(nx), Double.valueOf(ny), Double.valueOf(nz),
+                Float.valueOf(yaw), Float.valueOf(pitch));
+        return "teleported from x=" + ox + " y=" + oy + " z=" + oz
+                + " -> x=" + x + " y=" + y + " z=" + z;
     }
 
     /** time 校验：0327 世界时间从 0 起算，负值无意义（REJECTED）。 */

@@ -39,7 +39,7 @@
 
 ## 4. 状态与下一步
 
-命令通道 v1（place/dig/getblock/save 四 op）验收完毕。§5 判决的 P0 fixture 化（`noFirstBrick=`）与 P1 世界世代（`capturedWorldGeneration` + 信封 `targetGeneration`）已落码并实跑验收（2026-11-13，run `p0p1-gen`，见 §6）。Query `getinfo` 已落码并实跑验收（2026-11-13，run `getinfo-1`，见 §7）。写侧 `settime`/`setspawn` 已落码并实跑验收（2026-11-13，run `setw-1`，见 §8；setspawn 语义经用户判决纠正为 respawn 锚点）。待办：tp 需实锤玩家位置持久化（`Player.Pos` 已实锤存在，剩写方配方）与"同世界存退重进实例归属"疑点（§8 待查）；批量写（setTileNoUpdate+脏区标记）第二批；桌面壳"命令台+事件流"底部面板（VS Code 式，速记→封包翻译器）为壳 Phase 2 首件；mca/ 证据已归档各 run `mca-archive/`。
+命令通道 v1（place/dig/getblock/save 四 op）验收完毕。§5 判决的 P0 fixture 化（`noFirstBrick=`）与 P1 世界世代（`capturedWorldGeneration` + 信封 `targetGeneration`）已落码并实跑验收（2026-11-13，run `p0p1-gen`，见 §6）。Query `getinfo` 已落码并实跑验收（2026-11-13，run `getinfo-1`，见 §7）。写侧 `settime`/`setspawn` 已落码并实跑验收（2026-11-13，run `setw-1`，见 §8；setspawn 语义经用户判决纠正为 respawn 锚点）。写侧 `tp` 已落码并实跑验收（2026-11-13，run `tp-1`，见 §10：目视瞬移+边境之地远距+Pos[1]=y+1.62 磁盘对账+存退重进落 tp 点；setw-1 遗留的"实例归属"疑点闭环——当轮未执行重进，见教训 16）。待办：批量写（setTileNoUpdate+脏区标记）第二批；桌面壳"命令台+事件流"底部面板（VS Code 式，速记→封包翻译器）为壳 Phase 2 首件；mca/ 证据已归档各 run `mca-archive/`。
 
 ## 5. 外部评审吸收与 v2 待办（2026-11-13，ChatGPT review 判决）
 
@@ -120,9 +120,36 @@
 
 **语义纠正（用户判决，先于实跑）**：setspawn=**respawn 锚点**，不是玩家当前位置。静态取证"EntityPlayer 构造器读 g/h/i"只覆盖新玩家路径；活体实跑证明重进世界玩家从 level.dat `Player` compound（Pos/Motion/Health/Inventory 独立持久化，dump 实锤）恢复——重进落原位是**正常行为**。消费 spawnXYZ 的活路径=死亡重生。移动当前玩家是 tp 的活，边界不变。
 
-**待查（记账不展开）**：本次存退重进**无** WORLD_SWITCHED、世代恒 1、time 持续推进、SAVE_WORLD 仅命令+退出触发——与 cmdchannel-2 的 `new=@3479b51f` 新实例现象不一致，0327"同世界存退重进"的实例归属待 tp 取证轮一并钉（tp 需先钉玩家位置读方/写方，同属 EntityPlayer 域）。
-
 ## 9. 教训续（setw-1）
 
 14. **op 语义必须由活体路径定义，不能只靠静态读点**：`g/h/i` 唯一类外读点=EntityPlayer 构造器 ≠ "重进世界会落新出生点"。spawn 的活消费路径是死亡重生；玩家位置另有独立持久化（`Player.Pos`）。
 15. **level.dat 键扫描防子串陷阱**：`IndexOf("Time")` 先命中 `DeathTime`；NBT 键匹配须带名长前缀（`00 04 Time`）定位。
+
+## 10. 写侧 `tp`（2026-11-13，取证闭环 + 落码 + 实跑验收 run `tp-1`）
+
+**取证（全量 javap 303 类，%TEMP%\mcaut\readers）**：
+
+- Entity 基类=`net.minecraft.a.c.b`（EntityPlayer=`a.c.e.a` extends `a.c.e` extends `b`）。位置面全 public：`d/e/f`=lastTick、`g/h/i`=pos、`j/k/l`=motion、`m/n`=yaw/pitch；`v`=0.6 宽、`w`=1.8 高、`u`=眼偏移（EntityPlayer 置 1.62f）；`q`=AABB。**`A/B/C` 三个 double 全 jar 零读写点=死字段**，戒律里"同步 prev"实为 lastTick（d/e/f），无 prev 三元组。
+- `a(DDD)V`（protected final）=setPosition：写 g/h/i + 以 (x±0.3, y±0.9, z±0.3) 重建 AABB——AABB-first 实锤。
+- `b(DDDFF)V`（public final）=setPositionAndRotation：`d=g=x; e=h=y+u; f=i=z; m/n` 重设，末尾调 a()。**公开可用，且正是游戏自身的恢复入口**。
+- **配方判决**：游戏 NBT 载入路径 `Entity.d(com.a.a.c)` = 直写 g/h/i←Pos、j/k/l←Motion、m/n←Rotation → 调 `b(g,h,i,m,n)`。tp 逐字节复刻此配方="重进世界恢复位置"同路径，行为可预期。mover 每 tick 自愈重算 `pos.y=AABB.bottom+u−O`（站立稳态：脚=AABB 底、眼=pos.y）。
+- y 语义：`b()` 内 h=y+u → **tp 到 (x,y,z) 后脚落 y 平面、眼在 y+1.62**（与载入配方一致，非 bug 是游戏语义）。
+- **玩家句柄零新钩子**：`World.c` public 字段（类型 Entity），**EntityPlayer 构造器自设 `world.c=this`**（此前"303 类无写方"系 grep 漏了类名前缀形态 `Field net/minecraft/a/a/f.c:`）。saveWorld 写 Player←`player.c()`（Pos=g/h/i 原值）；读回暂存 `world.y`，`World.a()` 交 `player.d()`。
+
+**落码**：`WorldOps.resolve` 扩展（World.c + Entity b(DDDFF)V + g..n 字段，签名不符→UNSUPPORTED 纪律不变）；`WorldOps.tp`（no-player→REJECTED；直写块中心 x+0.5/z+0.5、清 motion、经 b() 同步 lastTick+AABB；返回旧位供回滚）。`CommandChannel`：KNOWN_OPS+tp；**save 默认 false**（§3 临时态语义，显式 `save=true` 才落盘——与 settime/setspawn 的默认存盘不同）。MCAHooks/MCWorldAgent/MiniJson 零改动。
+
+**无头断言**：53/53（新增 8：validate 放行、no-player 拒绝、旧→新返回串、块中心 +0.5、h=y+u、lastTick 同步、motion 清零、朝向保持；FakeEntity 复刻 b() 语义）。
+
+**实跑验收（2026-11-13，run `integrations/attic/out/tp-1/`，noFirstBrick=true）**：
+
+- WORLD_CREATED@25.3s gen=1（default instance\World2）；gi1 基线 OK。
+- **tp1 OK**：(-3.27, 75.37, -6.14) → (15,75,15)，用户目视瞬移确认；负例三连全中：y=200→`y out of range`、缺 z→`arg 'z' must be integer`、x=1.5→`bad-json: float not allowed`。
+- **tp5 远距 OK**：→ (12550814, 90, 12550814) 边境之地，用户目视"到了，看到了"；旧位回读 y=73.62=72+1.62（眼高语义活体再证，x 微漂 12550806.9=碰撞修正）。
+- **tp6 save=true**：→ (0,64,0)，detail 带 saved=true；level.dat（gzip NBT，`00 03 Pos`+type6+count3 模式）对账 **Pos=[0.30, 65.62, 0.675]**——Pos[1]=64+1.62 磁盘实锤。
+- **存退重进存续**：Esc 回标题重进 World2，落 tp 点（非出生锚点 10,70,10）——tp+save 持久化闭环；gi3 OK、time 连续。
+- **实例归属疑点闭环**（原 setw-1 记账"存退重进无 WORLD_SWITCHED"）：本次真重进出现 `WORLD_SWITCHED old=@2d96265d new=@dd3cc45 generation=2`——同进程重进=新实例+世代+1（与 cmdchannel-2 一致）。setw-1"无 WORLD_SWITCHED"由用户证言坐实：**当时根本没执行重进**。关窗 code=0，SUMMARY ticks=7841。
+
+## 11. 教训续（tp-1）
+
+16. **需要用户手工操作的验证步骤必须拿到"操作确已执行"的明确回执再判定**：setw-1 的"存退重进无 WORLD_SWITCHED"疑点，根因只是当轮与本轮首次都未真正执行重进——验证语义（"我做了 X"）与操作事实之间要用日志独立复核（WORLD_SWITCHED/SUMMARY 行），不匹配即重跑，不记疑点。
+17. **tp 眼高语义（0327）**：`b(DDDFF)` 内 h=y+u(1.62)，tp 到 (x,y,z) 后脚落 y 平面、眼 y+1.62，level.dat `Player.Pos[1]` 即存眼高——对账时 Pos[1]−1.62=tp y，勿按"Pos[1]≠y 即写歪"误判。

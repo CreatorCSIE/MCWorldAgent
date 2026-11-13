@@ -99,7 +99,7 @@ save 策略（评审采纳，按操作类型）：
 | getinfo | 字段直读 `worldTime=b` / `randSeed=x`(private) / `spawnX/Y/Z=g/h/i` | 实名已钉（saveWorld NBT 键绑定 + `h()` 每 tick b+1、b%200 触发 autosave，run p0p1-gen 取证） | n/a（只读；实跑 run getinfo-1：time Δ=tick Δ、seed 对账 level.dat 命中） |
 | settime | `worldTime` 字段 `b` 直写 | **取证闭环（全量 javap 303 类）**：`b` 外部读点仅 Chunk 存盘 LastUpdate；渲染每帧 `client.a.b.a(lerp)`→`f.b(F)F`→`glRotatef` 实时算零缓存——**无通知面，写字段即生效** | level.dat "Time" 写路径 L138（字节码） |
 | setspawn | `spawnX/Y/Z` = `g/h/i` 直写 | **取证闭环+活体纠正（run setw-1）**：respawn 锚点——死亡重生消费该值（实锤：重生落新点）；重进世界从 `Player.Pos` 恢复、不落 spawn；不动当前玩家（移动属 tp） | L135-137（字节码）+ ✅ run setw-1 磁盘对账 |
-| tp | `Entity.setPosition`+lastTick/prev | 配方已定（AABB-first） | `Player.Pos` 持久化已实锤（run setw-1 level.dat dump）；剩写方生效面待验 |
+| tp | 直写 `g/h/i`=块中心(x+0.5,y,z+0.5)+清 `j/k/l` → `b(DDDFF)V` setPositionAndRotation（同步 `d/e/f` lastTick+重建 AABB） | **取证闭环（全量 javap 303 类）**：Entity 基类 `a.c.b`：d/e/f=lastTick、g/h/i=pos、j/k/l=motion、m/n=yaw/pitch（全 public）；玩家句柄=`World.c` public 字段（EntityPlayer 构造器自设 `world.c=this`，零新钩子）；配方=游戏 NBT 载入同路径（`Entity.d`←Pos 后调 `b()`）；`b()` 内 h=y+u（u=1.62 眼偏移）→ 脚落 y 平面、眼 y+1.62；mover 每 tick 自愈重算 `pos.y=AABB.bottom+u−O`；`A/B/C` 死字段零读写，无需同步 | `Player.Pos` 持久化已实锤（run setw-1）；✅ run tp-1：目视瞬移+边境之地远距+Pos[1]=y+1.62 磁盘对账+存退重进落 tp 点 |
 | save | `saveWorld(false)` | 已实锤 | ✅ |
 
 批量写（setTileNoUpdate+脏区标记）第二批。
