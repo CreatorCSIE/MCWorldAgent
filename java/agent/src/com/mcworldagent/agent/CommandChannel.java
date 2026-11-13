@@ -41,7 +41,7 @@ public final class CommandChannel {
     private static final long POLL_MS = 250; // 20TPS 下约每 5 tick
 
     private static final Set<String> KNOWN_OPS = new HashSet<String>(
-            Arrays.asList("place", "dig", "getblock", "save"));
+            Arrays.asList("place", "dig", "getblock", "getinfo", "settime", "setspawn", "save"));
 
     private static String cmdDirArg;
     private static File baseDir; // 解析后的 mca/ 根
@@ -256,6 +256,24 @@ public final class CommandChannel {
             WorldOps.saveWorld(world);
             return "saveWorld(false) called";
         }
+        if ("getinfo".equals(c.op)) {
+            return WorldOps.getInfo(world); // Query 只读快照，无坐标校验无存盘
+        }
+        // 写侧非坐标 op：不走 place/dig 的坐标管线
+        if ("settime".equals(c.op)) {
+            long t = longArg(a, "time");
+            WorldOps.validateTime(t);
+            long old = WorldOps.setTime(world, t);
+            return "time " + old + " -> " + t + saveSuffix(world, c);
+        }
+        if ("setspawn".equals(c.op)) {
+            int sx = intArg(a, "x");
+            int sy = intArg(a, "y");
+            int sz = intArg(a, "z");
+            WorldOps.validateCoords(sx, sy, sz);
+            WorldOps.setSpawn(world, sx, sy, sz);
+            return "spawn set x=" + sx + " y=" + sy + " z=" + sz + saveSuffix(world, c);
+        }
         int x = intArg(a, "x");
         int y = intArg(a, "y");
         int z = intArg(a, "z");
@@ -289,6 +307,24 @@ public final class CommandChannel {
             throw new WorldOps.Rejected("arg '" + k + "' out of int range");
         }
         return (int) l;
+    }
+
+    /** long 域参数（settime.time）：MiniJson 整数一律解析为 Long。 */
+    private static long longArg(Map<String, Object> a, String k) throws WorldOps.Rejected {
+        Object v = a == null ? null : a.get(k);
+        if (!(v instanceof Long)) {
+            throw new WorldOps.Rejected("arg '" + k + "' must be integer");
+        }
+        return ((Long) v).longValue();
+    }
+
+    /** 写操作默认存盘（§3：save=false 显式关闭），返回 detail 后缀。 */
+    private static String saveSuffix(Object world, Command c) throws Exception {
+        if (!Boolean.FALSE.equals(c.env.get("save"))) {
+            WorldOps.saveWorld(world);
+            return " saved=true";
+        }
+        return "";
     }
 
     /** 信封校验：protocolVersion==1、id 形态、op 已知、targetGeneration（可选）为整数。返回 null=通过，否则=拒绝原因。 */

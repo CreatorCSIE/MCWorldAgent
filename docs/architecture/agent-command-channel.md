@@ -70,7 +70,7 @@ save 策略（评审采纳，按操作类型）：
 | 类型 | 默认 |
 |---|---|
 | 写（place/dig/settime/setspawn） | `save=true` |
-| 读（getblock） | 忽略 save |
+| 读（getblock/getinfo） | 忽略 save |
 | 临时态（tp） | `save=false`，显式要求才存 |
 | `save` 独立 op | 显式刷盘用 |
 
@@ -96,9 +96,10 @@ save 策略（评审采纳，按操作类型）：
 | place | `setBlockWithNotify c(IIII)Z` | 实名已钉 | ✅ run B 读回 |
 | dig | 同上 blockId=0 | 同入口（PlayerController L27 游戏自删路径） | 待实跑（并入第二块砖） |
 | getblock | `getBlockId a(III)I` | 实名已钉 | n/a |
-| settime | `worldTime` | 混淆名待 javap | level.dat "Time" 写路径 L138（字节码） |
-| setspawn | `spawnX/Y/Z` | 混淆名待复核 | L135-137（字节码） |
-| tp | `Entity.setPosition`+lastTick/prev | 配方已定（AABB-first） | **玩家位置持久化未验证** |
+| getinfo | 字段直读 `worldTime=b` / `randSeed=x`(private) / `spawnX/Y/Z=g/h/i` | 实名已钉（saveWorld NBT 键绑定 + `h()` 每 tick b+1、b%200 触发 autosave，run p0p1-gen 取证） | n/a（只读；实跑 run getinfo-1：time Δ=tick Δ、seed 对账 level.dat 命中） |
+| settime | `worldTime` 字段 `b` 直写 | **取证闭环（全量 javap 303 类）**：`b` 外部读点仅 Chunk 存盘 LastUpdate；渲染每帧 `client.a.b.a(lerp)`→`f.b(F)F`→`glRotatef` 实时算零缓存——**无通知面，写字段即生效** | level.dat "Time" 写路径 L138（字节码） |
+| setspawn | `spawnX/Y/Z` = `g/h/i` 直写 | **取证闭环+活体纠正（run setw-1）**：respawn 锚点——死亡重生消费该值（实锤：重生落新点）；重进世界从 `Player.Pos` 恢复、不落 spawn；不动当前玩家（移动属 tp） | L135-137（字节码）+ ✅ run setw-1 磁盘对账 |
+| tp | `Entity.setPosition`+lastTick/prev | 配方已定（AABB-first） | `Player.Pos` 持久化已实锤（run setw-1 level.dat dump）；剩写方生效面待验 |
 | save | `saveWorld(false)` | 已实锤 | ✅ |
 
 批量写（setTileNoUpdate+脏区标记）第二批。
