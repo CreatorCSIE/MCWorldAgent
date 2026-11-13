@@ -31,7 +31,7 @@
 - **Java Agent 全链插桩**：`premain` + ASM 9.7 运行时织入，五钩指纹表（类名+方法名+描述符+access+期望命中数）严格两遍式匹配——先验指纹再注入，不符整类跳过并记 `UNSUPPORTED`，零静默错钩；注入全为对称压弹，不新增控制流。
 - **把手①（活体世界捕获）**：`World` 构造器入口捕获存档目录 + `saveWorld` 入口捕获活体 `World` 对象引用（绕开 old verifier 对构造期 `this` 的禁令），后续世界读写、显式存盘全部经此把手在游戏线程执行。
 - **tick 汇线与写纪律**：`Minecraft.runTick` 每 tick 回调，世界修改只排入队列、于 tick 边界 drain 执行——与游戏逻辑单线程串行，杜绝并发写世界的事故面。
-- **Attic harness（零改动借力）**：不依赖 Attic 启动器的 GUI 或 CLI——harness 直接 `require` Attic 的 `@attic/runtime` CJS dist，`dryRunLaunch` 拿完整 LaunchConfig，`extraJvmArgs` 注入 `-javaagent` 后自行 spawn；启动前对客户端 jar 做 SHA1 闸门校验。Attic 仓库保持零改动。
+- **Attic 借力（零改动）**：启动主入口 `attic-cli`（Attic 仓内开发控制面，launch 即会话宿主：游戏流直通 stdout/stderr、退出码随游戏）：`-javaagent` 经 `--jvm-arg` **尾注入**（落在 legacyfix javaagent 之后——观测层必须建在修复层最终产物之上，实例档案 `launchArgs` 的位置在 legacyfix 之前，非规范用法）；`--java` 钉死 JDK 旁路自动探测。备用入口是 Phase 0 的 harness（直接 `require` `@attic/runtime` dist 自行 spawn，保留用于顺序/环境类实验）。两条路 Attic 仓库均保持零改动。
 - **观测闭环与证据链**：transform 日志（织入/类加载轨迹）+ hooks 日志（把手/tick/存盘/区块/光照事件，带毫秒时间戳）+ JVM 退出 SUMMARY 计数行；日志按 run 归档，`--dry-run` / `--no-agent` 基线对照 / `disable=<hookId>` 逐钩排除，全链可复跑。
 - **三缺口实证结论**（详见案卷）：G1 发行运行时的自动存被 legacyfix `AutoSavePatch` 改为 5 分钟节律——接管者必须经把手显式存盘；G2 0327 光照数据信任存档（`lightRecalc == chunkMiss` 不变量），写盘带齐合法数据即零重算；G3 关键 UI 类在 agent 下加载无恙。
 
@@ -44,7 +44,7 @@
 
 ### 血统
 
-启动通路借力 [Attic Corner Launcher](https://github.com/CreatorCSIE/Attic-Corner-Launcher) 的 `@attic/runtime`（同一维护者的历史版本启动器）；0327 可读源码树与字节码取证工作台见姊妹仓库 `minecraft-verification-analysis`。
+启动通路借力 [Attic Corner Launcher](https://github.com/CreatorCSIE/Attic-Corner-Launcher)（同一维护者的历史版本启动器）——早期经其 `@attic/runtime` 库，现收敛到其 `attic-cli` 无头控制面；0327 可读源码树与字节码取证工作台见姊妹仓库 `minecraft-verification-analysis`。
 
 ---
 
@@ -67,7 +67,7 @@
 
 ### 2. Node.js（harness 侧）
 
-- **Node.js ≥ 20**，且本机已安装并运行过 [Attic Corner Launcher](https://github.com/CreatorCSIE/Attic-Corner-Launcher)（harness 需要其 `@attic/runtime` dist 与 `%APPDATA%/.attic` 数据根中的版本 jar）。
+- **Node.js ≥ 20**，且本机已安装并运行过 [Attic Corner Launcher](https://github.com/CreatorCSIE/Attic-Corner-Launcher)（需要其 `attic-cli` 无头入口可用，及 `%APPDATA%/.attic` 数据根中的版本 jar）。
 
 ### 3. 操作系统
 
@@ -83,20 +83,22 @@
 # 构建 java agent（下载校验 ASM → javac → 打 jar，含 premain 冒烟）
 powershell -File java/agent/build.ps1
 
-# 干跑：只输出 Attic 解析出的 LaunchConfig，不起游戏
+# 默认通路：attic-cli（在 Attic 仓 apps/tauri/sidecar 下；先 --dry-run 核对 LaunchConfig）
+node dist/cli.cjs launch mca-poc --dry-run
+node dist/cli.cjs launch mca-poc `
+  --java "C:\Program Files\Java\jdk1.8.0_202\bin\java.exe" `
+  --jvm-arg "-Xbootclasspath/a:E:\4k\github-projects\MCWorldAgent\java\agent\libs\asm-9.7.jar" `
+  --jvm-arg "-javaagent:E:\4k\github-projects\MCWorldAgent\java\agent\out\mcworldagent-agent.jar=log=<out>\agent-transform.log;hooks=<out>\agent-hooks.log"
+#   手动：SinglePlayer → 进世界 → 走动 → Esc: Save and quit to title → 进程随游戏退出（code 0）
+#   注意：ASM 经 -Xbootclasspath/a 注入（CLI 的 classpath 由 runtime 生成，不可加件）
+
+# 备用/实验通路：Phase 0 harness（顺序与环境类实验，如 --agent-first / --java / --no-agent）
 node integrations/attic/launch-poc.cjs --dry-run
-
-# 实跑：SHA1 闸门 → dryRunLaunch → 注入 -javaagent → spawn（600s 超时自动回收）
 node integrations/attic/launch-poc.cjs --timeout 600
-#   手动：SinglePlayer → Create New World → 走动 → Esc: Save and quit to title → 关窗
-
-# 基线对照（不挂我们的 agent）与开关
-node integrations/attic/launch-poc.cjs --no-agent
-node integrations/attic/launch-poc.cjs --no-legacyfix
 $env:MCA_AGENT_EXTRA = 'disable=RUN_TICK;dump=C:\tmp\mca-dump'   # 逐钩禁用 / 织入后字节码落盘
 ```
 
-日志落 `integrations/attic/out/`：`agent-transform.log`（织入轨迹）、`agent-hooks.log`（把手/tick/存盘事件+SUMMARY）、`game-stdout/stderr.log`。历次 run 归档于 `out/run*/`。
+日志落 `integrations/attic/out/<run>/`：`agent-transform.log`（织入轨迹）、`agent-hooks.log`（把手/tick/存盘事件+SUMMARY）、`game-stream.log`（CLI 通路游戏流）。历次 run 归档于 `out/run*/`、`out/cli-run/`。
 
 ### 2. 仓库结构 (Repository Layout)
 
@@ -106,7 +108,7 @@ MCWorldAgent
 ├── java/
 │   └── agent/              Java Agent：premain/指纹表/织入器/把手/日志（build.ps1 一键构建）
 ├── integrations/
-│   └── attic/              launch-poc.cjs —— Attic runtime harness（零改动借力）
+│   └── attic/              launch-poc.cjs —— Phase 0 harness（备用/实验通路；默认走 attic-cli）
 ├── docs/
 │   └── research/           取证案卷（phase0-agent-poc.md、research-integration.md）
 ├── apps/ · packages/ · java/core|adapters|storage|generator · integrations/mcp
@@ -124,7 +126,7 @@ MCWorldAgent
 
 ### Q1：为什么不做自己的启动器，而是借力 Attic？
 
-远古版本的启动难题（Java 探测、legacyfix 挂载、Applet 容器参数、natives 池）Attic 已系统化解决，且**没有对外 CLI**——本项目以 harness 直接调用其 runtime 库（`dryRunLaunch` 出 LaunchConfig，自行 spawn），既复用修复链又保持独立仓库零耦合、Attic 零改动。
+远古版本的启动难题（Java 探测、legacyfix 挂载、Applet 容器参数、natives 池）Attic 已系统化解决。早期 Attic 没有 CLI，本项目以 harness 直接调用其 runtime 库保持零耦合；如今 Attic 已落地 `attic-cli` 内部开发控制面（无头启动链第二入口），本项目的启动通路收敛到 CLI——spawn 一个进程、拿纯游戏流和真实退出码，连 harness 都不再是必需品。两条路 Attic 都保持零改动。
 
 ### Q2：agent 会不会改坏我的存档？
 

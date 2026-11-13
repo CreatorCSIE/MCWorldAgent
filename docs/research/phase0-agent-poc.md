@@ -22,7 +22,7 @@ premain → 严格指纹织入 → 把手①（捕获活体 World+存档目录�
 | mainClass | `uk.betacraft.legacyfix.applet.AppletLauncher`（0327 jar 无 main，applet 形态） |
 | class 版本 | major=49（**old verifier**，见 §5 教训） |
 | ASM | asm-9.7，SHA1 `073d7b3086e14beb604ced229c302feff6449723`（build.ps1 下载+校验） |
-| legacyfix | `legacyfix-26.11-attic.8.jar`，其 `-javaagent` 在前、我们的在后（transformer 链顺序=挂载顺序） |
+| legacyfix | Phase 0 时 `26.11-attic.8`；2026-11-13 起钉版 `26.11-attic.10`（含 CtClass 池头插修复，§10）。规范顺序=legacyfix 在前、我们的在后（transformer 链顺序=挂载顺序） |
 
 0327 混淆实名（javap 全量扫描钉死；0325 映射已漂移不可用。可读树：
 `E:\4k\github-projects\minecraft-verification-analysis\src-minecraft\src-minecraft-infdev-20100327`）：
@@ -130,3 +130,39 @@ node integrations/attic/launch-poc.cjs --timeout 600       # 起游戏（SHA1 �
 - 测量层缺口：磁盘 chunk 总数（World2=1729）> 钩子观测的 `loadChunk` miss（639），说明 0327 的生成/载入还有旁路 `ChunkProviderLoadOrGenerate.loadChunk` 的路径（如上层 provider 批量生成、构造器 bulk-load）；G2 的 `lightRecalc==chunkMiss` 不变量在观测层成立，但绝对数受钩层覆盖度限制，Phase 1 如需精确磁盘账目应改钩 `World.getChunkFromChunkCoords` 层。
 - AutoSavePatch 的 6000 常量系补丁自述+行为自洽推定，**已定性为挂 legacyfix 这个 javaagent 的已知代价，接受、不再钉死**（设计结论不依赖精确常量：反正不能指望游戏自动存）。
 - 把手①已可用：下一步（Phase 1）在 `onTick` drain 队列上执行世界修改 + 显式 `saveWorld` 落盘验证。
+
+## 10. CLI 通路升级（2026-11-13，`out/cli-run/`）
+
+Attic 落地 `attic-cli` 后，本 PoC 的启动通路从自制 harness 升级为 CLI。过程中钉死一个新缺陷并促成姊妹仓库修复：
+
+**缺陷链（run5/E1 实验）**：CLI 实例档案 `launchArgs` 的组序在 legacyfix javaagent **之前**；
+legacyfix `Agent.java` 的 load-time CtTransformer 链本意是基于输入字节透传（`ByteArrayClassPath(currentBuffer)`），
+但 `appendClassPath` 把输入源加在**尾**、`new ClassPool(true)` 的系统路径含客户端 jar 在**前**，
+`get()` 先命中 jar 原始字节 → 被 patch 的类（Minecraft）遭 wholesale 重建，**静默吞掉前置 agent 的织入**
+（run5：runTick HOOKED 但 0 触发；无 patch 类 World/Chunk/CPLG 不受影响）。E1 单变量实验（仅交换顺序）复现。
+
+**双修复**：
+1. legacyfix-attic `attic.10`（09537dc）：`insertClassPath` 头插输入字节——顺序不再致命（安全网）。
+2. Attic CLI：`--jvm-arg`（可重复，尾追加到 legacyfix 之后）+ `--java`（钉死 JDK，旁路自动探测的 431 漂移）。
+   规范顺序仍是 **legacyfix 先、观测层后**（观测建立在修复层的最终产物上，且不污染其模式匹配），
+   `--jvm-arg` 是该顺序在 CLI 通路的唯一载体。
+
+**ASM 依赖**：thin jar 不含 ASM，CLI 的 classpath 由 runtime 生成不可动——用
+`--jvm-arg "-Xbootclasspath/a:<asm-9.7.jar>"` 走系统类加载器，无需 fat jar。
+
+**定型命令（默认启动通路）**：
+
+```powershell
+cd e:\4k\github-projects\Attic-Minecraft-Launcher\apps\tauri\sidecar
+node dist/cli.cjs launch mca-poc `
+  --java "C:\Program Files\Java\jdk1.8.0_202\bin\java.exe" `
+  --jvm-arg "-Xbootclasspath/a:E:\4k\github-projects\MCWorldAgent\java\agent\libs\asm-9.7.jar" `
+  --jvm-arg "-javaagent:E:\4k\github-projects\MCWorldAgent\java\agent\out\mcworldagent-agent.jar=log=<out>\agent-transform.log;hooks=<out>\agent-hooks.log"
+```
+
+**实跑对账（重进 World2，游戏自然退出 code=0）**：五钩全 HOOKED（runTick @190ms 实调用，TICK 行 20TPS）；
+`SUMMARY ticks=2634 saveWorld=3 chunkEnter=2017 chunkHit=1975 chunkMiss=42 lightRecalc=42`——
+G2 不变量在 CLI 通路复现；CLI 会话语义（游戏流直通、退出码传播）验证成立。
+
+**harness 定位**：`launch-poc.cjs` 降级为备用/实验路径（其 `--java`/`--agent-first`/`--out` 开关保留，
+顺序与环境类实验仍用它）。

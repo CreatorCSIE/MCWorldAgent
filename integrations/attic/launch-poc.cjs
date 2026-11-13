@@ -5,6 +5,9 @@
  * dryRunLaunch 拿 LaunchConfig，extraJvmArgs 注入 -javaagent，自行 spawn。
  * Attic 仓库零改动；不启动 sidecar/IPC；不依赖 Attic GUI。
  *
+ * [2026-11-13] 默认启动通路已升级为 attic-cli（--jvm-arg 尾注入，方案见案卷 §10）；
+ * 本 harness 保留为备用/实验路径（--java / --agent-first / --no-agent 等变量隔离实验）。
+ *
  * 用法：
  *   node integrations/attic/launch-poc.cjs [--dry-run] [--timeout <s>] [--no-legacyfix] [--no-agent]
  */
@@ -71,30 +74,42 @@ async function main() {
   const noAgent = argv.includes('--no-agent'); // 基线对照：不挂我们的 agent
   const tIdx = argv.indexOf('--timeout');
   const timeoutS = tIdx >= 0 ? parseInt(argv[tIdx + 1], 10) : 180;
+  // 变量隔离实验开关（run5 ticks=0 定位）：--java 换 JVM、--agent-first 把我们的
+  // javaagent 前置到 legacyfix 之前（复刻 CLI 的 launchArgs 顺序）、--out 分目录落日志。
+  const jIdx = argv.indexOf('--java');
+  const javaExe = jIdx >= 0 ? argv[jIdx + 1] : JAVA8;
+  const agentFirst = argv.includes('--agent-first');
+  const oIdx = argv.indexOf('--out');
+  const outDir = oIdx >= 0 ? path.resolve(argv[oIdx + 1]) : OUT_DIR;
 
   ensureJarStaged(!noAgent);
-  fs.mkdirSync(OUT_DIR, { recursive: true });
+  fs.mkdirSync(outDir, { recursive: true });
 
-  const transformLog = path.join(OUT_DIR, 'agent-transform.log');
-  const hooksLog = path.join(OUT_DIR, 'agent-hooks.log');
+  const transformLog = path.join(outDir, 'agent-transform.log');
+  const hooksLog = path.join(outDir, 'agent-hooks.log');
 
   const { AtticRuntime } = require(ATTIC_RUNTIME_DIST);
   const runtime = new AtticRuntime({ version: '0.1.0' });
 
+  const agentArg = noAgent ? null :
+    // MCA_AGENT_EXTRA: 调试开关（如 disable=world-ctor;dump=<dir>），追加进 agent 参数串
+    '-javaagent:' + AGENT_JAR + '=log=' + transformLog + ';hooks=' + hooksLog
+      + (process.env.MCA_AGENT_EXTRA ? ';' + process.env.MCA_AGENT_EXTRA : '');
+
   const config = await runtime.dryRunLaunch({
     versionId: VERSION_ID,
-    javaPath: JAVA8,
-    extraJvmArgs: noAgent ? [] : [
-      // MCA_AGENT_EXTRA: 调试开关（如 disable=world-ctor;dump=<dir>），追加进 agent 参数串
-      '-javaagent:' + AGENT_JAR + '=log=' + transformLog + ';hooks=' + hooksLog
-        + (process.env.MCA_AGENT_EXTRA ? ';' + process.env.MCA_AGENT_EXTRA : ''),
-    ],
+    javaPath: javaExe,
+    extraJvmArgs: agentArg && !agentFirst ? [agentArg] : [],
   });
 
   let jvmArgs = config.jvmArgs;
   if (noLegacyfix) {
     jvmArgs = jvmArgs.filter((a) => !(a.startsWith('-javaagent:') && a.includes('legacyfix')));
     console.log('[poc] legacyfix javaagent removed (--no-legacyfix)');
+  }
+  if (agentArg && agentFirst) {
+    jvmArgs = [agentArg, ...jvmArgs];
+    console.log('[poc] our javaagent prepended before legacyfix (--agent-first)');
   }
 
   // agent 依赖经 classpath 追加（0327 单系统类加载器；ASM 由 premain 类加载器解析）
@@ -119,8 +134,9 @@ async function main() {
     cwd: config.gameDir,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  const out = fs.createWriteStream(path.join(OUT_DIR, 'game-stdout.log'));
-  const err = fs.createWriteStream(path.join(OUT_DIR, 'game-stderr.log'));
+  console.log('[poc] pid  : ' + child.pid);
+  const out = fs.createWriteStream(path.join(outDir, 'game-stdout.log'));
+  const err = fs.createWriteStream(path.join(outDir, 'game-stderr.log'));
   child.stdout.pipe(out);
   child.stderr.pipe(err);
 
@@ -136,7 +152,7 @@ async function main() {
   child.on('exit', (code, signal) => {
     clearTimeout(killer);
     console.log('[poc] game exit code=' + code + ' signal=' + signal);
-    console.log('[poc] logs: ' + OUT_DIR);
+    console.log('[poc] logs: ' + outDir);
   });
 }
 
