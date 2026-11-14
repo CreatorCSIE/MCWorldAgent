@@ -1,6 +1,6 @@
 # 设计案卷 — 桌面壳命令台面板（VS Code 式底部面板）
 
-状态：**提议落档，待实现**（桌面壳 Phase 2 首件功能件）｜ 日期：2026-11-13
+状态：**已实现（2026-11-14 T1 落码，静态验证全过：无头 128/128+浏览器走查 6/6+cargo check；实跑 `t1-shell-1` 待批准）**｜ 落地 spec=[.trae/specs/shell-t1-command-panel/spec.md](../../.trae/specs/shell-t1-command-panel/spec.md)（含决策完备化与实跑修订）｜ 日期：2026-11-13
 依赖：[agent-command-channel.md](./agent-command-channel.md)（v1 已实跑）、[ingame-console.md](./ingame-console.md)（游戏内控制台为长期替代方向，本面板是其外部过渡形态）
 来源：用户提议"在桌面壳接入类似 VSCode 的下方终端+日志二合一功能"
 

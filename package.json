@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "pnpm --filter desktop dev",
-    "build": "pnpm --filter desktop build"
+    "build": "pnpm --filter desktop build",
+    "tauri": "pnpm --filter desktop tauri"
   }
 }

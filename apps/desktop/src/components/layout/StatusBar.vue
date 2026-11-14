@@ -1,12 +1,21 @@
 <script setup lang="ts">
 import { useWorldSource } from '@/composables/useWorldSource'
+import { useChannel } from '@/channel/useChannel'
 
 const source = useWorldSource()
+const channel = useChannel()
 
-const CONNECTION_LABEL: Record<string, string> = {
-  connected: 'AGENT CONNECTED',
-  disconnected: 'AGENT OFFLINE',
-  error: 'AGENT ERROR',
+const STATE_LABEL: Record<string, string> = {
+  unknown: 'CHANNEL UNKNOWN',
+  'alive-title': 'ALIVE @TITLE',
+  'alive-inworld': 'ALIVE @WORLD — 停止前先 Esc 存退',
+  dead: 'PROCESS EXITED',
+}
+const STATE_CLASS: Record<string, string> = {
+  unknown: 'bg-muted text-muted-foreground',
+  'alive-title': 'bg-primary/15 text-primary',
+  'alive-inworld': 'bg-destructive/20 text-destructive font-semibold',
+  dead: 'bg-muted text-muted-foreground',
 }
 </script>
 
@@ -18,14 +27,12 @@ const CONNECTION_LABEL: Record<string, string> = {
       X {{ source.playerPos.value.x }}  Y {{ source.playerPos.value.y }}  Z {{ source.playerPos.value.z }}
     </span>
     <span class="uppercase">{{ source.mode.value === 'agent' ? 'mode agent' : 'mode standalone' }}</span>
-    <span class="flex items-center gap-1.5">
-      <span
-        class="size-1.5 rounded-full"
-        :class="source.connection.value === 'connected' ? 'bg-primary' : 'bg-destructive'"
-      />
-      {{ CONNECTION_LABEL[source.connection.value] }}
+    <span class="flex items-center gap-1.5 rounded px-1.5" :class="STATE_CLASS[channel.processState.value]">
+      {{ STATE_LABEL[channel.processState.value] }}
     </span>
     <span class="tabular-nums">TICK {{ source.tick.value }}</span>
-    <span class="ml-auto">World2 · 1729 chunks · infdev 20100327</span>
+    <span class="ml-auto truncate">
+      {{ channel.worldInfo.value || 'World2 · infdev 20100327' }}
+    </span>
   </footer>
 </template>
