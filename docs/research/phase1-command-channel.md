@@ -348,3 +348,17 @@ Spec：`.trae/specs/meta-tree/`。判决变更：原批 gentree **砍除**——
 **验证**：build 零错；无头 **160/160**（+16：FakeWorld 补 `i()List`（spawnedEntities 泛型改 Object=bug②）+`a(DDD,String,F,F)` 记录面；假 painting 类 `a.c.d`（无 W 独立类）；假 pig 覆写 q()="Pig"；用例=entitylist none/混合三段（kind/坐标 %.1f/health 省略分支）、playsound 换算记录+三拒绝、setarmor 写+A0 回读+slot/itemid 拒绝、clearinv 全清、replace 计数/same-id/NoChange）。
 
 **实跑 `obs-1` 已完成全绿**（2026-11-14，World2/Easy；流水归档 [cmds.txt](../../integrations/attic/out/obs-1/cmds.txt)）：entitylist `N=4` 对账（玩家+Pig+Creeper+Item）后存退 `N=1` 即失复验；playsound 耳听+不存在音效静默安全；setarmor A0=1x258 回读+inv 面闭环；clearinv→empty→存退仍 empty（持久）；replace 石台 changed=49→复跑 NO_CHANGE→存退 id=4 持久（三态齐）。**活体新钉**：①kind=**贴图路径**（`/char.png`、`/mob/pig.png`——0327 getEntityType 返回皮肤/贴图路径而非生物名，透传判决正确）②EntityItem q()=**null**+无 W=非 Living 省略分支活体成立③掉落物被玩家自动拾取（`0=5x55`）=拾取面顺证④坐标 62.1=台下=物理下落实时动态（账面对账面即时可用）。
+
+## 23. hud-overlay 批 `GuiIngame EXIT 钩`：XYZ 调试行 + javaagent 列表（2026-11-14，EXIT 织入模式首例，实跑 `hud-1` 三轮修复后验收通过）
+
+**织入面增量**（spec [.trae/specs/hud-overlay/spec.md](../../.trae/specs/hud-overlay/spec.md)）：新 injectMode `EXIT=4`（RETURN 前注入 `ALOAD 0+INVOKESTATIC onHud(Object)V`，对称压弹零栈深变化；目标方法单 RETURN 已 javap 实锤）+ Target `GuiIngame.renderGameOverlay(F)V`（public final 0x0011、expectedHits 1）。**观察面非命令执行面**——戒律 §2 不变；崩溃隔离=catch Throwable→永久停用 HUD_HOOK_DISABLED（HUD 故障绝不带崩渲染循环）。
+
+**错钩根因（实跑教训①，混淆表大纠正）**：首版钉 `client.d.b`——实为无关计时类（`a(F)V` 仅 49 字节，写 `mc.e.a` 浮点）。钩上后反射链全通、HUD_PAINT 坐标实时变化、零异常，但画面无字=**钩在 tick 路径非渲染路径**。判决法=jar 字符串常量扫描（"Minecraft Infdev" 仅命中 client.d 与 client.c.m）+c.m javap 类体实锤：**真 GuiIngame=`net.minecraft.client.c.m`**（extends c.l=Gui；唯一构造 `c.m(client.d)`；`a(F)V` 30KB 字节码 18×GL11+13×FontRenderer+1×RETURN；`a()V`=updateTick）。旧记法 d.a=Gui/d.b=GuiIngame/d.c=Multiplayer **全错**（调用点反推不可靠，类体级证据——字符串常量/字节码规模/方法形态——才能钉 GUI 类）。
+
+**伪色根因（实跑教训②，GL 状态纪律）**：首诊"Blend 缺失"系错钩期误判——加过 glEnable(GL_BLEND=0xBE2) 反射桥接；钩对后文字反呈**粉紫污染+漏绿**：EXIT 点残留 blendFunc=准星段反色 `(ONE_MINUS_DST_COLOR, ONE_MINUS_SRC_COLOR)`（GuiIngame L44 设后从不恢复；空背包时 item 循环体不执行、无人重设），glEnable 恰好**激活了错误函数**。原版调试行绘制态=BLEND 关+全局 ALPHA_TEST 丢弃透明像素（硬边位图无 AA）。**修复=EXIT 点零 GL 状态改动**（反射桥接整段删除），与原版同态即干净。**教训：注入渲染先问"原版同点是什么状态"，不得自行"防御性"设态——设态可能激活残留的错误状态**。
+
+**用户判决改造（覆盖 spec §1 布局判决）**：仅 showFPS 开启才显示（`mc.u`=gameSettings `client.o`、`o.d`=showFPS——renderGameOverlay 字节码**唯一 GameSettings 布尔读取点**实锤；0327 无 F3 快捷键，开关=Options GUI "Show FPS" 按钮，持久化 options.txt showFrameRate）；排版钉原版调试列 x=2：XYZ 接 `P:/T:` 行下 y=42；agent 面=y=52 头行 `javaagents:` + y=62 起逐项 `- jar名` 行（验收后追加判决，行距 10）；`shortAgent` 压缩=剥 `=参数` 尾+取 jar 文件名（全路径挡屏；none 态剥前缀留描述）。
+
+**反射链终态（零硬编码 FQCN）**：gui→**唯一构造参数类型**=Minecraft 类→`findFieldByType` 按类型扫字段得 mc（实名 `c.m.d`——字段名不可假设，首版硬编码 "a" 在真类上即断）→mc.f=player/m.m=font/u=gameSettings→o.d=showFPS→Entity g/h/i 沿继承链。agentArgs()=RuntimeMXBean.getInputArguments() 过滤 `-javaagent:`（纯 JDK，JVM 无 agent 注册表=启动参数即真相）。
+
+**验证**：build 零错；无头 **164/164**（+3=shortAgent 三态：none 剥前缀留描述/反斜杠剥参取 jar 名/正斜杠路径）。实跑 `hud-1` 七启动验收通过：HOOKED@c/m 实锤；HUD_PAINT #1→#120=1003ms（120fps 每帧一次，排除双重绘制）；目视 XYZ 白字+`javaagents:` 头行+`- jar名` 列表在草地纹理背景**干净无伪色**；showFPS 关=注入面全消。

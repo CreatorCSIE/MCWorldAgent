@@ -28,6 +28,11 @@ public final class HookTargets {
      * 泛化背景=用户启示：0413/0414 版本全生物构造器丢失，本模式是跨版本复活能力非一次性补丁。
      */
     public static final int NEW_CTOR = 3;
+    /**
+     * RETURN 前注入（void 观察钩专用，hud-overlay 批）：同 ENTRY 对称压弹纪律；
+     * 方法有多个 RETURN 时逐个注入=HUD 重复绘制同文本（幂等，视觉无差）。
+     */
+    public static final int EXIT = 4;
 
     /** 钩 id（注入 dispatch 用）。 */
     public static final String WORLD_CTOR = "world-ctor";
@@ -36,6 +41,7 @@ public final class HookTargets {
     public static final String LOAD_CHUNK = "load-chunk";
     public static final String GEN_HEIGHT = "gen-height";
     public static final String GIANT_CTOR = "giant-ctor";
+    public static final String HUD_RENDER = "hud-render";
 
     public static final class Target {
         public final String className;  // internal name
@@ -95,6 +101,14 @@ public final class HookTargets {
         new Target("net/minecraft/a/c/a/a", "<init>", "(Lnet/minecraft/a/a/f;)V",
                 0x0001, 0, NEW_CTOR, GIANT_CTOR, "EntityGiant.<init>(World) resurrect",
                 "net/minecraft/a/c/a/e"),
+        // HUD 调试面（hud-overlay 批，EXIT 首例）：GuiIngame=client.c.m（hud-1 实跑
+        // 教训：d.b 是无关计时类——a(F)V 仅 49 字节写 mc.e.a 浮点，钩上后绘制调用
+        // 全成功但画面无字=挂在 tick 路径非渲染路径；c.m 才是真身：extends c.l(Gui)、
+        // 唯一构造 c.m(client.d)、a(F)V 30KB 字节码 18×GL11+13×FontRenderer+1×RETURN、
+        // 含 "Minecraft Infdev" 字符串常量——javap 实锤）。
+        // renderGameOverlay(F)V public final——EXIT 注入 onHud(gui)：投影就绪+全 HUD 顶层。
+        new Target("net/minecraft/client/c/m", "a", "(F)V",
+                0x0011, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float)"),
     };
 
     private static final Map<String, List<Target>> BY_CLASS = new HashMap<String, List<Target>>();

@@ -198,7 +198,13 @@ public final class Transformers implements ClassFileTransformer {
 
         @Override
         public void visitInsn(int opcode) {
-            if (opcode == Opcodes.ARETURN
+            if (opcode == Opcodes.RETURN && target.injectMode == HookTargets.EXIT) {
+                // EXIT 观察钩（HUD）：RETURN 前 ALOAD 0+INVOKESTATIC，对称压弹栈深不变；
+                // 多 RETURN 逐个注入=重复绘制同文本幂等。
+                mv.visitVarInsn(Opcodes.ALOAD, 0);
+                mv.visitMethodInsn(Opcodes.INVOKESTATIC, HOOKS, "onHud",
+                        "(Ljava/lang/Object;)V", false);
+            } else if (opcode == Opcodes.ARETURN
                     && target.injectMode == HookTargets.ENTRY_AND_RESULT) {
                 if (!HookTargets.LOAD_CHUNK.equals(target.hookId)) {
                     throw new IllegalStateException("unknown areturn hook " + target.hookId);
