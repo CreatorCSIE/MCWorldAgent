@@ -12,15 +12,16 @@ fn e2s(e: std::io::Error) -> String {
     e.to_string()
 }
 
-/// tmp→rename 原子投递进 inbox。
+/// tmp→rename 原子投递进 inbox。错误带步进前缀（t1-shell-1 实跑 os error 5 定位）。
 #[tauri::command]
 pub fn chan_post(dir: String, tmp_name: String, content: String) -> Result<(), String> {
     let d = Path::new(&dir);
-    fs::create_dir_all(d.join("tmp")).map_err(e2s)?;
-    fs::create_dir_all(d.join("inbox")).map_err(e2s)?;
+    fs::create_dir_all(d.join("tmp")).map_err(|e| format!("mkdir-tmp[{}]: {}", dir, e))?;
+    fs::create_dir_all(d.join("inbox")).map_err(|e| format!("mkdir-inbox[{}]: {}", dir, e))?;
     let tmp = d.join("tmp").join(format!("~{}", tmp_name));
-    fs::write(&tmp, content).map_err(e2s)?;
-    fs::rename(&tmp, d.join("inbox").join(&tmp_name)).map_err(e2s)
+    fs::write(&tmp, content).map_err(|e| format!("write[{}]: {}", tmp.display(), e))?;
+    let dst = d.join("inbox").join(&tmp_name);
+    fs::rename(&tmp, &dst).map_err(|e| format!("rename[{}]: {}", dst.display(), e))
 }
 
 #[derive(Serialize)]

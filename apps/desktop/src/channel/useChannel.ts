@@ -210,17 +210,30 @@ function build() {
       }, 400)
       return ''
     }
+    if (mcaDir.value.trim().length === 0) {
+      // t1-shell-1 教训：空目录串=相对路径落进进程 CWD（src-tauri），命令静默失踪。
+      entry.phase = 'terminal'
+      entry.status = 'SHELL-REJECT'
+      entry.detail = '未配置通道目录（配置行填入 mca/ 路径后重试）'
+      source.feed('warn', `SHELL ${line} -> ${entry.detail}`)
+      return entry.detail
+    }
     try {
       const tmpName = `${id}.json`
       await chan.post(mcaDir.value, tmpName, envelope)
-      await chan.append(join(mcaDir.value, '..', 'cmds-shell.txt'), `${new Date().toISOString()} ${envelope}`)
-      source.feed('info', `SHELL POST ${id} ${line}`)
     } catch (e) {
       entry.phase = 'terminal'
       entry.status = 'POST-ERROR'
       entry.detail = String(e)
       return String(e)
     }
+    // 投递已成功：证据行失败不翻转命令状态（t1-shell-1 教训：append 盘根 error 5 曾误标 POST-ERROR）
+    try {
+      await chan.append(join(mcaDir.value, '..', 'cmds-shell.txt'), `${new Date().toISOString()} ${envelope}`)
+    } catch (e) {
+      source.feed('warn', `EVIDENCE-APPEND-FAIL ${id} ${e}`)
+    }
+    source.feed('info', `SHELL POST ${id} ${line}`)
     return ''
   }
 
