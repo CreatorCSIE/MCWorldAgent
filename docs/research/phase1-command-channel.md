@@ -312,6 +312,8 @@ Spec：`.trae/specs/meta-tree/`。判决变更：原批 gentree **砍除**——
 
 **判决翻转**：sed-1 后用户质询"能不能修构造器"→批准 B 路线（transformer 运行时注入），并给出泛化启示：**infdev 20100413/0414 版本全生物构造器丢失**（jar 未收藏，记录在案）；用户修正受益面=**0227/0313 同样在列且更严峻——早期 Infdev 实体功能被大砍**（两版 jar 已收藏 `inf-20100227-1433.jar`/`inf-20100313.jar`，具体砍了什么留待**版本扩展批调研**实锤）——构造器补全不是 Giant 一次性补丁，是跨版本复活死代码实体类的通用能力。
 
+**版本扩展定位（用户判决，2026-11-14 终笔）**：版本扩展是**全面性的**（0327 只是首发锚定版本，非唯一目标），整体**留到后面**推进；**0227/0313/0413/0414 可作试点**（指纹表+NEW_CTOR 构造器补全+存档格式差异=每版本三张考卷，试点先答哪张由届时判决）。
+
 **戒律改写**：§1 硬约束"零新字节码注入"→"**命令执行面零注入 + 受限构造器补全**"。边界：仅当指纹表 `expectedHits=0`（类在、`<init>` 被混淆管线剥离）触发；注入体=标准四指令构造器（ALOAD 0/ALOAD 1/INVOKESPECIAL 父 `<init>(LWorld;)V`/RETURN——构造器先 super 是 verifier 合法序列，与 WORLD_CTOR 注释的"构造期 this 作 INVOKESTATIC 实参"禁区不同）；无分支=无 StackMapTable 新增；父链缺构造→类校验 VerifyError→`Class.forName` 失败→spawn UNSUPPORTED **优雅降级**；jar 文件零改动（Attic 校验不受染）。
 
 **实现**：HookTargets 新增 `NEW_CTOR` 模式+`superOwner` 字段+GIANT_CTOR Target（`net/minecraft/a/c/a/a` 父=`a.c.a.e`，其 `(World)V` 构造 javap 健在实锤）；Transformers.instrument() accept 后建方法+日志 `CTOR-INJECTED`；WorldOps 白名单 +2：**giant**（复活）、**mob**=`a.c.c`（EntityCreature 基类——用户判决"非正常生物但可生成"，构造器健在免注入）；渲染面预核=RenderManager `getEntityRenderObject` **一级父类回退并缓存**（L71-74 实锤）：Giant 有注册（RenderGiantZombie scale 6.0）、EntityCreature 回退 EntityLiving=ModelBiped 人形——**两者无渲染 NPE**。
@@ -334,3 +336,15 @@ Spec：`.trae/specs/meta-tree/`。判决变更：原批 gentree **砍除**——
 3. **暂停停 TE tick**：Esc 暂停=主循环停=炉子不燃（gf1/gf2 burn=0 假象，用户判决非缺陷）——实跑读 tick 驱动态（燃烧/冶炼/实体行为）前必须确认未暂停。
 
 **NBT 键面新钉**：铁锭 id=**265**（smelt 产物活体回读定版）。
+
+## 22. 零取证五 op 批 `entitylist` / `playsound` / `setarmor` / `clearinv` / `replace`（2026-11-14，llm-1 同模式，实跑 `obs-1` 待批准）
+
+**盘点判决**（用户指令"还有哪些指令没落地"，client-ops 在外）：0327 剩余可落地面分三档——**零取证档**（本批五 op，全部落已钉面）；轻取证档（grow=randomTick 促长、harvest=dig 掉落物品化——give 可替代，低优先）；排除/留后档（weather/time-stop/difficulty-op/gamemode/xp=0327 不存在或每帧覆写无效；respawn 代点/聊天/GUI=client-ops 域；arrow/painting spawn=彩蛋级留后；tileentitylist=getchest 可点探不做）。用户批准五 op 全批。
+
+**落点全已钉**（spec [.trae/specs/zero-evidence-five/spec.md](../../.trae/specs/zero-evidence-five/spec.md) §1）：entitylist=World `i()List`+Entity `q()String`（方法，与 AABB 字段 q 同名合法）+g/h/i+W；playsound=`a(DDD,String,F,F)V`（createExplosion L762 调用点实锤参数序）；setarmor=InventoryPlayer `b[4]`+getPlayerArmorValue 减伤链；clearinv=a[36]+b[4] 全 null；replace=fill 面复用（normalizeRegion/validateBlockId/changed/NoChange）。
+
+**实现判决**：entitylist 成员 **per-instance 解析**（Entity 面缓存 Field/Method 跨类复用=TE 按类缓存**同族坑**——真 Painting 与假 d 类均非缓存声明类子类即抛；per-instance 走继承链，真环境全挂 Entity 基类与无头等价正确）；health **先探测后写**（防 catch 前半截 `[h=` 残留——无头网住 bug①）；playsound vol/pitch 整数十分位、name 透传不建白名单（miss=静默 no-op）；setarmor 不校验 ItemArmor（give 同戒律）；clearinv 不可逆 detail 固定；replace same-id 拒绝+零变更 NoChange 跳 save。KNOWN_OPS→**33**；entitylist/playsound 忽略 save，其余写侧 saveSuffix。零新终态。
+
+**验证**：build 零错；无头 **160/160**（+16：FakeWorld 补 `i()List`（spawnedEntities 泛型改 Object=bug②）+`a(DDD,String,F,F)` 记录面；假 painting 类 `a.c.d`（无 W 独立类）；假 pig 覆写 q()="Pig"；用例=entitylist none/混合三段（kind/坐标 %.1f/health 省略分支）、playsound 换算记录+三拒绝、setarmor 写+A0 回读+slot/itemid 拒绝、clearinv 全清、replace 计数/same-id/NoChange）。
+
+**实跑 `obs-1` 已完成全绿**（2026-11-14，World2/Easy；流水归档 [cmds.txt](../../integrations/attic/out/obs-1/cmds.txt)）：entitylist `N=4` 对账（玩家+Pig+Creeper+Item）后存退 `N=1` 即失复验；playsound 耳听+不存在音效静默安全；setarmor A0=1x258 回读+inv 面闭环；clearinv→empty→存退仍 empty（持久）；replace 石台 changed=49→复跑 NO_CHANGE→存退 id=4 持久（三态齐）。**活体新钉**：①kind=**贴图路径**（`/char.png`、`/mob/pig.png`——0327 getEntityType 返回皮肤/贴图路径而非生物名，透传判决正确）②EntityItem q()=**null**+无 W=非 Living 省略分支活体成立③掉落物被玩家自动拾取（`0=5x55`）=拾取面顺证④坐标 62.1=台下=物理下落实时动态（账面对账面即时可用）。

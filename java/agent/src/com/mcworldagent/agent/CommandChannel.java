@@ -47,7 +47,8 @@ public final class CommandChannel {
                     "getlight", "setlook", "setmotion",
                     "give", "inv", "sethealth",
                     "explode", "spawn", "drop", "invulnerable",
-                    "getchest", "setchest", "getfurnace"));
+                    "getchest", "setchest", "getfurnace",
+                    "entitylist", "playsound", "setarmor", "clearinv", "replace"));
 
     /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。 */
     private static final String LISTOPS =
@@ -65,7 +66,12 @@ public final class CommandChannel {
           + "invulnerable(ticks0..32767 >=11-immune,0-cancel)t;"
           + "getchest(x,y,z)r[IInventory 通用:chest/furnace];"
           + "setchest(x,y,z,slot,itemId1..255,count1..64[,dmg]|clear=true)w[直替换无合并];"
-          + "getfurnace(x,y,z)r";
+          + "getfurnace(x,y,z)r;"
+          + "entitylist r[N=kind@x,y,z[h=H]];"
+          + "playsound(x,y,z,name,vol0..10,pitch0..20 十分位)t;"
+          + "setarmor(slot0..3,itemId1..255,count1..64[,dmg])w[不校验ItemArmor];"
+          + "clearinv w[不可逆];"
+          + "replace(x1,y1,z1,x2,y2,z2,oldId,newId)w[cap4096]";
 
     private static String cmdDirArg;
     private static File baseDir; // 解析后的 mca/ 根
@@ -445,6 +451,43 @@ public final class CommandChannel {
             int y = intArg(a, "y");
             int z = intArg(a, "z");
             return WorldOps.getFurnace(world, x, y, z);
+        }
+        // 零取证五 op 批（全部落已钉面，spec zero-evidence-five）：
+        // entitylist/playsound 忽略 save（清单只读；音效瞬态不进 NBT）；
+        // setarmor/clearinv/replace 写侧 saveSuffix。
+        if ("entitylist".equals(c.op)) {
+            return WorldOps.entityList(world); // 纯读=spawn/drop 账面对账面
+        }
+        if ("playsound".equals(c.op)) {
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            String name = stringArg(a, "name");
+            int vol = intArg(a, "vol");
+            int pitch = intArg(a, "pitch");
+            return WorldOps.playSound(world, x, y, z, name, vol, pitch); // 瞬态
+        }
+        if ("setarmor".equals(c.op)) {
+            int slot = intArg(a, "slot");
+            int itemId = intArg(a, "itemId");
+            int count = intArg(a, "count");
+            int dmg = optionalIntArg(a, "dmg", 0);
+            return WorldOps.setArmor(world, slot, itemId, count, dmg) + saveSuffix(world, c);
+        }
+        if ("clearinv".equals(c.op)) {
+            return WorldOps.clearInv(world) + saveSuffix(world, c); // 不可逆
+        }
+        if ("replace".equals(c.op)) {
+            int x1 = intArg(a, "x1");
+            int y1 = intArg(a, "y1");
+            int z1 = intArg(a, "z1");
+            int x2 = intArg(a, "x2");
+            int y2 = intArg(a, "y2");
+            int z2 = intArg(a, "z2");
+            int oldId = intArg(a, "oldId");
+            int newId = intArg(a, "newId");
+            return WorldOps.replace(world, x1, y1, z1, x2, y2, z2, oldId, newId)
+                    + saveSuffix(world, c);
         }
         if ("listops".equals(c.op)) {
             return LISTOPS; // agent 侧自省，零游戏调用（世界未捕获仍 not-ready——v1 从简）

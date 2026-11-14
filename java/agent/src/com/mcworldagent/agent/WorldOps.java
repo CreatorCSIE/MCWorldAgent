@@ -154,6 +154,21 @@ public final class WorldOps {
     private static final String M_INV_SET = "a";        // setInventorySlotContents (I,Lk;)V
     private static final String F_TE_BURN = "f";        // TileEntityFurnace.furnaceBurnTime
     private static final String F_TE_COOK = "h";        // TileEntityFurnace.furnaceCookTime
+
+    // 零取证五 op 批（zero-evidence-five，全部落已钉面，llm-1 同模式）：
+    //   entitylist=World i()List=getLoadedEntityList（javap World 表在列）+Entity q()String
+    //   =getEntityType（方法，与 AABB 字段 q 同名合法）+g/h/i+W（**per-instance 探测**——
+    //   非 Living 无 W 省略 health；不可用 healthField 全局缓存 Field 跨类 getInt——
+    //   Painting 非 EntityLiving 子类，Field 属声明类不匹配即 IllegalArgumentException）。
+    //   playsound=World a(DDD,String,F,F)V=playSoundEffect（createExplosion L762 调用点实锤
+    //   参数序 x,y,z,name,vol,pitch）；不存在音效=客户端查表 miss 静默 no-op（透传不建白名单）。
+    //   setarmor=InventoryPlayer b[4]（give 批钉）数组元素直写；**不校验 ItemArmor**（注册表非
+    //   null 即放行=give 同戒律；非盔甲=无减伤不崩溃）；减伤链 getPlayerArmorValue 已钉。
+    //   clearinv=a[36]+b[4] 全 null（不可逆，detail 固定计数）。
+    //   replace=fill 面复用（normalizeRegion cap 4096+validateBlockId+changed/NoChange 语义）。
+    private static final String M_ENTITY_LIST = "i";    // getLoadedEntityList ()List
+    private static final String M_ENTITY_TYPE = "q";    // getEntityType ()String
+    private static final String M_PLAY_SOUND = "a";     // playSoundEffect (DDD,String,F,F)V
     private static final Map<String, String> MOB_CLASSES = new HashMap<String, String>();
 
     static {
@@ -232,6 +247,9 @@ public final class WorldOps {
     // IInventory 三方法**按 TE 类名缓存**（chest/furnace 异类 Method 对象不通用——无头首跑实锤）：
     // 值={size()I, get(I)Lk;, set(I,Lk;)V}
     private static final Map<String, Method[]> TE_METHODS = new HashMap<String, Method[]>();
+    // 零取证五 op 批惰性缓存（entitylist 成员 per-instance 解析不入缓存，见方法注释）
+    private static volatile Method entityListM;   // World i()List
+    private static volatile Method playSoundM;    // World a(DDD,String,F,F)V
     private static volatile Method getMeta;
     private static volatile Method setMetaSilent;
     private static volatile Method light6;
@@ -991,6 +1009,175 @@ public final class WorldOps {
         int b = burn.getInt(te);
         int c = cook.getInt(te);
         return "furnace burn=" + b + " cook=" + c + " burning=" + (b > 0) + " " + describeInv(te, inv);
+    }
+
+    /**
+     * 实体清单（op=entitylist，纯读=spawn/drop 的账面对账面）。World i()List 遍历：
+     * kind/pos/health 全 **per-instance** 解析——Entity 面缓存 Field/Method 跨类复用是
+     * TE 按类缓存同族坑（假类/真 Painting 非缓存声明类子类即抛 IllegalArgumentException），
+     * per-instance getField/getMethod 走继承链，真环境（全挂 Entity 基类）与无头等价正确。
+     * 非 Living 无 W→省略 health。输出 `N=kind@x,y,z[h=H] ...`；空表→`none`。
+     */
+    public static String entityList(Object world) throws Exception {
+        Method listM = entityListM;
+        if (listM == null) {
+            try {
+                listM = world.getClass().getMethod(M_ENTITY_LIST);
+            } catch (NoSuchMethodException e) {
+                throw new UnsupportedOp("entity list: " + e);
+            }
+            entityListM = listM;
+        }
+        List<?> es = (List<?>) listM.invoke(world);
+        if (es.isEmpty()) {
+            return "none";
+        }
+        StringBuilder b = new StringBuilder();
+        for (Object e : es) {
+            Class<?> ec = e.getClass();
+            if (b.length() > 0) {
+                b.append(' ');
+            }
+            b.append((String) ec.getMethod(M_ENTITY_TYPE).invoke(e)).append('@')
+                    .append(fmt1(ec.getField(E_POS_X).getDouble(e))).append(',')
+                    .append(fmt1(ec.getField(E_POS_Y).getDouble(e))).append(',')
+                    .append(fmt1(ec.getField(E_POS_Z).getDouble(e)));
+            try {
+                int hp = ec.getField(E_HEALTH).getInt(e); // 先探测成功再写，防半截 "[h=" 残留
+                b.append("[h=").append(hp).append(']');
+            } catch (NoSuchFieldException ignored) {
+                // 非 Living 实体（Painting 等）：省略 health
+            }
+        }
+        return "N=" + es.size() + "=" + b;
+    }
+
+    private static String fmt1(double v) {
+        return String.valueOf(Math.round(v * 10.0) / 10.0);
+    }
+
+    /**
+     * 播音效（op=playsound，瞬态——不进 NBT，save 忽略）。playSoundEffect(x,y,z,name,vol/10,pitch/10)
+     * 客户端查表广播；不存在音效=静默 no-op（透传不建白名单，spec §1）。
+     * vol∈[0,10]、pitch∈[0,20] 整数十分位（MiniJson 整数子集）。
+     */
+    public static String playSound(Object world, int x, int y, int z, String name,
+                                   int vol, int pitch) throws Exception {
+        if (name == null || name.isEmpty() || name.length() > 64) {
+            throw new Rejected("bad-name");
+        }
+        if (vol < 0 || vol > 10) {
+            throw new Rejected("vol-out-of-range [0,10]: " + vol);
+        }
+        if (pitch < 0 || pitch > 20) {
+            throw new Rejected("pitch-out-of-range [0,20]: " + pitch);
+        }
+        Method m = playSoundM;
+        if (m == null) {
+            try {
+                m = world.getClass().getMethod(M_PLAY_SOUND,
+                        double.class, double.class, double.class,
+                        String.class, float.class, float.class);
+            } catch (NoSuchMethodException e) {
+                throw new UnsupportedOp("playSoundEffect: " + e);
+            }
+            playSoundM = m;
+        }
+        m.invoke(world, Double.valueOf(x), Double.valueOf(y), Double.valueOf(z), name,
+                Float.valueOf(vol / 10f), Float.valueOf(pitch / 10f));
+        return "played " + name + " at " + x + "," + y + "," + z
+                + " vol=" + vol + " pitch=" + pitch;
+    }
+
+    /**
+     * 盔甲槽写（op=setarmor）。slot∈[0,4)；校验复用 give 面同序同串（count→dmg→bad-itemid）；
+     * b[4] 数组元素**直写替换**；不校验 ItemArmor（注册表非 null 即放行=give 同戒律，
+     * 非盔甲=无减伤不崩溃）。写侧随 "Inventory" NBT 持久（Slot 100..103）。
+     */
+    public static String setArmor(Object world, int slot, int itemId, int count, int damage)
+            throws Exception {
+        Object p = player.get(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        if (slot < 0 || slot > 3) {
+            throw new Rejected("slot-out-of-range [0,4): " + slot);
+        }
+        if (count < 1 || count > 64) {
+            throw new Rejected("count-out-of-range [1,64]: " + count);
+        }
+        if (damage < 0 || damage > 32767) {
+            throw new Rejected("dmg-out-of-range [0,32767]: " + damage);
+        }
+        resolveInventory(p);
+        ensureRegistry(world);
+        Object[] items = (Object[]) itemRegistry.get(null);
+        if (itemId < 0 || itemId >= items.length || items[itemId] == null) {
+            throw new Rejected("bad-itemid: " + itemId);
+        }
+        Object stack = (damage == 0)
+                ? isCtor2.newInstance(Integer.valueOf(itemId), Integer.valueOf(count))
+                : isCtor3.newInstance(Integer.valueOf(itemId), Integer.valueOf(count),
+                        Integer.valueOf(damage));
+        ((Object[]) invArmor.get(invField.get(p)))[slot] = stack;
+        return "setarmor slot=" + slot + " <- " + itemId + " x" + count
+                + (damage == 0 ? "" : " dmg=" + damage);
+    }
+
+    /** 背包清空（op=clearinv，**不可逆**——无 undo 面，spec §4）。主槽+盔甲全 null。写侧。 */
+    public static String clearInv(Object world) throws Exception {
+        Object p = player.get(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        resolveInventory(p);
+        Object inv = invField.get(p);
+        Object[] main = (Object[]) invMain.get(inv);
+        for (int i = 0; i < main.length; i++) {
+            main[i] = null;
+        }
+        Object[] armor = (Object[]) invArmor.get(inv);
+        for (int i = 0; i < armor.length; i++) {
+            armor[i] = null;
+        }
+        return "cleared " + main.length + "+" + armor.length;
+    }
+
+    /**
+     * 区域条件替换（op=replace）。fill 面复用：normalizeRegion（cap 4096）+validateBlockId；
+     * oldId==newId→Rejected `same-id`；仅 getBlock==oldId 的格 c(IIII)Z 重写；
+     * 零变更→NoChange（fill 同语义，NO_CHANGE 跳 save）。
+     */
+    public static String replace(Object world, int x1, int y1, int z1, int x2, int y2, int z2,
+                                 int oldId, int newId) throws Exception {
+        validateBlockId(oldId);
+        validateBlockId(newId);
+        if (oldId == newId) {
+            throw new Rejected("same-id: " + oldId);
+        }
+        int[] r = normalizeRegion(x1, y1, z1, x2, y2, z2);
+        int changed = 0;
+        for (int y = r[1]; y <= r[4]; y++) {
+            for (int x = r[0]; x <= r[3]; x++) {
+                for (int z = r[2]; z <= r[5]; z++) {
+                    Integer id = (Integer) getBlock.invoke(world,
+                            Integer.valueOf(x), Integer.valueOf(y), Integer.valueOf(z));
+                    if (id.intValue() == oldId) {
+                        Boolean ok = (Boolean) setBlock.invoke(world, Integer.valueOf(x),
+                                Integer.valueOf(y), Integer.valueOf(z), Integer.valueOf(newId));
+                        if (ok.booleanValue()) {
+                            changed++;
+                        }
+                    }
+                }
+            }
+        }
+        String detail = "replaced [" + r[0] + ".." + r[3] + "] [" + r[1] + ".." + r[4] + "] ["
+                + r[2] + ".." + r[5] + "] " + oldId + "->" + newId + " changed=" + changed;
+        if (changed == 0) {
+            throw new NoChange(detail);
+        }
+        return detail;
     }
 
     /** 方块元数据读（op=getmeta）。World.d(III)I=getBlockMetadata（Chunk nibble g，纯读）。 */
