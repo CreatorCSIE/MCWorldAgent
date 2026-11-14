@@ -39,6 +39,7 @@ public final class HookTargets {
     /** 钩 id（注入 dispatch 用）。 */
     public static final String WORLD_CTOR = "world-ctor";
     public static final String SAVE_WORLD = "save-world";
+    public static final String LOAD_WORLD = "load-world";
     public static final String RUN_TICK = "run-tick";
     public static final String LOAD_CHUNK = "load-chunk";
     public static final String GEN_HEIGHT = "gen-height";
@@ -115,19 +116,37 @@ public final class HookTargets {
     };
 
     /**
-     * 0618 钩组（A2，锚库 java/agent/registry/fingerprints/inf-20100618.json）：
-     * 仅两件 confirmed，宁缺毋滥。省略（未钉）=WORLD_CTOR（构造器描述符未钉，
-     * 活体 World 仍由 SAVE_WORLD 入口捕获，dir=? 仅日志面）、LOAD_CHUNK/GEN_HEIGHT
-     * （类未钉）、GIANT_CTOR（类未钉）、HUD_RENDER（access 未钉）。
+     * 0618 钩组（A2，锚库 java/agent/registry/fingerprints/inf-20100618.json）。
+     * A3 实跑终审（run a3-0618-1，2026-11-14）发现：**0618 无游戏内周期 autosave**——
+     * 全 jar 仅一个 saveWorld 调用点（Minecraft.a(World,String) 换世界流程 + b() 停机），
+     * 游玩期间 SAVE_WORLD 钩永不触发 → 把手只靠它会通道永久 not-ready。
+     * 故补 LOAD_WORLD 装载即捕获钩（指纹=实跑字节码实锤：a(String) 内
+     * new g(File,String) 后 invokespecial a(g,String)，private，slot1=已构造世界实参，
+     * 非构造期 this 无 old-verifier 风险）；构造器描述符缺口同场钉死
+     * =(Ljava/io/File;Ljava/lang/String;)V 与 0327 同，但 WORLD_CTOR 仍不启用
+     * （0327 该钩仅记 dir，0618 通道走 cmd= 覆盖，dir 面非必需）。
+     * 省略（未钉）：LOAD_CHUNK/GEN_HEIGHT（类未钉）、GIANT_CTOR（类未钉）。
+     * HUD_RENDER 曾列"access 未钉"，A3 后续补钉（见下）：javap 全量反汇编实锤
+     * GuiIngame=client.c.m a(F)V public final 0x0011 与 0327 同形，且调用点
+     * 441: invokevirtual c.m.a:(F)V 在渲染路径（非 hud-1 误钩的计时类）。
      */
     public static final Target[] TARGETS_0618 = {
-        // World.saveWorld()V public final（verscan §9；candidate——严格签名匹配即保底，
-        // A3 实跑终审）。InjectMV 按 desc 分支：()V→ALOAD 0+ICONST_0（无布尔参）。
+        // World.saveWorld()V public final（verscan §9；A3 实跑已验：退世界触发，
+        // indirect=false）。InjectMV 按 desc 分支：()V→ALOAD 0+ICONST_0（无布尔参）。
         new Target("net/minecraft/a/a/g", "f", "()V",
                 0x0011, 1, ENTRY, SAVE_WORLD, "World.saveWorld()"),
+        // Minecraft 换世界流程 a(World,String) 入口：slot1=活体 World（a3-0618-1 字节码实锤）。
+        new Target("net/minecraft/client/d", "a", "(Lnet/minecraft/a/a/g;Ljava/lang/String;)V",
+                0x0002, 1, ENTRY, LOAD_WORLD, "Minecraft.loadWorld(World,String)"),
         // tick 汇线：Minecraft.runTick()（verscan §2 private void l()V，run() 内 invokespecial 钉）
         new Target("net/minecraft/client/d", "l", "()V",
                 0x0002, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
+        // HUD 调试面补钉（A3 实跑派生修复，用户判决 2026-11-14）：与 0327 同形同字母。
+        // onHud 反射链字母两版全同（thePlayer=f、font=m、settings=u、showFPS=d），
+        // 唯一差异=Entity pos 字母（0327 g/h/i vs 0618 h/i/j）——已由
+        // MCAHooks.onHud 走 VersionRegistry.current().posXF/Y/Z 表化兜住。
+        new Target("net/minecraft/client/c/m", "a", "(F)V",
+                0x0011, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float)"),
     };
 
     private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);

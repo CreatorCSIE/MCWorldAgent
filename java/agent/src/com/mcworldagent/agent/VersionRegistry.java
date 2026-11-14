@@ -120,7 +120,12 @@ public final class VersionRegistry {
         t.spawnEntityM = "a";    // (Entity)V
         t.setEntityDeadM = "b";  // (Entity)V **static**，仅置 isDead，真移除在 tick
         t.entityListM = "i";     // getLoadedEntityList ()List
-        t.entityTypeM = "q";     // getEntityType ()String（与 AABB 字段 q 同名合法）
+        t.entityTypeM = "a";     // getEntityType ()String——A3 javap 改钉（2026-11-14）：
+        // 旧钉 q 系错钉=q 实为贴图路径（obs-1/grow-1 活体铁证 kind=/char.png、/mob/pig.png）。
+        // 真身 a()String：基类 **protected abstract**，EntityPig public final 覆写返 "Pig"、
+        // TNT protected final 覆写返 "PrimedTnt"→消费侧 getMethod 必败，须 getDeclaredMethod 链。
+        // EntityList 查表面（entityListClassG/entityListLookupM）0327 留 null=维持现状：
+        // per-instance a() 已活体全绿（et327-1：Pig/PrimedTnt/LocalPlayer/Item），零行为变化。
         t.playSoundM = "a";      // (DDD,String,F,F)V，不存在音效=静默 no-op
 
         // 方块 meta/光面（可读树名 setBlockMetadataWithNotify 系 deobf 误猜——b(IIII)V 实为静默写；
@@ -206,6 +211,10 @@ public final class VersionRegistry {
         t.motZF = "m";
         t.yawF = "n";
         t.pitchF = "o";
+        t.healthF = "Z";     // EntityLiving(a.c.f).Z——healthF 补钉批 2026-11-14 javap 三重实锤：
+        // 写点 a(c)V: ldc "Health"←getfield Z:I(i2s)；读点 b(c)V: "Health"→putfield Z，
+        // 缺 tag 保底 bipush 10；构造器默认 bipush 10→Z（与 0327 W 同语义）。
+        // public int 声明于 a.c.f 本类——getPlayer/setHealth 的 per-instance getField 可中。
 
         // 物品栏面（verscan §4；inv/clearinv=OK。⚠️ 本版 ItemStack=a.b.o 非 0327 k；
         // a.b.k=Item 基类=高危陷阱。invArmor=candidate b——盔甲尺寸未钉但数组面存在）
@@ -217,12 +226,28 @@ public final class VersionRegistry {
         t.isIdF = "c";
         t.isDmgF = "d";
 
-        // 档位一 null 槽（锚库 capabilities 19 件 unconfirmed 对榫，spec §3）：
-        // healthF（getplayer/sethealth）、iframesF（invulnerable）、
+        // 实体命名面（EntityList 双轨批 2026-11-14，javap 解包复核）：
+        // j()List 返字段 p=loadedEntityList 三重实锤——构造器 new ArrayList 赋 p、
+        // a(Entity)V spawn 处 p.add、tick 遍历 p 移除死实体、"All:"+p.size() 调试串。
+        t.entityListM = "j";
+        // EntityList 查表主面：a(Entity)String=Map b.get(getClass())，static{} 注册 15 件
+        // （Arrow/Item/Painting/Mob/Monster/Creeper/Skeleton/Spider/Giant/Zombie/Pig/
+        // Sheep/PrimedTnt/FallingSand/Minecart）。⚠️ 本版 a.c.e=EntityList（非 0327 EntityLiving）。
+        t.entityListClassG = "net.minecraft.a.c.e";
+        t.entityListLookupM = "a";
+        // per-instance fallback 面**不钉**（el0618-1 活体翻案 2026-11-14）：javap 实锤
+        // EntityLiving.o()=return 字段 Y，Y 构造器默认 ldc "/char.png"（皮肤路径）——
+        // 活体玩家 kind=/char.png 铁证，与 0327 旧 q 贴图陷阱同族。0618 实体族无注册名
+        // per-instance 面；正典命名面=EntityList 查表（游戏 NBT 存档 Entity.c(Tag) 同路）。
+        // 查表 miss（玩家等未注册件）→类简名保底。
+
+        // 档位一 null 槽（锚库 capabilities 16 件 unconfirmed 对榫，spec §3；
+        // healthF 已于补钉批钉 Z=getplayer/sethealth 恢复，entitylist 带 [h=] 段）：
+        // iframesF（invulnerable）、
         // addStackM/itemClassG/itemsF（give/setarmor/drop 注册表面——itemClass candidate
         // 不消费：addStackM null 连坐 give 面，宁缺毋滥）、
-        // explodeM/spawnEntityM（explode/spawn/drop）、setEntityDeadM/entityListM/entityTypeM
-        // （clear/entitylist）、playSoundM、setMetaSilentM/light6M/getLightM/observersF
+        // explodeM/spawnEntityM（explode/spawn/drop）、setEntityDeadM
+        // （clear；entitylist 已于双轨批钉 j+o+查表）、playSoundM、setMetaSilentM/light6M/getLightM/observersF
         // （setmeta/getlight/grow 通知段）、difficultyF（getinfo）、scatterClassG（genscatter）、
         // invSizeM/invGetM/invSetM（getchest/setchest/getfurnace 在 resolveTe 响亮）、
         // teBurnF/teCookF（getfurnace）、itemEntityG（EntityItem 构造器未钉）、

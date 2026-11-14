@@ -116,6 +116,8 @@ public final class WorldOps {
     // miss 静默 no-op、setarmor 不校验 ItemArmor、clearinv 不可逆等取证见案卷批）
     private static final String M_ENTITY_LIST = T.entityListM;
     private static final String M_ENTITY_TYPE = T.entityTypeM;
+    private static final String G_ENTITY_LIST_CLASS = T.entityListClassG;
+    private static final String M_ENTITY_LIST_LOOKUP = T.entityListLookupM;
     private static final String M_PLAY_SOUND = T.playSoundM;
     private static final Map<String, String> MOB_CLASSES = T.mobClasses;
 
@@ -170,7 +172,8 @@ public final class WorldOps {
     // 值={size()I, get(I)Lk;, set(I,Lk;)V}
     private static final Map<String, Method[]> TE_METHODS = new HashMap<String, Method[]>();
     // 零取证五 op 批惰性缓存（entitylist 成员 per-instance 解析不入缓存，见方法注释）
-    private static volatile Method entityListM;   // World i()List
+    private static volatile Method entityListM;   // World i()/j()List
+    private static volatile Method entityListLookup; // EntityList 静态 a(Entity)String（null=槽未钉）
     private static volatile Method playSoundM;    // World a(DDD,String,F,F)V
     private static volatile Method setEntityDeadM;    // World b(Entity)V static（clear 惰性）
     private static volatile Class<?> entityItemClass; // EntityItem instanceof 缓存（clear 惰性）
@@ -228,11 +231,16 @@ public final class WorldOps {
             }
             if (M_SET_POS_ROT != null && pl != null) {
                 Class<?> ec = pl.getType();
-                // 档位二：0327 (DDDFF)V 五参 / 0618 (DDD)V 三参
+                // 档位二：0327 (DDDFF)V 五参 / 0618 (DDD)V 三参。
+                // a3-0618-3 活体翻案：0618 a(DDD)V 是 **protected final**——getMethod 只认
+                // public 报 NoSuchMethod 并连坐整块 resolve（listops 全堵）。改 getDeclaredMethod：
+                // 两版方法均声明于 Entity 基类（=pl.getType()，非实例子类），命中即等价；
+                // setAccessible 对 0327 public 版零影响。
                 setPosRot = "(DDD)V".equals(T.setPosRotDesc)
-                        ? ec.getMethod(M_SET_POS_ROT, double.class, double.class, double.class)
-                        : ec.getMethod(M_SET_POS_ROT, double.class, double.class, double.class,
+                        ? ec.getDeclaredMethod(M_SET_POS_ROT, double.class, double.class, double.class)
+                        : ec.getDeclaredMethod(M_SET_POS_ROT, double.class, double.class, double.class,
                                 float.class, float.class);
+                setPosRot.setAccessible(true);
                 ePosX = ec.getField(E_POS_X);
                 ePosY = ec.getField(E_POS_Y);
                 ePosZ = ec.getField(E_POS_Z);
@@ -444,9 +452,9 @@ public final class WorldOps {
         rle.append(id).append(':').append(len);
     }
 
-    /** 玩家快照（op=getplayer，只读）：pos/motion/rot（tp 轮已 resolve 字段）+ Health（惰性解析 W）。 */
+    /** 玩家快照（op=getplayer，只读）：pos/motion/rot（tp 轮已 resolve 字段）+ Health（惰性解析，0327=W/0618=Z）。 */
     public static String getPlayer(Object world) throws Exception {
-        require("healthF", E_HEALTH); // 0618 未钉→UNSUPPORTED（spec §3）
+        require("healthF", E_HEALTH); // 档位一守卫（双表已钉，spec §3）
         Object p = player.get(world);
         if (p == null) {
             throw new Rejected("no-player");
@@ -662,7 +670,7 @@ public final class WorldOps {
      * 持久化 0 后重进=载入 Health=0 再次死亡屏（原版语义，不特殊处理）。
      */
     public static String setHealth(Object world, int health) throws Exception {
-        require("healthF", E_HEALTH); // 0618 未钉→UNSUPPORTED（spec §3）
+        require("healthF", E_HEALTH); // 档位一守卫（双表已钉，spec §3）
         Object p = player.get(world);
         if (p == null) {
             throw new Rejected("no-player");
@@ -1001,16 +1009,23 @@ public final class WorldOps {
     }
 
     /**
-     * 实体清单（op=entitylist，纯读=spawn/drop 的账面对账面）。World i()List 遍历：
-     * kind/pos/health 全 **per-instance** 解析——Entity 面缓存 Field/Method 跨类复用是
-     * TE 按类缓存同族坑（假类/真 Painting 非缓存声明类子类即抛 IllegalArgumentException），
-     * per-instance getField/getMethod 走继承链，真环境（全挂 Entity 基类）与无头等价正确。
-     * 非 Living 无 W→省略 health。输出 `N=kind@x,y,z[h=H] ...`；空表→`none`。
+     * 实体清单（op=entitylist，纯读=spawn/drop 的账面对账面）。World i()/j()List 遍历。
+     * kind 双轨（EntityList 双轨批 2026-11-14）：主面=EntityList 静态查表 a(Entity)String
+     * （注册名=存档 id 同一命名体系，public static 零访问权限麻烦）；miss（玩家等未注册件）
+     * →per-instance entityTypeM fallback；再 miss→类简名保底。0327 查表槽 null=纯 fallback
+     * 链=改钉批现行为零变化。pos/health 全 **per-instance** 解析——Entity 面缓存 Field/Method
+     * 跨类复用是 TE 按类缓存同族坑（假类/真 Painting 非缓存声明类子类即抛
+     * IllegalArgumentException），per-instance getField/findDeclaredMethod 走继承链。
+     * healthF 双表已钉（0327=W/0618=Z 补钉批）；字段缺失（非 Living，如 Painting/Item）→省略
+     * health。输出 `N=kind@x,y,z[h=H] ...`；
+     * 空表→`none`。
      */
     public static String entityList(Object world) throws Exception {
-        require("entityListM", M_ENTITY_LIST); // 0618 未钉→UNSUPPORTED（spec §3）
-        require("entityTypeM", M_ENTITY_TYPE);
-        require("healthF", E_HEALTH);
+        require("entityListM", M_ENTITY_LIST); // 两表已钉（双轨批）——未钉→UNSUPPORTED（spec §3）
+        if (M_ENTITY_LIST_LOOKUP == null && M_ENTITY_TYPE == null) {
+            require("entityTypeM", M_ENTITY_TYPE); // 命名面全无→响亮
+        }
+        Method lookup = entityLookup(world);
         Method listM = entityListM;
         if (listM == null) {
             try {
@@ -1030,18 +1045,87 @@ public final class WorldOps {
             if (b.length() > 0) {
                 b.append(' ');
             }
-            b.append((String) ec.getMethod(M_ENTITY_TYPE).invoke(e)).append('@')
+            b.append(resolveKind(lookup, ec, e)).append('@')
                     .append(fmt1(ec.getField(E_POS_X).getDouble(e))).append(',')
                     .append(fmt1(ec.getField(E_POS_Y).getDouble(e))).append(',')
                     .append(fmt1(ec.getField(E_POS_Z).getDouble(e)));
-            try {
-                int hp = ec.getField(E_HEALTH).getInt(e); // 先探测成功再写，防半截 "[h=" 残留
-                b.append("[h=").append(hp).append(']');
-            } catch (NoSuchFieldException ignored) {
-                // 非 Living 实体（Painting 等）：省略 health
+            if (E_HEALTH != null) {
+                try {
+                    int hp = ec.getField(E_HEALTH).getInt(e); // 先探测成功再写，防半截 "[h=" 残留
+                    b.append("[h=").append(hp).append(']');
+                } catch (NoSuchFieldException ignored) {
+                    // 非 Living 实体（Painting 等）：省略 health
+                }
             }
         }
         return "N=" + es.size() + "=" + b;
+    }
+
+    /** EntityList 静态查表惰性解析（描述符特征筛：static+String 返回+单参，零类名硬编码）。 */
+    private static Method entityLookup(Object world) throws UnsupportedOp {
+        if (G_ENTITY_LIST_CLASS == null) {
+            return null; // 槽未钉（0327）——纯 fallback 链
+        }
+        Method m = entityListLookup;
+        if (m != null) {
+            return m;
+        }
+        Class<?> c;
+        try {
+            c = Class.forName(G_ENTITY_LIST_CLASS, false, world.getClass().getClassLoader());
+        } catch (ClassNotFoundException e) {
+            throw new UnsupportedOp("entity list lookup class: " + e);
+        }
+        for (Method cand : c.getMethods()) {
+            if (cand.getName().equals(M_ENTITY_LIST_LOOKUP)
+                    && java.lang.reflect.Modifier.isStatic(cand.getModifiers())
+                    && cand.getReturnType() == String.class
+                    && cand.getParameterTypes().length == 1) {
+                m = cand;
+                break;
+            }
+        }
+        if (m == null) {
+            throw new UnsupportedOp("entity list lookup: " + M_ENTITY_LIST_LOOKUP
+                    + "(Entity)String on " + G_ENTITY_LIST_CLASS);
+        }
+        entityListLookup = m;
+        return m;
+    }
+
+    /** kind 双轨：查表→per-instance→类简名。 */
+    private static String resolveKind(Method lookup, Class<?> ec, Object e) throws Exception {
+        if (lookup != null) {
+            Object n = lookup.invoke(null, e);
+            if (n != null) {
+                return (String) n;
+            }
+        }
+        if (M_ENTITY_TYPE != null) {
+            Object n = findDeclaredMethod(ec, M_ENTITY_TYPE).invoke(e);
+            if (n != null) {
+                return (String) n;
+            }
+        }
+        return ec.getSimpleName();
+    }
+
+    /**
+     * 上溯 getDeclaredMethod 链（A3 改钉配套：0327 getEntityType=a()String 基类
+     * protected abstract、TNT 覆写 protected final——getMethod 只认 public 必报
+     * NoSuchMethod，与 setPosRot a3-0618-3 同模式；setAccessible 对 public 覆写零影响）。
+     */
+    private static Method findDeclaredMethod(Class<?> c, String name) throws NoSuchMethodException {
+        for (Class<?> k = c; k != null; k = k.getSuperclass()) {
+            try {
+                Method m = k.getDeclaredMethod(name);
+                m.setAccessible(true);
+                return m;
+            } catch (NoSuchMethodException ignored) {
+                // 继续上溯
+            }
+        }
+        throw new NoSuchMethodException(name + " on " + c.getName());
     }
 
     private static String fmt1(double v) {

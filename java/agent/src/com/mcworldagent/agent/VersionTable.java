@@ -60,7 +60,9 @@ public final class VersionTable {
     public String spawnEntityM;     // spawnEntityInWorld (Entity)V
     public String setEntityDeadM;   // setEntityDead (Entity)V（0327 为 static）
     public String entityListM;      // getLoadedEntityList ()List
-    public String entityTypeM;      // getEntityType ()String
+    public String entityTypeM;      // getEntityType ()String（per-instance，查表面 miss 时的 fallback）
+    public String entityListClassG; // EntityList 静态查表类（实体→注册名，主命名面）
+    public String entityListLookupM;// EntityList 静态 a(Entity)String（未注册实体返 null→entityTypeM fallback）
     public String playSoundM;       // playSoundEffect (DDD,String,F,F)V
 
     // 方块 meta/光面

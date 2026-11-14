@@ -186,6 +186,11 @@ public final class Transformers implements ClassFileTransformer {
                         mv.visitMethodInsn(Opcodes.INVOKESTATIC, HOOKS, "onWorldDir",
                                 "(Ljava/io/File;)V", false);
                         break;
+                    case HookTargets.LOAD_WORLD: // 0618 a(World,String): slot1=已构造世界实参（a3-0618-1 实锤）
+                        mv.visitVarInsn(Opcodes.ALOAD, 1);
+                        mv.visitMethodInsn(Opcodes.INVOKESTATIC, HOOKS, "onWorldLoaded",
+                                "(Ljava/lang/Object;)V", false);
+                        break;
                     case HookTargets.RUN_TICK: // ()V
                         mv.visitMethodInsn(Opcodes.INVOKESTATIC, HOOKS, "onTick", "()V", false);
                         break;

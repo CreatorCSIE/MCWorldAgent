@@ -86,6 +86,26 @@ public final class MCAHooks {
     /** G1 + 把手①后半：World.saveWorld(boolean) 入口（this 已初始化，可安全引用）。 */
     public static void onSaveWorld(Object world, boolean indirect) {
         int n = SAVE_CALLS.incrementAndGet();
+        captureWorld(world);
+        log("SAVE_WORLD #" + n
+                + " id=" + Integer.toHexString(System.identityHashCode(world))
+                + " indirect=" + indirect);
+    }
+
+    /** 0618 装载即捕获（a3-0618-1 终审：0618 无游戏内 autosave，saveWorld 仅换世界/停机调用）：
+     *  Minecraft.a(World,String) 入口，slot1=已构造活体 World。
+     *  a3-0618-2 活体教训：a(String)/b() 先调 a(null,"") 清场——slot1 可为 null，必须守卫。 */
+    public static void onWorldLoaded(Object world) {
+        if (world == null) {
+            log("WORLD_LOADED null (save-and-clear path)");
+            return;
+        }
+        captureWorld(world);
+        log("WORLD_LOADED id=" + Integer.toHexString(System.identityHashCode(world)));
+    }
+
+    /** 把手①核心：首捕=WORLD_CREATED+第一块砖；异实例=WORLD_SWITCHED+世代自增。 */
+    private static void captureWorld(Object world) {
         boolean first = capturedWorld == null;
         if (first) {
             log("WORLD_CREATED world=" + world.getClass().getName()
@@ -102,7 +122,7 @@ public final class MCAHooks {
         }
         capturedWorld = world;
         if (first) {
-            // Phase 1 写侧：第一块砖（此处仍在 saveWorld 栈帧内，必须 submit 排队到 tick 边界）
+            // Phase 1 写侧：第一块砖（saveWorld/loadWorld 栈帧内都必须 submit 排队到 tick 边界）
             if (noFirstBrick) {
                 log("FIRST_BRICK_SKIPPED noFirstBrick=true（PoC fixture 已禁用，世界零自动写入）");
             } else {
@@ -114,9 +134,6 @@ public final class MCAHooks {
                 });
             }
         }
-        log("SAVE_WORLD #" + n
-                + " id=" + Integer.toHexString(System.identityHashCode(world))
-                + " indirect=" + indirect);
     }
 
     /** G2：loadChunk 进入。 */
@@ -158,7 +175,8 @@ public final class MCAHooks {
     // 反射链（javap 全实名，spec hud-overlay §1，hud-1 修正）：gui(client.c.m)→
     // 唯一构造参数类型=Minecraft(client.d)→按类型扫字段得 mc（实名 c.m.d）
     // →mc.f=thePlayer(client.g.a，tp 轮钉)、mc.m=fontRenderer(client.c.k)、
-    // c.k.a(String,III)V=drawStringWithShadow；player pos=Entity g/h/i。
+    // c.k.a(String,III)V=drawStringWithShadow；player pos=Entity pos 表化（版本差异：
+    // 0327 g/h/i、0618 h/i/j——javap 全量实锤，其余字母两版同形）。
     // 崩溃隔离：任何异常=永久停用本钩（HUD 是附加观察面，绝不带崩渲染循环）。
     private static volatile java.lang.reflect.Field hudMcF, hudPlayerF, hudFontF;
     private static volatile java.lang.reflect.Field hudPosX, hudPosY, hudPosZ;
@@ -252,9 +270,12 @@ public final class MCAHooks {
                 java.lang.reflect.Field sf = gf.getType().getDeclaredField("d");
                 sf.setAccessible(true);
                 Class<?> pc = pf.getType();
-                java.lang.reflect.Field px = findField(pc, "g");
-                java.lang.reflect.Field py = findField(pc, "h");
-                java.lang.reflect.Field pz = findField(pc, "i");
+                // pos 字母走版本表（A3 实跑派生修复：0327 g/h/i vs 0618 h/i/j，
+                // onHud 首触在 premain 激活之后，current() 即本会话激活表）。
+                VersionTable vt = VersionRegistry.current();
+                java.lang.reflect.Field px = findField(pc, vt.posXF);
+                java.lang.reflect.Field py = findField(pc, vt.posYF);
+                java.lang.reflect.Field pz = findField(pc, vt.posZF);
                 if (px == null || py == null || pz == null) {
                     throw new NoSuchFieldException("entity pos");
                 }
