@@ -34,8 +34,11 @@ public final class MCAHooks {
      */
     public static volatile int capturedWorldGeneration = 1;
 
-    /** P0 fixture 开关：true=首次捕获世界不再自动提交 FirstBrick（防测试锚点污染，教训 9）。 */
-    public static volatile boolean noFirstBrick;
+    /** P0 fixture 开关：true=首次捕获世界不再自动提交 FirstBrick（防测试锚点污染，教训 9）。
+     *  方案 A 默认反转（2026-11-14）：FirstBrick 验证目标已被通道面全量覆盖（0618 每会话
+     *  自动触发必发 FIRST_BRICK_UNSUPPORTED 假警报，el0618-3 L44 实锤）——默认关断，
+     *  agent 参数显式 firstBrick=true 才回开（0327 历史演示面保留）。 */
+    public static volatile boolean noFirstBrick = true;
 
     private static final AtomicLong TICKS = new AtomicLong();
 
@@ -124,7 +127,7 @@ public final class MCAHooks {
         if (first) {
             // Phase 1 写侧：第一块砖（saveWorld/loadWorld 栈帧内都必须 submit 排队到 tick 边界）
             if (noFirstBrick) {
-                log("FIRST_BRICK_SKIPPED noFirstBrick=true（PoC fixture 已禁用，世界零自动写入）");
+                log("FIRST_BRICK_SKIPPED noFirstBrick 默认开（方案 A 关断，firstBrick=true 可回开）");
             } else {
                 final Object w = world;
                 submit(new Runnable() {

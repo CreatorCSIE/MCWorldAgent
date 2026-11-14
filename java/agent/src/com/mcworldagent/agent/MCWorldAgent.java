@@ -47,6 +47,11 @@ public final class MCWorldAgent {
                 } else if ("noFirstBrick".equals(k)) {
                     // P0 fixture 化：禁用首次捕获时的自动补砖（PoC 写入污染测试世界）
                     MCAHooks.noFirstBrick = "true".equalsIgnoreCase(v);
+                } else if ("firstBrick".equals(k)) {
+                    // 方案 A 默认反转后的显式回开键：firstBrick=true 恢复 0327 自动补砖演示
+                    if ("true".equalsIgnoreCase(v)) {
+                        MCAHooks.noFirstBrick = false;
+                    }
                 } else if ("version".equals(k)) {
                     // A2：强制选表（launcher/legacyfix 使 classpath jar 非原始件时的保险丝）
                     forcedVersion = v;
