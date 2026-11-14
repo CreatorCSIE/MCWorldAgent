@@ -134,6 +134,26 @@ public final class WorldOps {
     //   （javap 全量复核，worldObj=null 首 tick NPE）——排除维持；教训=源码树与 jar 可能不同 build，
     //   构造器面以运行时 jar 为准。
     private static final String E_IFRAMES = "K";       // Entity.heartsLife（public int）
+
+    // tileentity 面（tileentity-batch 批取证，源码树+javap 双路）：
+    //   TE 基类=a.a.b.a.a（a=World、b/c/d=x/y/z）；Chest=a.a.b.a.c（27 槽，构造覆盖声明面 36）、
+    //   Furnace=a.a.b.a.b（3 槽：0 料/1 燃/2 产；f=BurnTime、h=CookTime NBT 对榫实锤、
+    //   g=currentItemBurnTime 不进 NBT；点燃=updateEntity 自动吞 slot1（wood 300t/煤 1600t），
+    //   cook 满 200 冶炼，点燃态翻转 61↔62 换块重挂 TE）。
+    //   IInventory=a.b：a()I=size、a(I)Lk;=getStack、a(ILk;)V=setStack（**直替换无合并**）——
+    //   三方法直接从**实例类** getMethod（不取接口对象：假 IInventory 与注册表包目录 a/b/
+    //   冲突=javac 结构限制，mob 基类同案；无头/活体同构）。
+    //   Furnace getInvName 返回 "Chest"=原版笔误——类型判一律字段/槽数面，不用名字。
+    //   **TE 创建/删除=游戏自动**：Chunk.setTile L194 调 onBlockAdded→BlockContainer 建 TE、
+    //   onBlockRemoval 删——place(54/61)/dig 零手动。
+    //   **TE 持久化随 chunk**（Chunk.save "TileEntities"+Items+BurnTime/CookTime）——
+    //   与实体不落盘形成对照（te-1 断言点）。World h(III)=getBlockTileEntity（chunk 缺失→null）。
+    private static final String M_TE_GET = "h";         // getBlockTileEntity (III)La.a.b.a.a;
+    private static final String M_INV_SIZE = "a";       // IInventory.getSize ()I
+    private static final String M_INV_GET = "a";        // getStackInSlot (I)Lk;
+    private static final String M_INV_SET = "a";        // setInventorySlotContents (I,Lk;)V
+    private static final String F_TE_BURN = "f";        // TileEntityFurnace.furnaceBurnTime
+    private static final String F_TE_COOK = "h";        // TileEntityFurnace.furnaceCookTime
     private static final Map<String, String> MOB_CLASSES = new HashMap<String, String>();
 
     static {
@@ -207,6 +227,11 @@ public final class WorldOps {
     private static volatile Constructor<?> itemCtor; // EntityItem (World,DDD,ItemStack)V
     private static volatile Field eIframes;      // Entity.K=heartsLife（惰性，eHealth 同模式）
     private static final Map<String, Constructor<?>> MOB_CTORS = new HashMap<String, Constructor<?>>();
+    // tileentity 面惰性缓存（getchest/setchest/getfurnace 首用解析；仅游戏线程访问）
+    private static volatile Method teGet;        // World h(III)->TE
+    // IInventory 三方法**按 TE 类名缓存**（chest/furnace 异类 Method 对象不通用——无头首跑实锤）：
+    // 值={size()I, get(I)Lk;, set(I,Lk;)V}
+    private static final Map<String, Method[]> TE_METHODS = new HashMap<String, Method[]>();
     private static volatile Method getMeta;
     private static volatile Method setMetaSilent;
     private static volatile Method light6;
@@ -800,6 +825,172 @@ public final class WorldOps {
         int old = f.getInt(p);
         f.setInt(p, ticks);
         return "iframes " + old + " -> " + ticks;
+    }
+
+    /**
+     * TE 句柄：World h(III)=getBlockTileEntity（惰性）。**0327 原版地雷（te-1 实跑+字节码双实锤）**：
+     * Chunk.d(III) map miss 走重建路径 `Block.blocksList[getBlockId].d(...)`——TE 缺失且方块=空气
+     * （id 0，blocksList[0]=null）时该处 **NPE**（游戏自身只在非空气容器块查询，从不踩）。
+     * 判决：InvocationTargetException(cause=NPE) 映射 Rejected `no-tileentity`（语义=TE 不在，
+     * 协议面不露 ERROR）；其余 ITE 原样上抛（真内部错误仍响亮失败）。
+     */
+    private static Object teHandle(Object world, int x, int y, int z) throws Exception {
+        Method get = teGet;
+        if (get == null) {
+            try {
+                get = world.getClass().getMethod(M_TE_GET, int.class, int.class, int.class);
+            } catch (NoSuchMethodException e) {
+                throw new UnsupportedOp("tileentity get: " + e);
+            }
+            teGet = get;
+        }
+        Object te;
+        try {
+            te = get.invoke(world, Integer.valueOf(x), Integer.valueOf(y), Integer.valueOf(z));
+        } catch (java.lang.reflect.InvocationTargetException ite) {
+            if (ite.getCause() instanceof NullPointerException) {
+                throw new Rejected("no-tileentity");
+            }
+            throw ite;
+        }
+        if (te == null) {
+            throw new Rejected("no-tileentity");
+        }
+        return te;
+    }
+
+    /**
+     * IInventory 三方法惰性解析（实例类直取，不取接口对象——javac 结构限制案，spec §3.2）。
+     * **按 TE 类名缓存**：chest/furnace 是不同类，Method 对象不可跨类 invoke（无头首跑实锤）。
+     * 返回 {size()I, get(I)Lk;, set(I,Lk;)V}；ItemStack 字段/构造器全局共享（唯一类）。
+     */
+    private static Method[] resolveTe(Object te) throws UnsupportedOp {
+        String key = te.getClass().getName();
+        Method[] cached = TE_METHODS.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        try {
+            Class<?> tc = te.getClass();
+            Method size = tc.getMethod(M_INV_SIZE);
+            Method get = tc.getMethod(M_INV_GET, int.class);
+            Class<?> stackType = get.getReturnType();
+            Method set = tc.getMethod(M_INV_SET, int.class, stackType);
+            if (isCount == null) {
+                isCount = stackType.getField(IS_COUNT);
+                isId = stackType.getField(IS_ID);
+                isDmg = stackType.getField(IS_DMG);
+                isCtor2 = stackType.getConstructor(int.class, int.class);
+                isCtor3 = stackType.getConstructor(int.class, int.class, int.class);
+            }
+            Method[] m = new Method[] { size, get, set };
+            TE_METHODS.put(key, m);
+            return m;
+        } catch (NoSuchMethodException e) {
+            throw new UnsupportedOp("inventory interface: " + e);
+        } catch (NoSuchFieldException e) {
+            throw new UnsupportedOp("stack fields: " + e);
+        }
+    }
+
+    /** 注册表惰性解析独立件（TE 面零 player 依赖；与 resolveInventory 同 classloader 同字段）。 */
+    private static void ensureRegistry(Object world) throws UnsupportedOp {
+        if (itemRegistry != null) {
+            return;
+        }
+        try {
+            Class<?> itemClass = Class.forName(G_ITEM_CLASS, false, world.getClass().getClassLoader());
+            itemRegistry = itemClass.getField(ITEMS);
+        } catch (ClassNotFoundException e) {
+            throw new UnsupportedOp("item registry class: " + e);
+        } catch (NoSuchFieldException e) {
+            throw new UnsupportedOp("item registry field: " + e);
+        }
+    }
+
+    private static String describeInv(Object te, Method[] inv) throws Exception {
+        int size = ((Integer) inv[0].invoke(te)).intValue();
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < size; i++) {
+            Object s = inv[1].invoke(te, Integer.valueOf(i));
+            if (s != null) {
+                if (b.length() > 0) {
+                    b.append(' ');
+                }
+                b.append(i).append('=').append(describeStack(s));
+            }
+        }
+        return b.length() == 0 ? "empty" : b.toString();
+    }
+
+    /** 容器快照（op=getchest，IInventory 通用面=chest/furnace 皆可）：slots=N 槽=数量xID[ d伤害]；纯读。 */
+    public static String getInv(Object world, int x, int y, int z) throws Exception {
+        Object te = teHandle(world, x, y, z);
+        Method[] inv = resolveTe(te);
+        int size = ((Integer) inv[0].invoke(te)).intValue();
+        return "slots=" + size + " " + describeInv(te, inv);
+    }
+
+    /**
+     * 容器写槽（op=setchest）。slot∈[0,size)；clear=true 置空槽（与 itemId/count 互斥，clear 优先）；
+     * 否则校验复用 give 面同序同串（count→dmg→bad-itemid，**TE 面零 player 依赖**=ensureRegistry）；
+     * setInventorySlotContents **直替换无合并**（原版语义，spec §4）。写侧持久=TE 随 chunk TileEntities。
+     */
+    public static String setInv(Object world, int x, int y, int z, int slot,
+            int itemId, int count, int damage, boolean clear) throws Exception {
+        Object te = teHandle(world, x, y, z);
+        Method[] inv = resolveTe(te);
+        int size = ((Integer) inv[0].invoke(te)).intValue();
+        if (slot < 0 || slot >= size) {
+            throw new Rejected("slot-out-of-range [0," + size + "): " + slot);
+        }
+        Object stack = null;
+        String what;
+        if (clear) {
+            what = "cleared";
+        } else {
+            if (count < 1 || count > 64) {
+                throw new Rejected("count-out-of-range [1,64]: " + count);
+            }
+            if (damage < 0 || damage > 32767) {
+                throw new Rejected("dmg-out-of-range [0,32767]: " + damage);
+            }
+            ensureRegistry(world);
+            Object[] items = (Object[]) itemRegistry.get(null);
+            if (itemId < 0 || itemId >= items.length || items[itemId] == null) {
+                throw new Rejected("bad-itemid: " + itemId);
+            }
+            stack = (damage == 0)
+                    ? isCtor2.newInstance(Integer.valueOf(itemId), Integer.valueOf(count))
+                    : isCtor3.newInstance(Integer.valueOf(itemId), Integer.valueOf(count),
+                            Integer.valueOf(damage));
+            what = "<- " + itemId + " x" + count + (damage == 0 ? "" : " dmg=" + damage);
+        }
+        inv[2].invoke(te, Integer.valueOf(slot), stack);
+        return "setchest " + x + "," + y + "," + z + " slot=" + slot + " " + what;
+    }
+
+    /**
+     * 熔炉态（op=getfurnace）。类型判=字段面（f/h 仅 Furnace 类存在且系 **private**——
+     * getDeclaredField+setAccessible，randSeed 先例；getInvName 系原版笔误不可信）：
+     * NoSuchField→Rejected not-furnace；输出 burn/cook/burning+3 槽（0 料/1 燃/2 产）。纯读。
+     */
+    public static String getFurnace(Object world, int x, int y, int z) throws Exception {
+        Object te = teHandle(world, x, y, z);
+        Method[] inv = resolveTe(te);
+        Field burn;
+        Field cook;
+        try {
+            burn = te.getClass().getDeclaredField(F_TE_BURN);
+            cook = te.getClass().getDeclaredField(F_TE_COOK);
+        } catch (NoSuchFieldException e) {
+            throw new Rejected("not-furnace");
+        }
+        burn.setAccessible(true);
+        cook.setAccessible(true);
+        int b = burn.getInt(te);
+        int c = cook.getInt(te);
+        return "furnace burn=" + b + " cook=" + c + " burning=" + (b > 0) + " " + describeInv(te, inv);
     }
 
     /** 方块元数据读（op=getmeta）。World.d(III)I=getBlockMetadata（Chunk nibble g，纯读）。 */

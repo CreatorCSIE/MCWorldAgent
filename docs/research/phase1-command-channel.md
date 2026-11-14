@@ -317,3 +317,20 @@ Spec：`.trae/specs/meta-tree/`。判决变更：原批 gentree **砍除**——
 **实现**：HookTargets 新增 `NEW_CTOR` 模式+`superOwner` 字段+GIANT_CTOR Target（`net/minecraft/a/c/a/a` 父=`a.c.a.e`，其 `(World)V` 构造 javap 健在实锤）；Transformers.instrument() accept 后建方法+日志 `CTOR-INJECTED`；WorldOps 白名单 +2：**giant**（复活）、**mob**=`a.c.c`（EntityCreature 基类——用户判决"非正常生物但可生成"，构造器健在免注入）；渲染面预核=RenderManager `getEntityRenderObject` **一级父类回退并缓存**（L71-74 实锤）：Giant 有注册（RenderGiantZombie scale 6.0）、EntityCreature 回退 EntityLiving=ModelBiped 人形——**两者无渲染 NPE**。
 
 **验证**：build 零错；无头 **130/130**（假 giant 类 `a.c.a.a` 真 FQCN 上 classpath；bad-kind 断言改 cow；drop 基线后移。**mob 无法无头**=假类 `a.c.c` 与假 tnt/item 包目录 `a/c/c/` 同名冲突，javac 结构限制，实跑覆盖）。实跑 `giant-1` 全绿（World2/Easy/白天；流水归档 [cmds.txt](../../integrations/attic/out/giant-1/cmds.txt)）：`spawn giant` OK + transform 日志 `[48512ms] CTOR-INJECTED @ net/minecraft/a/c/a/a super=a.c.a.e`——**注入时机=spawn 触发 Class.forName 懒加载**（死代码类首次使用才注入，非启动期）；`spawn mob` OK 游戏未崩；用户目视**巨僵尸（10 倍）+人形生物均可见**；存退重进（WORLD_SWITCHED gen=2）实体已清=复活实体同常规不落盘。**spawn kind 白名单现九项**。
+
+## 21. tileentity 批 `getchest` / `setchest` / `getfurnace`（2026-11-14，源码+javap 双路取证 + 落码，实跑 `te-1` 待批准）
+
+**取证**（spec [.trae/specs/tileentity-batch/spec.md](../../.trae/specs/tileentity-batch/spec.md) §1）：TE 基类=`a.a.b.a.a`（a=World、b/c/d=xyz）；Chest=`a.a.b.a.c` **27 槽**（构造 `new ItemStack[27]` 覆盖声明面 36——**以构造行为准**，源码树又一致命：声明与构造不一致时行为为王）；Furnace=`a.a.b.a.b` 3 槽（0 料/1 燃/2 产）+private `f`=BurnTime/`h`=CookTime（**NBT getShort putfield 对榫实锤**）、`g`=currentItemBurnTime 不进 NBT；IInventory=`a.b`（`a()I`/`a(I)Lk;`/`a(II)Lk;`/`a(ILk;)V`/`b()String`/`c()I`）。**TE 创建/删除=游戏自动**：Chunk.setTile L194 调 onBlockAdded→BlockContainer.setBlockTileEntity(new TE)、onBlockRemoval 删——place(54/61)/dig 零手动；Chunk L308 载入补建路径。**TE 持久化随 chunk**（Chunk.save "TileEntities"+Items+BurnTime/CookTime Short）——与实体不落盘形成**对照断言面**。Furnace updateEntity 全链：burn--→0 且 canSmelt→**自动吞 slot1 点燃**（wood 300t/stick 100t/coal 1600t）→burning&&canSmelt→cook++ 满 200 冶炼（铁矿→铁锭/金/钻/sand→glass/cobble→stone/生猪肉→熟）→点燃态翻转 **61↔62 换块重挂 TE**；**getInvName 返回 "Chest"=原版笔误**——类型判一律字段/槽数面。
+
+**实现**：三 op 全惰性（teGet=World `h(III)`；IInventory 三方法**从实例类直取不取接口对象**——假 IInventory 类与注册表包目录 `a/b/` javac 冲突案，无头/活体同构；**按 TE 类名缓存 Method[]**——无头首跑实锤 chest/furnace 异类 Method 对象跨类 invoke 即 IllegalArgumentException，全局单缓存=结构缺陷已修复）；getchest/setchest 通用 IInventory 面（对 furnace 喂料/取锭同样可用，listops 标注）；setchest=slot∈[0,size)+**直替换无合并**（原版 setInventorySlotContents 语义）+clear=true 置空（与 itemId/count 互斥 clear 优先）+校验复用 give 面同序同串（**TE 面零 player 依赖**=ensureRegistry 独立件）；getfurnace 类型判=**getDeclaredField+setAccessible**（f/h 系 private，randSeed 先例）NoSuchField→REJECTED not-furnace。KNOWN_OPS→**28**；setchest 写侧 saveSuffix（TE 随 chunk 持久），getchest/getfurnace 纯读。零新终态。
+
+**验证**：build 零错；无头初跑 **144/144**（+14：假 TE 两类真 FQCN `a.a.b.a.b/c`（furnace 带 private f/h+setTimers 辅助）、FakeWorld 补 `h(III)`+teStore；用例=no-tileentity/空箱 slots=27 empty/写读回/直替换验证（同槽覆盖不合并）/slot 越界+bad-itemid 拒绝不改值/clear 置空/not-furnace 判/private f-h 读出 burning/通用面对 furnace 生效 slots=3）；NPE 地雷修复后回归 **145/145**（假类复刻地雷+null 分支双用例）。
+
+**实跑 `te-1` 已完成全绿**（2026-11-14，World2/Easy/石台，跨 3 会话；流水归档 [cmds.txt](../../integrations/attic/out/te-1/cmds.txt)）：place 54/61 **自动建 TE 活体实锤**（Chunk.setTile→onBlockAdded）；chest 写读回/clear/slot 越界/bad-itemid 全对；**冶炼闭环**——喂铁矿+木板→（暂停干扰排除后）点燃→cook 200t→`2=1x265` 铁锭出炉+燃料耗尽自动熄火+块翻回 61；**TE 持久断言双验**（会话内重进 gf4 + 跨进程第三会话 gf5 逐项一致）；getchest 对炉位 `slots=3`（IInventory 通用面活体成立）。
+
+**te-1 新钉三条**：
+1. **0327 原版地雷（实跑+字节码双实锤）**：`Chunk.d(III)` TE map miss 走重建路径 `Block.blocksList[getBlockId].d(...)`——TE 缺失且方块=空气（id 0，`blocksList[0]=null`）→ **NPE**（游戏自身只在非空气容器块查询从不踩）。修复=teHandle 捕获 ITE(cause=NPE)→REJECTED `no-tileentity`（协议面不露 ERROR；无头假类复刻地雷，**145/145**）；活体复验 gc7=REJECTED ✓。
+2. **存盘时序窗后果升级（用户实锤）**：会话2 点世界 **IOOBE 崩溃**（`NBTTagList.get(0)` 空列表←Entity 读←World 载入）=退化盘（载入期 saveWorld 无 Player 窗内终止）载入中断——**不止崩溃，玩家数据重置**（位置/物品回初始）；再启动一次自愈（会话3 正常）。教训 1 家族最重后果钉版。
+3. **暂停停 TE tick**：Esc 暂停=主循环停=炉子不燃（gf1/gf2 burn=0 假象，用户判决非缺陷）——实跑读 tick 驱动态（燃烧/冶炼/实体行为）前必须确认未暂停。
+
+**NBT 键面新钉**：铁锭 id=**265**（smelt 产物活体回读定版）。

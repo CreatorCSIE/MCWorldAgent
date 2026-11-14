@@ -46,7 +46,8 @@ public final class CommandChannel {
                     "getmeta", "setmeta", "genscatter", "listops",
                     "getlight", "setlook", "setmotion",
                     "give", "inv", "sethealth",
-                    "explode", "spawn", "drop", "invulnerable"));
+                    "explode", "spawn", "drop", "invulnerable",
+                    "getchest", "setchest", "getfurnace"));
 
     /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。 */
     private static final String LISTOPS =
@@ -61,7 +62,10 @@ public final class CommandChannel {
           + "explode(x,y,z,size0..10)w;"
           + "spawn(kind pig|sheep|creeper|skeleton|zombie|spider|tnt|giant|mob,x,y,z)t;"
           + "drop(x,y,z,itemId1..255,count1..64[,dmg])t;"
-          + "invulnerable(ticks0..32767 >=11-immune,0-cancel)t";
+          + "invulnerable(ticks0..32767 >=11-immune,0-cancel)t;"
+          + "getchest(x,y,z)r[IInventory 通用:chest/furnace];"
+          + "setchest(x,y,z,slot,itemId1..255,count1..64[,dmg]|clear=true)w[直替换无合并];"
+          + "getfurnace(x,y,z)r";
 
     private static String cmdDirArg;
     private static File baseDir; // 解析后的 mca/ 根
@@ -414,6 +418,33 @@ public final class CommandChannel {
         if ("invulnerable".equals(c.op)) {
             int ticks = intArg(a, "ticks");
             return WorldOps.invulnerable(world, ticks); // i-frame 计时器不进 NBT，save 无作用
+        }
+        // tileentity 三 op：getchest/getfurnace 纯读；setchest 写侧 saveSuffix
+        // （TE 随 chunk "TileEntities" 持久=与实体不落盘对照面，spec §1）。
+        if ("getchest".equals(c.op)) {
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            return WorldOps.getInv(world, x, y, z); // IInventory 通用面（chest/furnace 皆可）
+        }
+        if ("setchest".equals(c.op)) {
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            int slot = intArg(a, "slot");
+            boolean clear = Boolean.TRUE.equals(a == null ? null : a.get("clear"));
+            // clear 与 itemId/count 互斥（clear 优先，二者缺省允许）
+            int itemId = clear ? 0 : intArg(a, "itemId");
+            int count = clear ? 0 : intArg(a, "count");
+            int dmg = optionalIntArg(a, "dmg", 0);
+            return WorldOps.setInv(world, x, y, z, slot, itemId, count, dmg, clear)
+                    + saveSuffix(world, c);
+        }
+        if ("getfurnace".equals(c.op)) {
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            return WorldOps.getFurnace(world, x, y, z);
         }
         if ("listops".equals(c.op)) {
             return LISTOPS; // agent 侧自省，零游戏调用（世界未捕获仍 not-ready——v1 从简）
