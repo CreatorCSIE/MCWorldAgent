@@ -8,8 +8,9 @@ import java.util.Map;
 /**
  * Hook 指纹表 — infdev 20100327 原始 jar（SHA1 47b1b32430a211520993552ba0a5e00c1af44724）
  * javap 全量扫描钉死的混淆实名。
- * 可读名对榫：E:\4k\github-projects\minecraft-verification-analysis\src-minecraft\
- * src-minecraft-infdev-20100327（World.java L93/L131、Minecraft.java L578、
+ * 可读名对榫：姊妹仓 minecraft-verification-analysis 的
+ * src-minecraft/src-minecraft-infdev-20100327 可读树（本地位置随环境；
+ * World.java L93/L131、Minecraft.java L578、
  * ChunkProviderLoadOrGenerate.java L88、Chunk.java L276）。
  * 严格匹配纪律：类名 + 方法名 + 描述符 + access flags + 期望命中数，
  * 五项全中才织入；任一不符 = UNSUPPORTED 记录并跳过整类（绝不静默错钩）。

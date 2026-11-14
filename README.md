@@ -93,18 +93,19 @@
 powershell -File java/agent/build.ps1
 
 # 默认通路：attic-cli（在 Attic 仓 apps/tauri/sidecar 下；先 --dry-run 核对 LaunchConfig）
+# 占位符：<JDK8>=本机 JDK 1.8 安装目录，<repo>=本仓库根，<out>=本次 run 的日志目录
 node dist/cli.cjs launch mca-poc --dry-run
 node dist/cli.cjs launch mca-poc `
-  --java "C:\Program Files\Java\jdk1.8.0_202\bin\java.exe" `
-  --jvm-arg "-Xbootclasspath/a:E:\4k\github-projects\MCWorldAgent\java\agent\libs\asm-9.7.jar" `
-  --jvm-arg "-javaagent:E:\4k\github-projects\MCWorldAgent\java\agent\out\mcworldagent-agent.jar=log=<out>\agent-transform.log;hooks=<out>\agent-hooks.log"
+  --java "<JDK8>\bin\java.exe" `
+  --jvm-arg "-Xbootclasspath/a:<repo>\java\agent\libs\asm-9.7.jar" `
+  --jvm-arg "-javaagent:<repo>\java\agent\out\mcworldagent-agent.jar=log=<out>\agent-transform.log;hooks=<out>\agent-hooks.log"
 #   手动：SinglePlayer → 进世界 → 走动 → Esc: Save and quit to title → 进程随游戏退出（code 0）
 #   注意：ASM 经 -Xbootclasspath/a 注入（CLI 的 classpath 由 runtime 生成，不可加件）
 
 # 备用/实验通路：Phase 0 harness（顺序与环境类实验，如 --agent-first / --java / --no-agent）
 node integrations/attic/launch-poc.cjs --dry-run
 node integrations/attic/launch-poc.cjs --timeout 600
-$env:MCA_AGENT_EXTRA = 'disable=RUN_TICK;dump=C:\tmp\mca-dump'   # 逐钩禁用 / 织入后字节码落盘
+$env:MCA_AGENT_EXTRA = 'disable=RUN_TICK;dump=<dump-dir>'   # 逐钩禁用 / 织入后字节码落盘
 ```
 
 日志落 `integrations/attic/out/<run>/`：`agent-transform.log`（织入轨迹）、`agent-hooks.log`（把手/tick/存盘事件+SUMMARY）、`game-stream.log`（CLI 通路游戏流）。历次 run 归档于 `out/run*/`、`out/cli-run/`。

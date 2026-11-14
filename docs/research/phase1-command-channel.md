@@ -14,7 +14,7 @@
 
 ## 2. 实跑链
 
-**run cmdchannel-1（jar v1）**：CHANNEL_START@28ms → WORLD_CREATED@28.2s（dir 捕获 saves，回溯两级解析 `CHANNEL_DIR C:\Users\GAME\AppData\Roaming\.attic\mca`）→ FIRST_BRICK_VERIFY_OK（Phase1 砖存续）。命令全绿：
+**run cmdchannel-1（jar v1）**：CHANNEL_START@28ms → WORLD_CREATED@28.2s（dir 捕获 saves，回溯两级解析 `CHANNEL_DIR C:\Users\<user>\AppData\Roaming\.attic\mca`，用户名脱敏）→ FIRST_BRICK_VERIFY_OK（Phase1 砖存续）。命令全绿：
 
 - `getblock 0,71,0`→OK id=4；`dig 0,71,0 save=true`→OK dug saved=true；读回 id=0；**用户目视圆石消失（截图）**
 - 批量失败路径：dup-id→`duplicate-id`（意外实锤，见教训 4）；重复键 JSON→`bad-json: duplicate key 'id'`；未知 op/协议版本 2→REJECTED（文案笼统→当场修 validate 返回原因）
@@ -288,7 +288,7 @@ Spec：`.trae/specs/meta-tree/`。判决变更：原批 gentree **砍除**——
 
 ## 19. 实体面批 `explode` / `spawn` / `drop`（2026-11-14，源码树+javap 双路取证 + 落码，实跑 `sed-1` 待批准）
 
-**取证**（spec [.trae/specs/spawn-explode-drop/spec.md](../../.trae/specs/spawn-explode-drop/spec.md) §1）：本批启用**反编译源码树** `E:\4k\github-projects\minecraft-verification-analysis\src-minecraft\src-minecraft-infdev-20100327`（234 文件全语义名）做语义面，混淆实名仍 javap 指纹钉——双路交叉。入口：World `a(Entity,DDDF)V`=createExplosion（Explosion 类=空标记，16³ 壳射线+方块阻力采样全在 World 方法内；source=null 判等实现零 NPE 但**伤害不豁免玩家**）；World `a(Entity)V`=spawnEntityInWorld=loadedEntityList.add（主循环每 tick 遍历=加入即活）；Entity(World) 构造零副作用（仅 worldObj+pos(0,0,0)）。**混淆实体类表=字符串常量判决法**（贴图路径/实体名/getEntityName 串实锤）：pig=`a.c.b.c`、sheep=`a.c.b.b`、creeper=`a.c.a.d`、skeleton=`a.c.a.c`、zombie=`a.c.a.f`、spider=`a.c.a.b`（六 mob `(World)V`）、tnt=`a.c.c.a`（`(World,FFF)V` fuse=80 内置）、item=`a.c.c.b`（`(World,DDD,ItemStack)V`）；giant 无 `(World)V` 构造器排除；层级注记：混淆包重排致旧判读偏差（`a.c.c`=EntityCreature 非 Mob、`a.c.a.e`=EntityMonster）——不影响本批（只依赖具体类构造器+Entity 基类面）。**0327 saveWorld 不写实体**（Infdev 特性）→spawn/drop=瞬态（save 忽略、detail 无 saved= 防误导），explode 破坏方块持久。tileentity 面（Furnace=`a.a.b.a.b`/Chest=`a.a.b.a.c`/TE 基=`a.a.b.a.a`，World `h(III)`/`a(III+TE)V`/`i(III)` 三件套已钉）留下批。
+**取证**（spec [.trae/specs/spawn-explode-drop/spec.md](../../.trae/specs/spawn-explode-drop/spec.md) §1）：本批启用**反编译源码树** `<workspace>\minecraft-verification-analysis\src-minecraft\src-minecraft-infdev-20100327`（234 文件全语义名）做语义面，混淆实名仍 javap 指纹钉——双路交叉。入口：World `a(Entity,DDDF)V`=createExplosion（Explosion 类=空标记，16³ 壳射线+方块阻力采样全在 World 方法内；source=null 判等实现零 NPE 但**伤害不豁免玩家**）；World `a(Entity)V`=spawnEntityInWorld=loadedEntityList.add（主循环每 tick 遍历=加入即活）；Entity(World) 构造零副作用（仅 worldObj+pos(0,0,0)）。**混淆实体类表=字符串常量判决法**（贴图路径/实体名/getEntityName 串实锤）：pig=`a.c.b.c`、sheep=`a.c.b.b`、creeper=`a.c.a.d`、skeleton=`a.c.a.c`、zombie=`a.c.a.f`、spider=`a.c.a.b`（六 mob `(World)V`）、tnt=`a.c.c.a`（`(World,FFF)V` fuse=80 内置）、item=`a.c.c.b`（`(World,DDD,ItemStack)V`）；giant 无 `(World)V` 构造器排除；层级注记：混淆包重排致旧判读偏差（`a.c.c`=EntityCreature 非 Mob、`a.c.a.e`=EntityMonster）——不影响本批（只依赖具体类构造器+Entity 基类面）。**0327 saveWorld 不写实体**（Infdev 特性）→spawn/drop=瞬态（save 忽略、detail 无 saved= 防误导），explode 破坏方块持久。tileentity 面（Furnace=`a.a.b.a.b`/Chest=`a.a.b.a.c`/TE 基=`a.a.b.a.a`，World `h(III)`/`a(III+TE)V`/`i(III)` 三件套已钉）留下批。
 
 **实现**：三 op 全惰性解析（resolveEntity：explode/spawnEntity 两 Method + kind→Constructor 缓存表；Entity 基类=player 字段声明类型、ItemStack 类=主槽分量类型，零硬编码 FQCN 纪律延伸）；`spawn`=白名单查表→Class.forName→构造→setPosRot(x+0.5,y,z+0.5,0,0)（tnt 特例 float 构造后同调用无害幂等）→spawnEntityInWorld；`drop` 校验复用 give 面同序同串（no-player→count→dmg→bad-itemid）+isCtor2/3 复用；`explode` size∈[0,10] 整数（invoke 转 float）。KNOWN_OPS→**24**；explode 写侧 saveSuffix，spawn/drop 瞬态忽略 save。零新终态。
 

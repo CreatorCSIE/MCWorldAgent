@@ -17,7 +17,7 @@ premain → 严格指纹织入 → 把手①（捕获活体 World+存档目录�
 |---|---|
 | versionId | `inf-20100327` |
 | jar SHA1 | `47b1b32430a211520993552ba0a5e00c1af44724`（betacraft 原始件，入位 `%APPDATA%\.attic\versions\`，harness 闸门校验） |
-| Java | `C:\Program Files\Java\jdk1.8.0_202\bin\java.exe` |
+| Java | `<JDK8>\bin\java.exe`（本机 JDK 1.8.0_202 安装目录） |
 | gameDir | `%APPDATA%\.attic\default instance` |
 | mainClass | `uk.betacraft.legacyfix.applet.AppletLauncher`（0327 jar 无 main，applet 形态） |
 | class 版本 | major=49（**old verifier**，见 §5 教训） |
@@ -25,7 +25,7 @@ premain → 严格指纹织入 → 把手①（捕获活体 World+存档目录�
 | legacyfix | Phase 0 时 `26.11-attic.8`；2026-11-13 起钉版 `26.11-attic.10`（含 CtClass 池头插修复，§10）。规范顺序=legacyfix 在前、我们的在后（transformer 链顺序=挂载顺序） |
 
 0327 混淆实名（javap 全量扫描钉死；0325 映射已漂移不可用。可读树：
-`E:\4k\github-projects\minecraft-verification-analysis\src-minecraft\src-minecraft-infdev-20100327`）：
+`<workspace>\minecraft-verification-analysis\src-minecraft\src-minecraft-infdev-20100327`，姊妹仓本地位置随环境）：
 
 | 语义名 | 实名 | 关键签名 | 树引用 |
 |---|---|---|---|
@@ -70,10 +70,10 @@ major=49 走老校验器：构造器内 `super()` 完成前 `this` 处于 uninit
 
 无头验证（HeadlessWorldTest，挂 agent 直接构造 World）：`WORLD-OK`，capturedWorld/capturedSaveDir 双非空。
 
-## 6. run4 证据（`out/run4/agent-hooks.log` 关键行，verbatim）
+## 6. run4 证据（`out/run4/agent-hooks.log` 关键行，verbatim；仅用户名脱敏为 `<user>`）
 
 ```
-[43347ms] WORLD_DIR dir=C:\Users\GAME\AppData\Roaming\.attic\default instance\saves level.dat=false
+[43347ms] WORLD_DIR dir=C:\Users\<user>\AppData\Roaming\.attic\default instance\saves level.dat=false
 [43354ms] WORLD_CREATED world=net.minecraft.a.a.f@3c2369f9 dir=...\saves
 [43354ms] SAVE_WORLD #1 id=3c2369f9 indirect=false        ← 构造器尾（新 World）
 [89035ms] LIGHT_RECALC #1 … [89300ms] LIGHT_RECALC #10    ← 新 chunk 生成（日志封顶 10 条）
@@ -153,11 +153,11 @@ legacyfix `Agent.java` 的 load-time CtTransformer 链本意是基于输入字�
 **定型命令（默认启动通路）**：
 
 ```powershell
-cd e:\4k\github-projects\Attic-Minecraft-Launcher\apps\tauri\sidecar
+cd <workspace>\Attic-Minecraft-Launcher\apps\tauri\sidecar   # 姊妹启动器仓本地位置随环境
 node dist/cli.cjs launch mca-poc `
-  --java "C:\Program Files\Java\jdk1.8.0_202\bin\java.exe" `
-  --jvm-arg "-Xbootclasspath/a:E:\4k\github-projects\MCWorldAgent\java\agent\libs\asm-9.7.jar" `
-  --jvm-arg "-javaagent:E:\4k\github-projects\MCWorldAgent\java\agent\out\mcworldagent-agent.jar=log=<out>\agent-transform.log;hooks=<out>\agent-hooks.log"
+  --java "<JDK8>\bin\java.exe" `
+  --jvm-arg "-Xbootclasspath/a:<repo>\java\agent\libs\asm-9.7.jar" `
+  --jvm-arg "-javaagent:<repo>\java\agent\out\mcworldagent-agent.jar=log=<out>\agent-transform.log;hooks=<out>\agent-hooks.log"
 ```
 
 **实跑对账（重进 World2，游戏自然退出 code=0）**：五钩全 HOOKED（runTick @190ms 实调用，TICK 行 20TPS）；
