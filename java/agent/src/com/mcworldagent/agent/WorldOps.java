@@ -41,182 +41,89 @@ public final class WorldOps {
         }
     }
 
-    // 0327 写侧实名（与 FirstBrick 一致；多版本化时移入登记表）
-    private static final String M_SET_BLOCK = "c";   // setBlockWithNotify (IIII)Z public final
-    private static final String M_GET_BLOCK = "a";   // getBlockId (III)I public final
-    private static final String M_SAVE_WORLD = "a";  // saveWorld (Z)V private
+    // 版本契约表（A1 迁移批）：全部混淆实名/游戏 id 已迁入 VersionRegistry.build0327()
+    // （取证注释随值迁移，案卷指针在该文件头）。以下常量=表值别名，引用点零改动；
+    // 零行为变化验收=无头逐字段等值断言。戒律 15：G1 Classic 结构差异三档建模待 A2。
+    private static final VersionTable T = VersionRegistry.current();
 
-    // 0327 读侧实名（Query 取证：saveWorld NBT 键绑定 + h() 每 tick b+1 且 b%200 触发 autosave）
-    // 写侧同源（settime/setspawn 取证，全量 javap 303 类）：
-    //   b 外部读点仅 Chunk 存盘 LastUpdate；渲染每帧 client.a.b.a(lerp)→f.b(F)F→glRotatef 实时算，零缓存
-    //   g/h/i 唯一读点 = EntityPlayer 构造器 setPositionAndRotation——下次进世界生效，无通知面
-    private static final String F_WORLD_TIME = "b";  // public long worldTime（NBT "Time"）
-    private static final String F_RAND_SEED = "x";   // private long randSeed（NBT "RandomSeed"）
-    private static final String F_SPAWN_X = "g";     // public int spawnX（NBT "SpawnX"）
-    private static final String F_SPAWN_Y = "h";     // public int spawnY（NBT "SpawnY"）
-    private static final String F_SPAWN_Z = "i";     // public int spawnZ（NBT "SpawnZ"）
+    private static final String M_SET_BLOCK = T.setBlockM;    // setBlockWithNotify (IIII)Z
+    private static final String M_GET_BLOCK = T.getBlockM;    // getBlockId (III)I
+    private static final String M_SAVE_WORLD = T.saveWorldM;  // saveWorld (Z)V private
+    private static final String F_WORLD_TIME = T.worldTimeF;  // NBT "Time"
+    private static final String F_RAND_SEED = T.randSeedF;    // NBT "RandomSeed"
+    private static final String F_SPAWN_X = T.spawnXF;
+    private static final String F_SPAWN_Y = T.spawnYF;
+    private static final String F_SPAWN_Z = T.spawnZF;
 
-    // tp 侧实名（javap 取证，Entity 基类 net.minecraft.a.c.b；全量反汇编 303 类）：
-    //   World.c public Entity 字段 = 活体玩家（EntityPlayer 构造器自设 world.c=this，零新钩子）
-    //   d,e,f=lastTick / g,h,i=pos / j,k,l=motion / m,n=yaw,pitch（public double/float）
-    //   b(DDDFF)V=setPositionAndRotation：d=g=x; e=h=y+u(眼偏移1.62); f=i=z; 末尾 a(DDD) 重建 AABB
-    //   = 游戏 NBT 载入（Entity.d←Player.Pos 后调 b）的同一配方；mover 每 tick 自愈重算 pos.y
-    private static final String F_WORLD_PLAYER = "c"; // public Entity player（World 字段）
-    private static final String M_SET_POS_ROT = "b";  // setPositionAndRotation (DDDFF)V public final
-    private static final String E_POS_X = "g";
-    private static final String E_POS_Y = "h";
-    private static final String E_POS_Z = "i";
-    private static final String E_MOT_X = "j";
-    private static final String E_MOT_Y = "k";
-    private static final String E_MOT_Z = "l";
-    private static final String E_YAW = "m";
-    private static final String E_PITCH = "n";
+    // tp/getplayer 面（表值；取证见 VersionRegistry。注意 W 在子类——execute 期按实例类
+    // 惰性解析，失败→UnsupportedOp 不静默）
+    private static final String F_WORLD_PLAYER = T.playerF;
+    private static final String M_SET_POS_ROT = T.setPosRotM;
+    private static final String E_POS_X = T.posXF;
+    private static final String E_POS_Y = T.posYF;
+    private static final String E_POS_Z = T.posZF;
+    private static final String E_MOT_X = T.motXF;
+    private static final String E_MOT_Y = T.motYF;
+    private static final String E_MOT_Z = T.motZF;
+    private static final String E_YAW = T.yawF;
+    private static final String E_PITCH = T.pitchF;
+    private static final String E_HEALTH = T.healthF;
 
-    // getplayer 面（javap 取证，EntityLiving=a.c.e）：W=Health（public int，NBT "Health" 双向绑定实锤，默认 10）。
-    // W 在子类，World.c 声明类型=Entity 基类——execute 期按实例类惰性解析（失败→UnsupportedOp，不静默）。
-    private static final String E_HEALTH = "W";
+    // 物品栏面（表值；give 必须注册表校验防 NPE、sethealth 直写 W 绕过治疗钳制等
+    // 取证细节见 VersionRegistry 注释与 give/sethealth 案卷批）
+    private static final String F_INV = T.invF;
+    private static final String INV_MAIN = T.invMainF;
+    private static final String INV_ARMOR = T.invArmorF;
+    private static final String INV_CUR = T.invCurF;
+    private static final String IS_COUNT = T.isCountF;
+    private static final String IS_ID = T.isIdF;
+    private static final String IS_DMG = T.isDmgF;
+    private static final String M_ADDSTACK = T.addStackM;
+    private static final String G_ITEM_CLASS = T.itemClassG;
+    private static final String ITEMS = T.itemsF;
 
-    // 物品栏面（give/inv/sethealth 取证，javap 全量反汇编定向检索）：
-    //   EntityHuman=a.c.e.a public 字段 b=InventoryPlayer(a.c.e.b)：a:[ItemStack]=36 主槽、
-    //   b:[ItemStack]=4 盔甲槽、c:I=当前快捷槽(0..9)；a(ItemStack)Z=addStack（同 id 且 dmg==0
-    //   才合并、单栈上限 64、入包后设 k.b=5 拾取延迟；false=装不下）；EntityPlayer=client.g.a
-    //   不 shadow 本批任何字段。
-    //   ItemStack=net.minecraft.a.b.k：a:I=Count、b:I=拾取延迟、c:I=id、d:I=Damage；
-    //   构造器 (II)V=(id,count)、(III)V=(id,count,damage)；a()Li;=i.b[c] 直索引
-    //   （id 越界/空洞→后续 NPE，故 give 必须注册表校验）。
-    //   Item 注册表=net.minecraft.a.b.i：public static i[] b 按 id 索引（部分槽位 null）。
-    //   持久化：EntityPlayer.a(NBT) 写 "Inventory"（主槽 Slot 0..35、盔甲 100..103）→save 即落盘。
-    //   sethealth 直写 W 绕过 b(I)V 治疗钳制（20 上限；死亡中不治疗）→op 侧自校验 0..20；
-    //   HUD client.a_d 每帧直读 W→即时生效；置 0=deathTicks 流程接管（玩家 k() 覆写空操作、
-    //   死亡屏 client.d 自动弹出、重生=原版按钮）→agent 不代打 respawn。
-    //   全惰性解析（eHealth 同模式）：execute 期按实例类解析，NoSuch*→UnsupportedOp 不静默；
-    //   resolve(Class) 主段零改动（World 类签名不变）。
-    private static final String F_INV = "b";        // EntityHuman.b（InventoryPlayer）
-    private static final String INV_MAIN = "a";     // ItemStack[36] 主槽
-    private static final String INV_ARMOR = "b";    // ItemStack[4] 盔甲槽
-    private static final String INV_CUR = "c";      // 当前快捷槽
-    private static final String IS_COUNT = "a";     // ItemStack.Count
-    private static final String IS_ID = "c";        // ItemStack id
-    private static final String IS_DMG = "d";       // ItemStack Damage
-    private static final String M_ADDSTACK = "a";   // addStack (ItemStack)Z
-    private static final String G_ITEM_CLASS = "net.minecraft.a.b.i";
-    private static final String ITEMS = "b";        // public static i[] 按 id 索引
+    // 实体面（表值；spawn/drop 恒 transient（0327 saveWorld 不写实体）、explode 不豁免玩家、
+    // 六 mob 构造器配方等取证见 VersionRegistry 与 spawn-explode-drop 案卷批）
+    private static final String M_EXPLODE = T.explodeM;
+    private static final String M_SPAWN_ENTITY = T.spawnEntityM;
+    private static final String G_ITEM_ENTITY = T.itemEntityG;
 
-    // 实体面（spawn-explode-drop 批取证，反编译源码树语义 + javap 混淆指纹双路交叉）：
-    //   World a(Lnet/minecraft/a/c/b;DDDF)V public final=createExplosion(Entity source,x,y,z,float size)
-    //   （Explosion 类=空标记，逻辑全在此：16³ 壳射线采样+方块阻力→HashSet 破坏集→区域实体伤害击退
-    //   →playSoundEffect("random.explode")）；source=null 零 NPE（区域取实体遍历 `entity5!=entity1`
-    //   判等实锤 L1180）——但**不豁免玩家**，实跑必须远距离。
-    //   World a(Lnet/minecraft/a/c/b;)V public final=spawnEntityInWorld(Entity)=loadedEntityList.add——
-    //   主循环每 tick 遍历该表，加入即活零新钩；Entity(World) 构造仅 set worldObj+pos(0,0,0) 零副作用
-    //   （源码 L68-71），配方=构造→b(DDDFF)V 定位（tp 轮已钉）→spawn。
-    //   **0327 saveWorld 不写实体**（Infdev 特性）——spawn/drop 恒临时态，存退即失；explode 破坏方块持久。
-    //   混淆实体类表（字符串常量判决：贴图路径/实体名/getEntityName）：
-    //   pig=a.c.b.c、sheep=a.c.b.b、creeper=a.c.a.d、skeleton=a.c.a.c、zombie=a.c.a.f、spider=a.c.a.b
-    //   （六 mob 构造器全 (World)V）；tnt=a.c.c.a（(World,FFF)V，fuse=80 内置 bipush 实锤）；
-    //   item=a.c.c.b（(World,DDD,ItemStack)V）；giant=a.c.a.a 无 (World)V 构造器→排除；
-    //   arrow/painting 面留后续取证（shooter/朝向+EnumArt），不进 v1 白名单。
-    private static final String M_EXPLODE = "a";       // createExplosion (Entity,DDDF)V
-    private static final String M_SPAWN_ENTITY = "a";  // spawnEntityInWorld (Entity)V
-    private static final String G_ITEM_ENTITY = "net.minecraft.a.c.c.b"; // EntityItem
+    // grow/clear 面（表值；骨粉=官方强熟判决见 grow-clear spec §1，setEntityDead static
+    // 仅置 isDead 真移除在 tick、EntityItem isInstance 缓存配方同见）
+    private static final String M_SET_ENTITY_DEAD = T.setEntityDeadM;
+    private static final int ID_CROPS = T.idCrops;
+    private static final int ID_SAPLING = T.idSapling;
+    private static final int CROPS_RIPE_META = T.cropsRipeMeta;
 
-    // grow/clear 面（grow-clear 批，骨粉=官方强熟判决 spec §1）：
-    //   grow=作物 id59 终态 meta=7（0327 updateTick 光门+概率逐阶 +1，7=终态=一步满熟等价；
-    //   骨粉语义本就绕过 tick 条件，Beta 原版 applyBonemeal 亦无光门）；
-    //   树苗 id6 UNSUPPORTED=growTree 首现 Beta 1.2（四代树零命中实证，0327 无树化能力）；
-    //   clear=World.b(Entity)V **static** setEntityDead（仅置 isDead，真移除在 tick——
-    //   i()List 活表遍历零 CME）；EntityItem 判等=Class.forName(G_ITEM_ENTITY) 缓存 isInstance。
-    private static final String M_SET_ENTITY_DEAD = "b"; // setEntityDead (Entity)V static
-    private static final int ID_CROPS = 59;
-    private static final int ID_SAPLING = 6;
-    private static final int CROPS_RIPE_META = 7;
+    // invulnerable 面（表值；attackEntityFrom 单入口全伤害源拒绝、K>=11 免疫窗口、
+    // 和平难度抹杀敌对、giant 构造器复活更正等取证见 sed-1 案卷批）
+    private static final String E_IFRAMES = T.iframesF;
 
-    // invulnerable 面（sed-1 批前用户判决"玩家不死先"，源码+javap 双路实锤）：
-    //   EntityPlayer.attackEntityFrom L188 `heartsLife > heartsHalvesLife/2(=10) → return false`
-    //   =**全伤害源拒绝**——伤害入口全搜实锤：怪物近战/箭(EntityArrow L127)/火焰(EntityLiving L95)/
-    //   坠落(L300)/虚空(Entity L150/157/346)/爆炸全部走 attackEntityFrom(Entity,int) 单入口。
-    //   heartsLife=Entity(a.c.b) public int K（原版 i-frame 计时器，EntityLiving L112 每 tick>0 自减 1，
-    //   正常受击 L233 重置 20=1 秒无敌帧）；写 K≥11=免疫窗口，写 0=取消；HUD 副作用=心闪烁
-    //   （GuiIngame L47 读同字段，仅视觉噪音）。瞬态：不进 NBT，save 无作用。
-    //   难度判决（sed-1 实跑前置）：EntityMonster.onUpdate L27 `difficultySetting==0→setEntityDead()`
-    //   =和平抹杀敌对（spawn 四怪首 tick 即死）；World.d 每帧被 gameSettings.difficulty 覆写（Minecraft
-    //   L763）写 d 无效——切换=启动前 options.txt difficulty:1（Easy，GameSettings L142 读入实锤）。
-    //   Giant 更正：源码树有 EntityGiant(World) 构造器但**运行时 jar a.c.a.a 仅默认无参构造**
-    //   （javap 全量复核，worldObj=null 首 tick NPE）——排除维持；教训=源码树与 jar 可能不同 build，
-    //   构造器面以运行时 jar 为准。
-    private static final String E_IFRAMES = "K";       // Entity.heartsLife（public int）
+    // tileentity 面（表值；TE 创建/删除=游戏自动、持久化随 chunk、IInventory 三方法从
+    // 实例类 getMethod、Furnace getInvName 笔误等取证见 tileentity-batch 案卷批）
+    private static final String M_TE_GET = T.teGetM;
+    private static final String M_INV_SIZE = T.invSizeM;
+    private static final String M_INV_GET = T.invGetM;
+    private static final String M_INV_SET = T.invSetM;
+    private static final String F_TE_BURN = T.teBurnF;
+    private static final String F_TE_COOK = T.teCookF;
 
-    // tileentity 面（tileentity-batch 批取证，源码树+javap 双路）：
-    //   TE 基类=a.a.b.a.a（a=World、b/c/d=x/y/z）；Chest=a.a.b.a.c（27 槽，构造覆盖声明面 36）、
-    //   Furnace=a.a.b.a.b（3 槽：0 料/1 燃/2 产；f=BurnTime、h=CookTime NBT 对榫实锤、
-    //   g=currentItemBurnTime 不进 NBT；点燃=updateEntity 自动吞 slot1（wood 300t/煤 1600t），
-    //   cook 满 200 冶炼，点燃态翻转 61↔62 换块重挂 TE）。
-    //   IInventory=a.b：a()I=size、a(I)Lk;=getStack、a(ILk;)V=setStack（**直替换无合并**）——
-    //   三方法直接从**实例类** getMethod（不取接口对象：假 IInventory 与注册表包目录 a/b/
-    //   冲突=javac 结构限制，mob 基类同案；无头/活体同构）。
-    //   Furnace getInvName 返回 "Chest"=原版笔误——类型判一律字段/槽数面，不用名字。
-    //   **TE 创建/删除=游戏自动**：Chunk.setTile L194 调 onBlockAdded→BlockContainer 建 TE、
-    //   onBlockRemoval 删——place(54/61)/dig 零手动。
-    //   **TE 持久化随 chunk**（Chunk.save "TileEntities"+Items+BurnTime/CookTime）——
-    //   与实体不落盘形成对照（te-1 断言点）。World h(III)=getBlockTileEntity（chunk 缺失→null）。
-    private static final String M_TE_GET = "h";         // getBlockTileEntity (III)La.a.b.a.a;
-    private static final String M_INV_SIZE = "a";       // IInventory.getSize ()I
-    private static final String M_INV_GET = "a";        // getStackInSlot (I)Lk;
-    private static final String M_INV_SET = "a";        // setInventorySlotContents (I,Lk;)V
-    private static final String F_TE_BURN = "f";        // TileEntityFurnace.furnaceBurnTime
-    private static final String F_TE_COOK = "h";        // TileEntityFurnace.furnaceCookTime
+    // 零取证五 op 批（表值；entitylist per-instance 探测不可全局缓存 Field、playsound
+    // miss 静默 no-op、setarmor 不校验 ItemArmor、clearinv 不可逆等取证见案卷批）
+    private static final String M_ENTITY_LIST = T.entityListM;
+    private static final String M_ENTITY_TYPE = T.entityTypeM;
+    private static final String M_PLAY_SOUND = T.playSoundM;
+    private static final Map<String, String> MOB_CLASSES = T.mobClasses;
 
-    // 零取证五 op 批（zero-evidence-five，全部落已钉面，llm-1 同模式）：
-    //   entitylist=World i()List=getLoadedEntityList（javap World 表在列）+Entity q()String
-    //   =getEntityType（方法，与 AABB 字段 q 同名合法）+g/h/i+W（**per-instance 探测**——
-    //   非 Living 无 W 省略 health；不可用 healthField 全局缓存 Field 跨类 getInt——
-    //   Painting 非 EntityLiving 子类，Field 属声明类不匹配即 IllegalArgumentException）。
-    //   playsound=World a(DDD,String,F,F)V=playSoundEffect（createExplosion L762 调用点实锤
-    //   参数序 x,y,z,name,vol,pitch）；不存在音效=客户端查表 miss 静默 no-op（透传不建白名单）。
-    //   setarmor=InventoryPlayer b[4]（give 批钉）数组元素直写；**不校验 ItemArmor**（注册表非
-    //   null 即放行=give 同戒律；非盔甲=无减伤不崩溃）；减伤链 getPlayerArmorValue 已钉。
-    //   clearinv=a[36]+b[4] 全 null（不可逆，detail 固定计数）。
-    //   replace=fill 面复用（normalizeRegion cap 4096+validateBlockId+changed/NoChange 语义）。
-    private static final String M_ENTITY_LIST = "i";    // getLoadedEntityList ()List
-    private static final String M_ENTITY_TYPE = "q";    // getEntityType ()String
-    private static final String M_PLAY_SOUND = "a";     // playSoundEffect (DDD,String,F,F)V
-    private static final Map<String, String> MOB_CLASSES = new HashMap<String, String>();
-
-    static {
-        MOB_CLASSES.put("pig", "net.minecraft.a.c.b.c");
-        MOB_CLASSES.put("sheep", "net.minecraft.a.c.b.b");
-        MOB_CLASSES.put("creeper", "net.minecraft.a.c.a.d");
-        MOB_CLASSES.put("skeleton", "net.minecraft.a.c.a.c");
-        MOB_CLASSES.put("zombie", "net.minecraft.a.c.a.f");
-        MOB_CLASSES.put("spider", "net.minecraft.a.c.a.b");
-        MOB_CLASSES.put("tnt", "net.minecraft.a.c.c.a");
-        // giant=a.c.a.a：运行时 jar 无 <init>（混淆管线剥死代码构造器）——由 NEW_CTOR
-        // 受限构造器补全复活（HookTargets GIANT_CTOR，transform 日志 CTOR-INJECTED 对账）；
-        // 复活后=RenderGiantZombie scale 6.0 的 10 倍巨僵尸（EntityMonster 子类，和平即死面同）。
-        MOB_CLASSES.put("giant", "net.minecraft.a.c.a.a");
-        // mob=a.c.c=EntityCreature 基类（用户判决"非正常生物但可生成"）：构造器健在免注入；
-        // 渲染走 getEntityRenderObject 一级父类回退→EntityLiving=ModelBiped 人形（无 NPE）。
-        MOB_CLASSES.put("mob", "net.minecraft.a.c.c");
-    }
-
-    // meta/genscatter 面（javap 取证，World L588/L637/L863 + a.a.c.b.b 散布器）：
-    //   d(III)I=getBlockMetadata（Chunk.b(III)I 读 nibble g，索引 x<<11|z<<7|y）；
-    //   b(IIII)V=静默 meta 写（h(IIII)Z→Chunk.b(IIII)V，仅 nibble+dirty，零通知——
-    //   sapling 生长即此面；可读树名 "setBlockMetadataWithNotify" 系 deobf 误猜）；
-    //   e(IIII)V=光照 6 邻（逐邻 i()→Block.b(f,IIII)=updateLighting，第 4 参 id 被 i 忽略）；
-    //   u=private List 观察者（渲染标记 a(III)V）；
-    //   a.a.c.b.b(int)=椭球石头散布器（meta-1 实跑翻案：原版矿石团生成器，c_a 以 id 14/15/16/aj
-    //   调用；命中格仅当现为 stone(x.i=r(1,1) id=1) 时静默 a(IIII)Z 写入，恒返 true）；
-    //   World.d:I=difficultySetting（主循环每帧=GameSettings.difficulty，客户端全局不进 level.dat）。
-    private static final String M_GET_META = "d";
-    private static final String M_SET_META_SILENT = "b";
-    private static final String M_LIGHT6 = "e";
-    // getlight 面（meta 轮翻案钉死）：World.f(III)I=getBrightness——Chunk.c(IIII)I 读
-    // h=SkyLight 减环境值 World.q 后与 i=BlockLight 取 max，纯读返回 0-15（旧"气温"笔记作废）。
-    private static final String M_GET_LIGHT = "f";
-    private static final String F_OBSERVERS = "u";
-    private static final String F_DIFFICULTY = "d";
-    private static final String G_SCATTER_CLASS = "net.minecraft.a.a.c.b.b";
+    // meta/genscatter/getlight 面（表值；静默写非 notify、散布器=椭球矿石团生成器（meta-1
+    // 实跑翻案）、getBrightness 纯读（旧"气温"笔记作废）、difficulty 写无效等取证见 meta 轮案卷）
+    private static final String M_GET_META = T.getMetaM;
+    private static final String M_SET_META_SILENT = T.setMetaSilentM;
+    private static final String M_LIGHT6 = T.light6M;
+    private static final String M_GET_LIGHT = T.getLightM;
+    private static final String F_OBSERVERS = T.observersF;
+    private static final String F_DIFFICULTY = T.difficultyF;
+    private static final String G_SCATTER_CLASS = T.scatterClassG;
 
     // 区域批量写读上限（fill/getblocks 共用）：16³=4096。
     // 取证：v1 fill=循环 c(IIII)Z（place/dig 同路径）；Chunk.setTile 内部已含 heightmap 重算
