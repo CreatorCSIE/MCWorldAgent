@@ -21,7 +21,7 @@ export interface OpSpec {
   save: SaveMode
 }
 
-/** 33 op 全量（KNOWN_OPS 对榫）。 */
+/** 35 op 全量（KNOWN_OPS 对榫）。 */
 export const OPS: OpSpec[] = [
   { name: 'place', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }, { key: 'blockId', kind: 'int' }], save: 'true' },
   { name: 'dig', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }], save: 'true' },
@@ -54,6 +54,8 @@ export const OPS: OpSpec[] = [
   { name: 'getchest', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }], save: 'ignore' },
   { name: 'setchest', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }, { key: 'slot', kind: 'int' }, { key: 'itemId', kind: 'int', optional: true }, { key: 'count', kind: 'int', optional: true }, { key: 'dmg', kind: 'int', optional: true }], save: 'true' },
   { name: 'getfurnace', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }], save: 'ignore' },
+  { name: 'grow', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }], save: 'true' },
+  { name: 'clear', args: [{ key: 'x', kind: 'int', optional: true }, { key: 'y', kind: 'int', optional: true }, { key: 'z', kind: 'int', optional: true }, { key: 'r', kind: 'int', optional: true }], save: 'ignore' },
   { name: 'save', args: [], save: 'true' },
   { name: 'listops', args: [], save: 'ignore' },
 ]

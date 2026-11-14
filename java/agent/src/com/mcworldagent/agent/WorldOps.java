@@ -120,6 +120,17 @@ public final class WorldOps {
     private static final String M_SPAWN_ENTITY = "a";  // spawnEntityInWorld (Entity)V
     private static final String G_ITEM_ENTITY = "net.minecraft.a.c.c.b"; // EntityItem
 
+    // grow/clear 面（grow-clear 批，骨粉=官方强熟判决 spec §1）：
+    //   grow=作物 id59 终态 meta=7（0327 updateTick 光门+概率逐阶 +1，7=终态=一步满熟等价；
+    //   骨粉语义本就绕过 tick 条件，Beta 原版 applyBonemeal 亦无光门）；
+    //   树苗 id6 UNSUPPORTED=growTree 首现 Beta 1.2（四代树零命中实证，0327 无树化能力）；
+    //   clear=World.b(Entity)V **static** setEntityDead（仅置 isDead，真移除在 tick——
+    //   i()List 活表遍历零 CME）；EntityItem 判等=Class.forName(G_ITEM_ENTITY) 缓存 isInstance。
+    private static final String M_SET_ENTITY_DEAD = "b"; // setEntityDead (Entity)V static
+    private static final int ID_CROPS = 59;
+    private static final int ID_SAPLING = 6;
+    private static final int CROPS_RIPE_META = 7;
+
     // invulnerable 面（sed-1 批前用户判决"玩家不死先"，源码+javap 双路实锤）：
     //   EntityPlayer.attackEntityFrom L188 `heartsLife > heartsHalvesLife/2(=10) → return false`
     //   =**全伤害源拒绝**——伤害入口全搜实锤：怪物近战/箭(EntityArrow L127)/火焰(EntityLiving L95)/
@@ -250,6 +261,8 @@ public final class WorldOps {
     // 零取证五 op 批惰性缓存（entitylist 成员 per-instance 解析不入缓存，见方法注释）
     private static volatile Method entityListM;   // World i()List
     private static volatile Method playSoundM;    // World a(DDD,String,F,F)V
+    private static volatile Method setEntityDeadM;    // World b(Entity)V static（clear 惰性）
+    private static volatile Class<?> entityItemClass; // EntityItem instanceof 缓存（clear 惰性）
     private static volatile Method getMeta;
     private static volatile Method setMetaSilent;
     private static volatile Method light6;
@@ -1141,6 +1154,107 @@ public final class WorldOps {
             armor[i] = null;
         }
         return "cleared " + main.length + "+" + armor.length;
+    }
+
+    /**
+     * 作物强熟（op=grow，骨粉语义=官方强熟：一步满熟，绕过 updateTick 光门+概率逐阶）。
+     * id=59：meta==7→NoChange（已熟）；否则 setMetaSilent+notifyBlock（setmeta 同配方——
+     * 同 id 走 c() 被 Chunk 短路不通知）→OK 带旧 meta 供回滚。
+     * id=6（sapling）：UnsupportedOp 响亮——0327 无树化能力（growTree 首现 Beta 1.2，spec §1）。
+     * 其余 id：Rejected not-growable。
+     */
+    public static String growCrops(Object world, int x, int y, int z) throws Exception {
+        int id = getBlockId(world, x, y, z);
+        if (id == ID_SAPLING) {
+            throw new UnsupportedOp(
+                    "sapling->tree not a 0327 capability (introduced Beta 1.2)");
+        }
+        if (id != ID_CROPS) {
+            throw new Rejected("not growable: id=" + id);
+        }
+        int old = ((Integer) getMeta.invoke(world, Integer.valueOf(x), Integer.valueOf(y),
+                Integer.valueOf(z))).intValue();
+        if (old == CROPS_RIPE_META) {
+            throw new NoChange("crops already ripe meta=" + CROPS_RIPE_META
+                    + " at " + x + "," + y + "," + z);
+        }
+        setMetaSilent.invoke(world, Integer.valueOf(x), Integer.valueOf(y), Integer.valueOf(z),
+                Integer.valueOf(CROPS_RIPE_META));
+        notifyBlock(world, x, y, z, id);
+        return "grown " + ID_CROPS + " meta " + old + "->" + CROPS_RIPE_META;
+    }
+
+    /**
+     * 清地面物（op=clear，EntityItem-only）。setEntityDead=World.b(Entity)V **static** 惰性解析
+     * （签名不符→UnsupportedOp 响亮；仅置 isDead，真移除在 tick——i()List 活表遍历零 CME）；
+     * 实体源=World i()List（entitylist 同通路）。无坐标=全表；cx/cy/cz/rad=仅水平距离
+     * （格中心 cx+0.5/cz+0.5，同 drop 位置语义）≤rad 且垂直≤rad 的圆柱过滤。
+     * 不动玩家、不动其他实体类（背包=clearinv 边界）。0327 saveWorld 不写实体⇒恒 transient。
+     * N==0→NoChange("cleared 0")。
+     */
+    public static String clearGroundItems(Object world, Integer cx, Integer cy, Integer cz,
+                                          Integer rad) throws Exception {
+        Method kill = setEntityDeadM;
+        if (kill == null) {
+            try {
+                kill = world.getClass().getMethod(M_SET_ENTITY_DEAD, player.getType());
+            } catch (NoSuchMethodException e) {
+                throw new UnsupportedOp("setEntityDead: " + e);
+            }
+            setEntityDeadM = kill;
+        }
+        Class<?> itemClass = entityItemClass;
+        if (itemClass == null) {
+            try {
+                itemClass = Class.forName(G_ITEM_ENTITY, false, world.getClass().getClassLoader());
+            } catch (ClassNotFoundException e) {
+                throw new UnsupportedOp("item entity class: " + e);
+            }
+            entityItemClass = itemClass;
+        }
+        boolean radius = cx != null;
+        if (radius) {
+            if (cy == null || cz == null || rad == null) {
+                throw new Rejected("x/y/z/r must come together");
+            }
+            validateCoords(cx.intValue(), cy.intValue(), cz.intValue());
+            if (rad.intValue() < 0 || rad.intValue() > 64) {
+                throw new Rejected("r-out-of-range [0,64]: " + rad.intValue());
+            }
+        }
+        Method listM = entityListM;
+        if (listM == null) {
+            try {
+                listM = world.getClass().getMethod(M_ENTITY_LIST);
+            } catch (NoSuchMethodException e) {
+                throw new UnsupportedOp("entity list: " + e);
+            }
+            entityListM = listM;
+        }
+        List<?> es = (List<?>) listM.invoke(world);
+        int n = 0;
+        for (Object e : es) {
+            if (!itemClass.isInstance(e)) {
+                continue;
+            }
+            if (radius) {
+                double dx = ePosX.getDouble(e) - (cx.intValue() + 0.5);
+                double dy = ePosY.getDouble(e) - cy.intValue();
+                double dz = ePosZ.getDouble(e) - (cz.intValue() + 0.5);
+                double horiz = Math.sqrt(dx * dx + dz * dz);
+                if (horiz > rad.doubleValue() || Math.abs(dy) > rad.doubleValue()) {
+                    continue;
+                }
+            }
+            kill.invoke(null, e);
+            n++;
+        }
+        if (n == 0) {
+            throw new NoChange("cleared 0");
+        }
+        return "cleared " + n + " ground items"
+                + (radius ? " within r=" + rad.intValue() + " of "
+                        + cx.intValue() + "," + cy.intValue() + "," + cz.intValue() : "");
     }
 
     /**

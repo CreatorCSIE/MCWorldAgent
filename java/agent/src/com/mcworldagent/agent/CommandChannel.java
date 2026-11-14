@@ -48,7 +48,8 @@ public final class CommandChannel {
                     "give", "inv", "sethealth",
                     "explode", "spawn", "drop", "invulnerable",
                     "getchest", "setchest", "getfurnace",
-                    "entitylist", "playsound", "setarmor", "clearinv", "replace"));
+                    "entitylist", "playsound", "setarmor", "clearinv", "replace",
+                    "grow", "clear"));
 
     /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。 */
     private static final String LISTOPS =
@@ -71,7 +72,9 @@ public final class CommandChannel {
           + "playsound(x,y,z,name,vol0..10,pitch0..20 十分位)t;"
           + "setarmor(slot0..3,itemId1..255,count1..64[,dmg])w[不校验ItemArmor];"
           + "clearinv w[不可逆];"
-          + "replace(x1,y1,z1,x2,y2,z2,oldId,newId)w[cap4096]";
+          + "replace(x1,y1,z1,x2,y2,z2,oldId,newId)w[cap4096];"
+          + "grow(x,y,z)w[crops59-only;sapling=UNSUPPORTED-Beta1.2];"
+          + "clear([x,y,z,r0..64])t[EntityItem-only]";
 
     private static String cmdDirArg;
     private static File baseDir; // 解析后的 mca/ 根
@@ -488,6 +491,27 @@ public final class CommandChannel {
             int newId = intArg(a, "newId");
             return WorldOps.replace(world, x1, y1, z1, x2, y2, z2, oldId, newId)
                     + saveSuffix(world, c);
+        }
+        // grow/clear 批（grow-clear spec §2）：grow 走坐标管线+saveSuffix（meta 进方块表持久）；
+        // clear **忽略 save**（0327 saveWorld 不写实体=恒 transient，spawn/drop 同型标注）。
+        if ("grow".equals(c.op)) {
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            WorldOps.validateCoords(x, y, z);
+            return WorldOps.growCrops(world, x, y, z) + saveSuffix(world, c);
+        }
+        if ("clear".equals(c.op)) {
+            boolean hasCenter = a != null && a.get("x") != null;
+            if (!hasCenter) {
+                return WorldOps.clearGroundItems(world, null, null, null, null);
+            }
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            int r = intArg(a, "r");
+            return WorldOps.clearGroundItems(world, Integer.valueOf(x), Integer.valueOf(y),
+                    Integer.valueOf(z), Integer.valueOf(r));
         }
         if ("listops".equals(c.op)) {
             return LISTOPS; // agent 侧自省，零游戏调用（世界未捕获仍 not-ready——v1 从简）
