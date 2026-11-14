@@ -6,8 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Hook 指纹表 — infdev 20100327 原始 jar（SHA1 47b1b32430a211520993552ba0a5e00c1af44724）
- * javap 全量扫描钉死的混淆实名。
+ * Hook 指纹表（A2 起按版本分组：TARGETS_0327/TARGETS_0618，activate(versionId) 切换，
+ * premain 前默认 0327 组=现行为零变化）。0327 组=infdev 20100327 原始 jar
+ * （SHA1 47b1b32430a211520993552ba0a5e00c1af44724）javap 全量扫描钉死的混淆实名。
  * 可读名对榫：姊妹仓 minecraft-verification-analysis 的
  * src-minecraft/src-minecraft-infdev-20100327 可读树（本地位置随环境；
  * World.java L93/L131、Minecraft.java L578、
@@ -74,7 +75,8 @@ public final class HookTargets {
         }
     }
 
-    public static final Target[] TARGETS = {
+    /** 0327 钩组（原始 jar SHA1 47b1b324…，全量 confirmed）。 */
+    public static final Target[] TARGETS_0327 = {
         // G1 autosave + 把手①前半：World.saveWorld(boolean) 入口。
         // 构造器尾部 this 尚未通过 old_verifier 的 initialized 状态机（ALOAD 0 作
         // INVOKESTATIC 实参触发 VerifyError "Incompatible argument to function"），
@@ -112,17 +114,40 @@ public final class HookTargets {
                 0x0011, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float)"),
     };
 
-    private static final Map<String, List<Target>> BY_CLASS = new HashMap<String, List<Target>>();
+    /**
+     * 0618 钩组（A2，锚库 java/agent/registry/fingerprints/inf-20100618.json）：
+     * 仅两件 confirmed，宁缺毋滥。省略（未钉）=WORLD_CTOR（构造器描述符未钉，
+     * 活体 World 仍由 SAVE_WORLD 入口捕获，dir=? 仅日志面）、LOAD_CHUNK/GEN_HEIGHT
+     * （类未钉）、GIANT_CTOR（类未钉）、HUD_RENDER（access 未钉）。
+     */
+    public static final Target[] TARGETS_0618 = {
+        // World.saveWorld()V public final（verscan §9；candidate——严格签名匹配即保底，
+        // A3 实跑终审）。InjectMV 按 desc 分支：()V→ALOAD 0+ICONST_0（无布尔参）。
+        new Target("net/minecraft/a/a/g", "f", "()V",
+                0x0011, 1, ENTRY, SAVE_WORLD, "World.saveWorld()"),
+        // tick 汇线：Minecraft.runTick()（verscan §2 private void l()V，run() 内 invokespecial 钉）
+        new Target("net/minecraft/client/d", "l", "()V",
+                0x0002, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
+    };
 
-    static {
-        for (Target t : TARGETS) {
-            List<Target> list = BY_CLASS.get(t.className);
+    private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);
+
+    private static Map<String, List<Target>> index(Target[] group) {
+        Map<String, List<Target>> m = new HashMap<String, List<Target>>();
+        for (Target t : group) {
+            List<Target> list = m.get(t.className);
             if (list == null) {
                 list = new ArrayList<Target>();
-                BY_CLASS.put(t.className, list);
+                m.put(t.className, list);
             }
             list.add(t);
         }
+        return m;
+    }
+
+    /** premain 期版本激活（未知 id=保持 0327 组=现行为零变化）。 */
+    public static synchronized void activate(String versionId) {
+        BY_CLASS = index("inf-20100618".equals(versionId) ? TARGETS_0618 : TARGETS_0327);
     }
 
     public static Target[] forClass(String internalName) {

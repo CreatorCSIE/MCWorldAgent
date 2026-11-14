@@ -1,8 +1,16 @@
 package com.mcworldagent.agent;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
- * 版本登记表（A1 迁移批）。当前唯一表=inf-20100327，值与迁移前 WorldOps 常量
- * 逐字段等值（无头等值断言=验收）。
+ * 版本登记表（A1 迁移批 + A2 双表）。表=inf-20100327（值与迁移前 WorldOps 常量
+ * 逐字段等值，无头等值断言=验收）+ inf-20100618（锚库
+ * java/agent/registry/fingerprints/inf-20100618.json 数据化，三档建模见 spec
+ * .trae/specs/version-registry-a2/spec.md）。
+ * A2 激活模型：premain 期 VersionResolver 选表 → activate(versionId)；
+ * WorldOps 类初始化在其后，static final 表值别名即取激活表（现网时序天然保证，
+ * 0327 现行为零变化）。
  * 取证出处速查（全量证据在案卷，此处只留指针）：
  *   World 写读/时间/出生点  = docs/architecture/agent-command-channel + phase1-first-brick
  *   tp/实体定位             = tp 批 javap 全量反汇编 303 类
@@ -21,25 +29,56 @@ public final class VersionRegistry {
     }
 
     private static final VersionTable T_0327 = build0327();
+    private static final VersionTable T_0618 = build0618();
 
-    /** A1 单表；A2 起按捕获世界的版本指纹选表。 */
+    private static final Map<String, VersionTable> BY_ID = new HashMap<String, VersionTable>();
+    private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
+
+    static {
+        VersionTable[] tables = { T_0327, T_0618 };
+        for (VersionTable t : tables) {
+            BY_ID.put(t.versionId, t);
+            BY_SHA1.put(t.jarSha1, t);
+        }
+    }
+
+    /** 激活表（premain 前默认 0327=现行为零变化；VersionResolver 命中后切换）。 */
+    private static volatile VersionTable active = T_0327;
+
     public static VersionTable current() {
-        return T_0327;
+        return active;
     }
 
     public static String currentVersionId() {
-        return T_0327.versionId;
+        return active.versionId;
+    }
+
+    /** 按版本 id 激活；未知 id=false 不动激活态（调用方回退默认表）。 */
+    public static boolean activate(String versionId) {
+        VersionTable t = BY_ID.get(versionId);
+        if (t == null) {
+            return false;
+        }
+        active = t;
+        return true;
+    }
+
+    /** 按原始 jar SHA1 查表（戒律 14 严格指纹；无匹配=null）。 */
+    public static VersionTable byJarSha1(String sha1LowerHex) {
+        return sha1LowerHex == null ? null : BY_SHA1.get(sha1LowerHex);
     }
 
     private static VersionTable build0327() {
         VersionTable t = new VersionTable();
         t.versionId = "inf-20100327";
         t.family = "G2"; // 包路径混淆 net.minecraft.a.*
+        t.jarSha1 = "47b1b32430a211520993552ba0a5e00c1af44724"; // HookTargets 头注同源
 
         // World 写读面（FirstBrick T1 javap 实锤；worldTime=NBT "Time"，randSeed=NBT "RandomSeed"）
         t.setBlockM = "c";   // setBlockWithNotify (IIII)Z
         t.getBlockM = "a";   // getBlockId (III)I
         t.saveWorldM = "a";  // saveWorld (Z)V private
+        t.saveWorldDesc = "(Z)V";
         t.worldTimeF = "b";
         t.randSeedF = "x";
         t.spawnXF = "g";     // NBT "SpawnX"（g/h/i 唯一读点=EntityPlayer 构造器）
@@ -49,6 +88,7 @@ public final class VersionRegistry {
         // 玩家/实体定位面（Entity 基类 net.minecraft.a.c.b；World.c=活体玩家自设）
         t.playerF = "c";
         t.setPosRotM = "b";  // setPositionAndRotation (DDDFF)V=NBT 载入同一配方
+        t.setPosRotDesc = "(DDDFF)V";
         t.posXF = "g";
         t.posYF = "h";
         t.posZF = "i";
@@ -123,6 +163,70 @@ public final class VersionRegistry {
         t.mobClasses.put("giant", "net.minecraft.a.c.a.a");
         t.mobClasses.put("mob", "net.minecraft.a.c.c");
 
+        return t;
+    }
+
+    /**
+     * 0618 表（A2）。值源=锚库 java/agent/registry/fingerprints/inf-20100618.json
+     * （逐字段对榫=无头验收之一）；取证=docs/compatibility/verscan/inf-20100618.md。
+     * 三档建模（spec §3）：null 槽=档位一缺失/未钉（op 入口响亮 UnsupportedOp）；
+     * saveWorldDesc/setPosRotDesc=档位二签名差异显式建模；档位三语义差异（a(DDD)V
+     * 直写 h/i/j、AABB 重建未钉，依赖 mover 每 tick 自愈）=A3 实跑终审。
+     * candidate 槽（saveWorld/setPosRot/invArmor）照常入表消费——严格签名匹配即保底。
+     */
+    private static VersionTable build0618() {
+        VersionTable t = new VersionTable();
+        t.versionId = "inf-20100618";
+        t.family = "G2";
+        t.jarSha1 = "89eab2c1a353707cc00f074dffba9cb7a4f5e304"; // 主卷 §0 对榫表
+
+        // World 写读面（verscan §1；⚠️ 本版 a.a.g=World，a.a.f=光照队列条目——同字母异义陷阱）
+        t.setBlockM = "c";        // (IIII)Z=setBlockWithNotify 等价（a(IIII)Z+h(IIII)V 通知）
+        t.getBlockM = "a";        // (III)I
+        t.getMetaM = "d";         // (III)I getBlockData
+        t.saveWorldM = "f";       // ()V public final（candidate；与 0327 a(Z)V 不同型=档位二）
+        t.saveWorldDesc = "()V";
+        t.worldTimeF = "b";       // long=time
+        t.randSeedF = "m";        // long=seed
+        t.spawnXF = "i";          // i/j/k=spawn（⚠️ 与 teGetM=i 方法同名合法——Java 字段/方法分命名空间）
+        t.spawnYF = "j";
+        t.spawnZF = "k";
+        t.playerF = "e";          // 声明 Entity=a.c.b，运行时 client.g.a
+        t.teGetM = "i";           // (III)ITE（a.a.b.a.a 基类）
+
+        // 实体定位面（verscan §3；pos=h/i/j ⚠️ 非 0327 g/h/i，独立钉）
+        t.setPosRotM = "a";       // setPosition (DDD)V（candidate）直写 h/i/j——
+                                  // setPositionAndRotation 面未钉，槽位取 tp 主入口（档位二+三）
+        t.setPosRotDesc = "(DDD)V";
+        t.posXF = "h";
+        t.posYF = "i";
+        t.posZF = "j";
+        t.motXF = "k";
+        t.motYF = "l";
+        t.motZF = "m";
+        t.yawF = "n";
+        t.pitchF = "o";
+
+        // 物品栏面（verscan §4；inv/clearinv=OK。⚠️ 本版 ItemStack=a.b.o 非 0327 k；
+        // a.b.k=Item 基类=高危陷阱。invArmor=candidate b——盔甲尺寸未钉但数组面存在）
+        t.invF = "b";             // EntityHuman(a.c.e.a).b=InventoryPlayer(a.c.e.b)
+        t.invMainF = "a";         // o[] 主库存
+        t.invArmorF = "b";        // o[]（candidate）
+        t.invCurF = "c";          // int 槽位
+        t.isCountF = "a";         // ItemStack a=Count（NBT 实证）
+        t.isIdF = "c";
+        t.isDmgF = "d";
+
+        // 档位一 null 槽（锚库 capabilities 19 件 unconfirmed 对榫，spec §3）：
+        // healthF（getplayer/sethealth）、iframesF（invulnerable）、
+        // addStackM/itemClassG/itemsF（give/setarmor/drop 注册表面——itemClass candidate
+        // 不消费：addStackM null 连坐 give 面，宁缺毋滥）、
+        // explodeM/spawnEntityM（explode/spawn/drop）、setEntityDeadM/entityListM/entityTypeM
+        // （clear/entitylist）、playSoundM、setMetaSilentM/light6M/getLightM/observersF
+        // （setmeta/getlight/grow 通知段）、difficultyF（getinfo）、scatterClassG（genscatter）、
+        // invSizeM/invGetM/invSetM（getchest/setchest/getfurnace 在 resolveTe 响亮）、
+        // teBurnF/teCookF（getfurnace）、itemEntityG（EntityItem 构造器未钉）、
+        // idCrops/idSapling/cropsRipeMeta（grow）。mobClasses 空=spawn 版本面无。
         return t;
     }
 }

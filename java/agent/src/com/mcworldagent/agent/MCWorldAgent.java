@@ -7,7 +7,8 @@ import java.io.PrintWriter;
 import java.lang.instrument.Instrumentation;
 
 /**
- * premain 入口。agent 参数格式：{@code log=<transform日志路径>;hooks=<捕获事件日志路径>}。
+ * premain 入口。agent 参数格式：{@code log=<transform日志路径>;hooks=<捕获事件日志路径>
+ * ;version=<versionId>}（A2：version= 强制选表保险丝，缺省走 classpath SHA1 匹配）。
  * 类随游戏自然加载被发现，premain 不强加载任何游戏类。
  */
 public final class MCWorldAgent {
@@ -20,6 +21,7 @@ public final class MCWorldAgent {
     public static void premain(String args, Instrumentation inst) {
         String logPath = null;
         String hooksPath = null;
+        String forcedVersion = null;
         if (args != null) {
             for (String kv : args.split(";")) {
                 int eq = kv.indexOf('=');
@@ -45,6 +47,9 @@ public final class MCWorldAgent {
                 } else if ("noFirstBrick".equals(k)) {
                     // P0 fixture 化：禁用首次捕获时的自动补砖（PoC 写入污染测试世界）
                     MCAHooks.noFirstBrick = "true".equalsIgnoreCase(v);
+                } else if ("version".equals(k)) {
+                    // A2：强制选表（launcher/legacyfix 使 classpath jar 非原始件时的保险丝）
+                    forcedVersion = v;
                 }
             }
         }
@@ -60,6 +65,10 @@ public final class MCWorldAgent {
         }
         logTransform("PREMAIN mcworldagent-agent args=[" + args + "] java="
                 + System.getProperty("java.version") + " os=" + System.getProperty("os.name"));
+        // A2 版本选择（spec §1）：必须在 addTransformer 前——钩组激活后类转换才读对表；
+        // 无匹配保持默认 0327（现行为零变化）
+        String versionId = VersionResolver.resolve(forcedVersion);
+        HookTargets.activate(versionId);
         inst.addTransformer(new Transformers());
         CommandChannel.start(cmdDir);
 

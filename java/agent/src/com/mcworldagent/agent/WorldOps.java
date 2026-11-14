@@ -41,9 +41,12 @@ public final class WorldOps {
         }
     }
 
-    // 版本契约表（A1 迁移批）：全部混淆实名/游戏 id 已迁入 VersionRegistry.build0327()
-    // （取证注释随值迁移，案卷指针在该文件头）。以下常量=表值别名，引用点零改动；
-    // 零行为变化验收=无头逐字段等值断言。戒律 15：G1 Classic 结构差异三档建模待 A2。
+    // 版本契约表（A1 迁移批 + A2 双表）：全部混淆实名/游戏 id 已迁入
+    // VersionRegistry.build0327()/build0618()（取证注释随值迁移，案卷指针在该文件头）。
+    // 以下常量=表值别名，引用点零改动；零行为变化验收=无头逐字段等值断言。
+    // A2 激活时序：VersionResolver 在 premain 跑，本类首触在 op 执行期（激活之后），
+    // static final 捕获的即激活表（0327 现行为零变化）。
+    // 档位一（spec §3）：null 槽=该面未钉——resolve 逐槽跳 null，op 入口 require 响亮。
     private static final VersionTable T = VersionRegistry.current();
 
     private static final String M_SET_BLOCK = T.setBlockM;    // setBlockWithNotify (IIII)Z
@@ -91,9 +94,10 @@ public final class WorldOps {
     // grow/clear 面（表值；骨粉=官方强熟判决见 grow-clear spec §1，setEntityDead static
     // 仅置 isDead 真移除在 tick、EntityItem isInstance 缓存配方同见）
     private static final String M_SET_ENTITY_DEAD = T.setEntityDeadM;
-    private static final int ID_CROPS = T.idCrops;
-    private static final int ID_SAPLING = T.idSapling;
-    private static final int CROPS_RIPE_META = T.cropsRipeMeta;
+    // A2 档位一：Integer（null=未钉，require 守卫后解箱）
+    private static final Integer ID_CROPS = T.idCrops;
+    private static final Integer ID_SAPLING = T.idSapling;
+    private static final Integer CROPS_RIPE_META = T.cropsRipeMeta;
 
     // invulnerable 面（表值；attackEntityFrom 单入口全伤害源拒绝、K>=11 免疫窗口、
     // 和平难度抹杀敌对、giant 构造器复活更正等取证见 sed-1 案卷批）
@@ -176,68 +180,89 @@ public final class WorldOps {
     private static volatile Method getLight;
     private static volatile Field observers;  // World.u private List
     private static volatile Field difficulty; // World.d public int
+    /** A2 档位一：resolve 逐槽跳 null 后，缓存判据不能再用单槽非空（用完成标志）。 */
+    private static volatile boolean resolved;
 
-    /** 签名探测（可在任意线程调用；NoSuchMethod/NoSuchField → UnsupportedOp）。 */
+    /** 签名探测（可在任意线程调用；NoSuchMethod/NoSuchField → UnsupportedOp）。
+     *  A2 档位一（spec §3）：null 槽=该面未钉，逐槽跳过不再整块 eager——
+     *  0618 缺失面（setmeta/light/getinfo 等）不连坐已钉面（place/dig/tp/save）。 */
     static synchronized void resolve(Class<?> wc) throws UnsupportedOp {
-        if (setBlock != null) {
+        if (resolved) {
             return;
         }
         try {
-            Method sb = wc.getMethod(M_SET_BLOCK, int.class, int.class, int.class, int.class);
-            Method gb = wc.getMethod(M_GET_BLOCK, int.class, int.class, int.class);
-            Method sv = wc.getDeclaredMethod(M_SAVE_WORLD, boolean.class);
-            sv.setAccessible(true);
-            Field t = wc.getField(F_WORLD_TIME);
-            Field sd = wc.getDeclaredField(F_RAND_SEED);
-            sd.setAccessible(true);
-            Field sx = wc.getField(F_SPAWN_X);
-            Field sy = wc.getField(F_SPAWN_Y);
-            Field sz = wc.getField(F_SPAWN_Z);
+            if (M_SET_BLOCK != null) {
+                setBlock = wc.getMethod(M_SET_BLOCK, int.class, int.class, int.class, int.class);
+            }
+            if (M_GET_BLOCK != null) {
+                getBlock = wc.getMethod(M_GET_BLOCK, int.class, int.class, int.class);
+            }
+            if (M_SAVE_WORLD != null) {
+                // 档位二：按表描述符分支（0327 (Z)V / 0618 ()V）
+                saveWorld = "(Z)V".equals(T.saveWorldDesc)
+                        ? wc.getDeclaredMethod(M_SAVE_WORLD, boolean.class)
+                        : wc.getDeclaredMethod(M_SAVE_WORLD);
+                saveWorld.setAccessible(true);
+            }
+            if (F_WORLD_TIME != null) {
+                worldTime = wc.getField(F_WORLD_TIME);
+            }
+            if (F_RAND_SEED != null) {
+                randSeed = wc.getDeclaredField(F_RAND_SEED);
+                randSeed.setAccessible(true);
+            }
+            if (F_SPAWN_X != null) {
+                spawnX = wc.getField(F_SPAWN_X);
+            }
+            if (F_SPAWN_Y != null) {
+                spawnY = wc.getField(F_SPAWN_Y);
+            }
+            if (F_SPAWN_Z != null) {
+                spawnZ = wc.getField(F_SPAWN_Z);
+            }
             // tp 面：World.c 的类型即 Entity 基类，公开成员 getField/getMethod 直取
-            Field pl = wc.getField(F_WORLD_PLAYER);
-            Class<?> ec = pl.getType();
-            Method spr = ec.getMethod(M_SET_POS_ROT,
-                    double.class, double.class, double.class, float.class, float.class);
-            Field pgx = ec.getField(E_POS_X);
-            Field pgy = ec.getField(E_POS_Y);
-            Field pgz = ec.getField(E_POS_Z);
-            Field pjx = ec.getField(E_MOT_X);
-            Field pjy = ec.getField(E_MOT_Y);
-            Field pjz = ec.getField(E_MOT_Z);
-            Field pYaw = ec.getField(E_YAW);
-            Field pPitch = ec.getField(E_PITCH);
+            Field pl = null;
+            if (F_WORLD_PLAYER != null) {
+                pl = wc.getField(F_WORLD_PLAYER);
+                player = pl;
+            }
+            if (M_SET_POS_ROT != null && pl != null) {
+                Class<?> ec = pl.getType();
+                // 档位二：0327 (DDDFF)V 五参 / 0618 (DDD)V 三参
+                setPosRot = "(DDD)V".equals(T.setPosRotDesc)
+                        ? ec.getMethod(M_SET_POS_ROT, double.class, double.class, double.class)
+                        : ec.getMethod(M_SET_POS_ROT, double.class, double.class, double.class,
+                                float.class, float.class);
+                ePosX = ec.getField(E_POS_X);
+                ePosY = ec.getField(E_POS_Y);
+                ePosZ = ec.getField(E_POS_Z);
+                eMotX = ec.getField(E_MOT_X);
+                eMotY = ec.getField(E_MOT_Y);
+                eMotZ = ec.getField(E_MOT_Z);
+                eYaw = ec.getField(E_YAW);
+                ePitch = ec.getField(E_PITCH);
+            }
             // meta/genscatter/difficulty 面
-            Method gm = wc.getMethod(M_GET_META, int.class, int.class, int.class);
-            Method sm = wc.getMethod(M_SET_META_SILENT, int.class, int.class, int.class, int.class);
-            Method l6 = wc.getMethod(M_LIGHT6, int.class, int.class, int.class, int.class);
-            Method gl = wc.getMethod(M_GET_LIGHT, int.class, int.class, int.class);
-            Field ob = wc.getDeclaredField(F_OBSERVERS);
-            ob.setAccessible(true);
-            Field df = wc.getField(F_DIFFICULTY);
-            setBlock = sb;
-            getBlock = gb;
-            saveWorld = sv;
-            randSeed = sd;
-            worldTime = t;
-            spawnX = sx;
-            spawnY = sy;
-            spawnZ = sz;
-            player = pl;
-            setPosRot = spr;
-            ePosX = pgx;
-            ePosY = pgy;
-            ePosZ = pgz;
-            eMotX = pjx;
-            eMotY = pjy;
-            eMotZ = pjz;
-            eYaw = pYaw;
-            ePitch = pPitch;
-            getMeta = gm;
-            setMetaSilent = sm;
-            light6 = l6;
-            getLight = gl;
-            observers = ob;
-            difficulty = df;
+            if (M_GET_META != null) {
+                getMeta = wc.getMethod(M_GET_META, int.class, int.class, int.class);
+            }
+            if (M_SET_META_SILENT != null) {
+                setMetaSilent = wc.getMethod(M_SET_META_SILENT, int.class, int.class, int.class, int.class);
+            }
+            if (M_LIGHT6 != null) {
+                light6 = wc.getMethod(M_LIGHT6, int.class, int.class, int.class, int.class);
+            }
+            if (M_GET_LIGHT != null) {
+                getLight = wc.getMethod(M_GET_LIGHT, int.class, int.class, int.class);
+            }
+            if (F_OBSERVERS != null) {
+                observers = wc.getDeclaredField(F_OBSERVERS);
+                observers.setAccessible(true);
+            }
+            if (F_DIFFICULTY != null) {
+                difficulty = wc.getField(F_DIFFICULTY);
+            }
+            resolved = true;
         } catch (NoSuchMethodException e) {
             throw new UnsupportedOp("world signatures: " + e);
         } catch (NoSuchFieldException e) {
@@ -245,8 +270,28 @@ public final class WorldOps {
         }
     }
 
+    /** 档位一守卫（spec §3）：表槽 null=该版本面无此能力→响亮 UnsupportedOp 带槽名。 */
+    private static void require(String slot, Object pinned) throws UnsupportedOp {
+        if (pinned == null) {
+            throw new UnsupportedOp("slot " + slot + " not pinned for " + T.versionId);
+        }
+    }
+
+    /** setPosRot 调用适配（档位二）：5 参版透传 yaw/pitch；3 参版（0618 a(DDD)V）
+     *  直写面不含旋转——调用方已先直写字段，yaw/pitch 未动=等价（spec §3）。 */
+    private static void invokeSetPosRot(Object target, double x, double y, double z,
+                                        float yaw, float pitch) throws Exception {
+        if (setPosRot.getParameterTypes().length == 5) {
+            setPosRot.invoke(target, Double.valueOf(x), Double.valueOf(y), Double.valueOf(z),
+                    Float.valueOf(yaw), Float.valueOf(pitch));
+        } else {
+            setPosRot.invoke(target, Double.valueOf(x), Double.valueOf(y), Double.valueOf(z));
+        }
+    }
+
     /** 世界信息快照（op=getinfo，只读）：tick 边界执行=一致读。 */
     public static String getInfo(Object world) throws Exception {
+        require("difficultyF", F_DIFFICULTY); // 0618 未钉→UNSUPPORTED（spec §3）
         long time = worldTime.getLong(world);
         long seed = randSeed.getLong(world);
         int sx = spawnX.getInt(world);
@@ -297,8 +342,7 @@ public final class WorldOps {
         eMotX.setDouble(p, 0.0);
         eMotY.setDouble(p, 0.0);
         eMotZ.setDouble(p, 0.0);
-        setPosRot.invoke(p, Double.valueOf(nx), Double.valueOf(ny), Double.valueOf(nz),
-                Float.valueOf(yaw), Float.valueOf(pitch));
+        invokeSetPosRot(p, nx, ny, nz, yaw, pitch); // 档位二：5 参透传/3 参不含旋转
         return "teleported from x=" + ox + " y=" + oy + " z=" + oz
                 + " -> x=" + x + " y=" + y + " z=" + z;
     }
@@ -402,6 +446,7 @@ public final class WorldOps {
 
     /** 玩家快照（op=getplayer，只读）：pos/motion/rot（tp 轮已 resolve 字段）+ Health（惰性解析 W）。 */
     public static String getPlayer(Object world) throws Exception {
+        require("healthF", E_HEALTH); // 0618 未钉→UNSUPPORTED（spec §3）
         Object p = player.get(world);
         if (p == null) {
             throw new Rejected("no-player");
@@ -484,9 +529,11 @@ public final class WorldOps {
         return h;
     }
 
-    /** 物品栏面惰性解析（eHealth 同模式）：ItemStack 类取自主槽数组分量类型，零硬编码类名。 */
-    private static void resolveInventory(Object p) throws UnsupportedOp {
-        if (addStack != null) {
+    /** 物品栏面惰性解析（eHealth 同模式）：ItemStack 类取自主槽数组分量类型，零硬编码类名。
+     *  A2 拆分（spec §5）：inv 面（读/清）与 give 面（addStack+注册表）解耦——
+     *  0618 addStackM null 不连坐 inv/clearinv（锚库 capabilities 对榫：inv=OK）。 */
+    private static void resolveInvFace(Object p) throws UnsupportedOp {
+        if (invMain != null) {
             return;
         }
         try {
@@ -499,32 +546,37 @@ public final class WorldOps {
             }
             Field armor = invType.getField(INV_ARMOR);
             Field cur = invType.getField(INV_CUR);
-            Method add = invType.getMethod(M_ADDSTACK, stackType);
             Field cnt = stackType.getField(IS_COUNT);
             Field id = stackType.getField(IS_ID);
             Field dmg = stackType.getField(IS_DMG);
             Constructor<?> c2 = stackType.getConstructor(int.class, int.class);
             Constructor<?> c3 = stackType.getConstructor(int.class, int.class, int.class);
-            Class<?> itemClass = Class.forName(G_ITEM_CLASS, false, p.getClass().getClassLoader());
-            Field reg = itemClass.getField(ITEMS);
             invField = inv;
             invMain = main;
             invArmor = armor;
             invCur = cur;
-            addStack = add;
             isCount = cnt;
             isId = id;
             isDmg = dmg;
             isCtor2 = c2;
             isCtor3 = c3;
-            itemRegistry = reg;
+            if (M_ADDSTACK != null) {
+                addStack = invType.getMethod(M_ADDSTACK, stackType);
+            }
         } catch (NoSuchFieldException e) {
             throw new UnsupportedOp("inventory fields: " + e);
         } catch (NoSuchMethodException e) {
             throw new UnsupportedOp("inventory signatures: " + e);
-        } catch (ClassNotFoundException e) {
-            throw new UnsupportedOp("item registry class: " + e);
         }
+    }
+
+    /** give 面（addStack+注册表，spec §5）：任一槽 null→UnsupportedOp（give/setarmor/drop 入口守卫）。 */
+    private static void resolveGiveFace(Object p) throws UnsupportedOp {
+        require("addStackM", M_ADDSTACK);
+        require("itemClassG", G_ITEM_CLASS);
+        require("itemsF", ITEMS);
+        resolveInvFace(p);
+        ensureRegistry(p.getClass().getClassLoader());
     }
 
     /**
@@ -544,7 +596,7 @@ public final class WorldOps {
         if (damage < 0 || damage > 32767) {
             throw new Rejected("dmg-out-of-range [0,32767]: " + damage);
         }
-        resolveInventory(p);
+        resolveGiveFace(p);
         Object[] items = (Object[]) itemRegistry.get(null);
         if (itemId < 0 || itemId >= items.length || items[itemId] == null) {
             throw new Rejected("bad-itemid: " + itemId);
@@ -566,7 +618,7 @@ public final class WorldOps {
         if (p == null) {
             throw new Rejected("no-player");
         }
-        resolveInventory(p);
+        resolveInvFace(p);
         Object inv = invField.get(p);
         Object[] main = (Object[]) invMain.get(inv);
         Object[] armor = (Object[]) invArmor.get(inv);
@@ -610,6 +662,7 @@ public final class WorldOps {
      * 持久化 0 后重进=载入 Health=0 再次死亡屏（原版语义，不特殊处理）。
      */
     public static String setHealth(Object world, int health) throws Exception {
+        require("healthF", E_HEALTH); // 0618 未钉→UNSUPPORTED（spec §3）
         Object p = player.get(world);
         if (p == null) {
             throw new Rejected("no-player");
@@ -645,6 +698,7 @@ public final class WorldOps {
      * size∈[0,10] 整数入参（MiniJson 整数子集），越界拒绝。破坏方块进方块表→save 落盘。
      */
     public static String explode(Object world, int x, int y, int z, int size) throws Exception {
+        require("explodeM", M_EXPLODE); // 0618 未钉→UNSUPPORTED（spec §3）
         if (size < 0 || size > 10) {
             throw new Rejected("size-out-of-range [0,10]: " + size);
         }
@@ -660,6 +714,11 @@ public final class WorldOps {
      * （加入即活，主循环每 tick 遍历）；**0327 实体不落盘=恒临时态**（存退即失，save 忽略）。
      */
     public static String spawn(Object world, String kind, int x, int y, int z) throws Exception {
+        require("spawnEntityM", M_SPAWN_ENTITY); // 0618 未钉→UNSUPPORTED（spec §3）
+        if (MOB_CLASSES.isEmpty()) {
+            // 空表=版本面无实体表（档位一），非参数错——响亮报槽名不报 bad-kind
+            throw new UnsupportedOp("slot mobClasses not pinned for " + T.versionId);
+        }
         String fqcn = MOB_CLASSES.get(kind);
         if (fqcn == null) {
             throw new Rejected("bad-kind: " + kind);
@@ -684,8 +743,7 @@ public final class WorldOps {
         Object ent = tnt
                 ? ctor.newInstance(world, Float.valueOf(x + 0.5f), Float.valueOf(y), Float.valueOf(z + 0.5f))
                 : ctor.newInstance(world);
-        setPosRot.invoke(ent, Double.valueOf(x + 0.5), Double.valueOf(y), Double.valueOf(z + 0.5),
-                Float.valueOf(0f), Float.valueOf(0f));
+        invokeSetPosRot(ent, x + 0.5, y, z + 0.5, 0f, 0f); // 档位二参长适配
         spawnEntity.invoke(world, ent);
         return "spawned " + kind + " at " + x + "," + y + "," + z;
     }
@@ -697,6 +755,7 @@ public final class WorldOps {
      */
     public static String drop(Object world, int itemId, int count, int damage, int x, int y, int z)
             throws Exception {
+        require("spawnEntityM", M_SPAWN_ENTITY); // 0618 未钉→UNSUPPORTED（spec §3）
         Object p = player.get(world);
         if (p == null) {
             throw new Rejected("no-player");
@@ -707,7 +766,7 @@ public final class WorldOps {
         if (damage < 0 || damage > 32767) {
             throw new Rejected("dmg-out-of-range [0,32767]: " + damage);
         }
-        resolveInventory(p);
+        resolveGiveFace(p);
         Object[] items = (Object[]) itemRegistry.get(null);
         if (itemId < 0 || itemId >= items.length || items[itemId] == null) {
             throw new Rejected("bad-itemid: " + itemId);
@@ -744,6 +803,7 @@ public final class WorldOps {
      * 瞬态：heartsLife 不进 NBT，save 无作用。
      */
     public static String invulnerable(Object world, int ticks) throws Exception {
+        require("iframesF", E_IFRAMES); // 0618 未钉→UNSUPPORTED（spec §3）
         Object p = player.get(world);
         if (p == null) {
             throw new Rejected("no-player");
@@ -803,6 +863,11 @@ public final class WorldOps {
      * 返回 {size()I, get(I)Lk;, set(I,Lk;)V}；ItemStack 字段/构造器全局共享（唯一类）。
      */
     private static Method[] resolveTe(Object te) throws UnsupportedOp {
+        // 档位一（spec §3）：0618 teGetM 有值但 IInventory 三方法未钉——
+        // getchest/setchest/getfurnace 在此响亮（锚库三件 unconfirmed 对榫）
+        require("invSizeM", M_INV_SIZE);
+        require("invGetM", M_INV_GET);
+        require("invSetM", M_INV_SET);
         String key = te.getClass().getName();
         Method[] cached = TE_METHODS.get(key);
         if (cached != null) {
@@ -831,13 +896,15 @@ public final class WorldOps {
         }
     }
 
-    /** 注册表惰性解析独立件（TE 面零 player 依赖；与 resolveInventory 同 classloader 同字段）。 */
-    private static void ensureRegistry(Object world) throws UnsupportedOp {
+    /** 注册表惰性解析独立件（TE 面零 player 依赖；与 resolveInvFace 同 classloader 同字段）。 */
+    private static void ensureRegistry(ClassLoader cl) throws UnsupportedOp {
         if (itemRegistry != null) {
             return;
         }
+        require("itemClassG", G_ITEM_CLASS); // 0618 null→响亮（give 面，spec §5）
+        require("itemsF", ITEMS);
         try {
-            Class<?> itemClass = Class.forName(G_ITEM_CLASS, false, world.getClass().getClassLoader());
+            Class<?> itemClass = Class.forName(G_ITEM_CLASS, false, cl);
             itemRegistry = itemClass.getField(ITEMS);
         } catch (ClassNotFoundException e) {
             throw new UnsupportedOp("item registry class: " + e);
@@ -893,7 +960,7 @@ public final class WorldOps {
             if (damage < 0 || damage > 32767) {
                 throw new Rejected("dmg-out-of-range [0,32767]: " + damage);
             }
-            ensureRegistry(world);
+            ensureRegistry(world.getClass().getClassLoader());
             Object[] items = (Object[]) itemRegistry.get(null);
             if (itemId < 0 || itemId >= items.length || items[itemId] == null) {
                 throw new Rejected("bad-itemid: " + itemId);
@@ -914,6 +981,8 @@ public final class WorldOps {
      * NoSuchField→Rejected not-furnace；输出 burn/cook/burning+3 槽（0 料/1 燃/2 产）。纯读。
      */
     public static String getFurnace(Object world, int x, int y, int z) throws Exception {
+        require("teBurnF", F_TE_BURN); // 0618 未钉→UNSUPPORTED（spec §3）
+        require("teCookF", F_TE_COOK);
         Object te = teHandle(world, x, y, z);
         Method[] inv = resolveTe(te);
         Field burn;
@@ -939,6 +1008,9 @@ public final class WorldOps {
      * 非 Living 无 W→省略 health。输出 `N=kind@x,y,z[h=H] ...`；空表→`none`。
      */
     public static String entityList(Object world) throws Exception {
+        require("entityListM", M_ENTITY_LIST); // 0618 未钉→UNSUPPORTED（spec §3）
+        require("entityTypeM", M_ENTITY_TYPE);
+        require("healthF", E_HEALTH);
         Method listM = entityListM;
         if (listM == null) {
             try {
@@ -983,6 +1055,7 @@ public final class WorldOps {
      */
     public static String playSound(Object world, int x, int y, int z, String name,
                                    int vol, int pitch) throws Exception {
+        require("playSoundM", M_PLAY_SOUND); // 0618 未钉→UNSUPPORTED（spec §3）
         if (name == null || name.isEmpty() || name.length() > 64) {
             throw new Rejected("bad-name");
         }
@@ -1029,8 +1102,7 @@ public final class WorldOps {
         if (damage < 0 || damage > 32767) {
             throw new Rejected("dmg-out-of-range [0,32767]: " + damage);
         }
-        resolveInventory(p);
-        ensureRegistry(world);
+        resolveGiveFace(p); // 盔甲写需注册表校验=give 面（spec §5；0618 null→UNSUPPORTED）
         Object[] items = (Object[]) itemRegistry.get(null);
         if (itemId < 0 || itemId >= items.length || items[itemId] == null) {
             throw new Rejected("bad-itemid: " + itemId);
@@ -1050,7 +1122,7 @@ public final class WorldOps {
         if (p == null) {
             throw new Rejected("no-player");
         }
-        resolveInventory(p);
+        resolveInvFace(p); // 清空只用 main/armor 面（spec §5；0618 clearinv=OK 对榫）
         Object inv = invField.get(p);
         Object[] main = (Object[]) invMain.get(inv);
         for (int i = 0; i < main.length; i++) {
@@ -1071,22 +1143,29 @@ public final class WorldOps {
      * 其余 id：Rejected not-growable。
      */
     public static String growCrops(Object world, int x, int y, int z) throws Exception {
+        // 档位一（spec §3）：id 三件+通知段任一未钉→UNSUPPORTED（0618 五槽全 null）
+        require("idCrops", ID_CROPS);
+        require("idSapling", ID_SAPLING);
+        require("cropsRipeMeta", CROPS_RIPE_META);
+        require("setMetaSilentM", M_SET_META_SILENT);
+        require("observersF", F_OBSERVERS);
+        require("light6M", M_LIGHT6);
         int id = getBlockId(world, x, y, z);
-        if (id == ID_SAPLING) {
+        if (id == ID_SAPLING.intValue()) {
             throw new UnsupportedOp(
-                    "sapling->tree not a 0327 capability (introduced Beta 1.2)");
+                    "sapling->tree not a " + T.versionId + " capability (introduced Beta 1.2)");
         }
-        if (id != ID_CROPS) {
+        if (id != ID_CROPS.intValue()) {
             throw new Rejected("not growable: id=" + id);
         }
         int old = ((Integer) getMeta.invoke(world, Integer.valueOf(x), Integer.valueOf(y),
                 Integer.valueOf(z))).intValue();
-        if (old == CROPS_RIPE_META) {
+        if (old == CROPS_RIPE_META.intValue()) {
             throw new NoChange("crops already ripe meta=" + CROPS_RIPE_META
                     + " at " + x + "," + y + "," + z);
         }
         setMetaSilent.invoke(world, Integer.valueOf(x), Integer.valueOf(y), Integer.valueOf(z),
-                Integer.valueOf(CROPS_RIPE_META));
+                CROPS_RIPE_META);
         notifyBlock(world, x, y, z, id);
         return "grown " + ID_CROPS + " meta " + old + "->" + CROPS_RIPE_META;
     }
@@ -1101,6 +1180,8 @@ public final class WorldOps {
      */
     public static String clearGroundItems(Object world, Integer cx, Integer cy, Integer cz,
                                           Integer rad) throws Exception {
+        require("setEntityDeadM", M_SET_ENTITY_DEAD); // 0618 未钉→UNSUPPORTED（spec §3）
+        require("entityListM", M_ENTITY_LIST);
         Method kill = setEntityDeadM;
         if (kill == null) {
             try {
@@ -1212,6 +1293,9 @@ public final class WorldOps {
      * c(IIII)Z 通知段——同 id 走 c() 被 Chunk 短路不通知，必须观察者 a(III)V + e(IIII)V 光照 6 邻。
      */
     public static String setMeta(Object world, int x, int y, int z, int meta) throws Exception {
+        require("setMetaSilentM", M_SET_META_SILENT); // 0618 未钉→UNSUPPORTED（spec §3）
+        require("observersF", F_OBSERVERS);
+        require("light6M", M_LIGHT6);
         validateCoords(x, y, z);
         if (meta < 0 || meta > 15) {
             throw new Rejected("meta-out-of-range: " + meta);
@@ -1224,6 +1308,7 @@ public final class WorldOps {
 
     /** 亮度读（op=getlight）。World.f(III)I=getBrightness（纯读，0-15；光照不进存盘对账——由方块表实时算）。 */
     public static int getLightValue(Object world, int x, int y, int z) throws Exception {
+        require("getLightM", M_GET_LIGHT); // 0618 未钉→UNSUPPORTED（spec §3）
         validateCoords(x, y, z);
         return ((Integer) getLight.invoke(world, x, y, z)).intValue();
     }
@@ -1275,6 +1360,7 @@ public final class WorldOps {
      */
     public static String genScatter(Object world, int id, int x, int y, int z, Long seed)
             throws Exception {
+        require("scatterClassG", G_SCATTER_CLASS); // 0618 未钉→UNSUPPORTED（spec §3）
         validateBlockId(id);
         validateCoords(x, y, z);
         resolveScatter(world.getClass());
@@ -1330,7 +1416,12 @@ public final class WorldOps {
     }
 
     public static void saveWorld(Object world) throws Exception {
-        saveWorld.invoke(world, Boolean.FALSE);
+        // 档位二（spec §3）：0327 a(Z)V 传 FALSE=现行为；0618 f()V 零参
+        if (saveWorld.getParameterTypes().length == 1) {
+            saveWorld.invoke(world, Boolean.FALSE);
+        } else {
+            saveWorld.invoke(world);
+        }
     }
 
     /** 参数校验（案卷 §7 戒律：世界边界 y∈[1,127]，x/z ±32000000）。 */

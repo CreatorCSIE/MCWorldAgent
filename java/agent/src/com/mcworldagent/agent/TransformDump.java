@@ -25,7 +25,7 @@ public final class TransformDump {
         outDir.mkdirs();
         JarFile jar = new JarFile(new File(argv[0]));
         try {
-            for (HookTargets.Target t : HookTargets.TARGETS) {
+            for (HookTargets.Target t : HookTargets.TARGETS_0327) {
                 dumpOne(jar, t.className, outDir);
             }
         } finally {

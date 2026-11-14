@@ -168,9 +168,16 @@ public final class Transformers implements ClassFileTransformer {
             if (target.injectMode == HookTargets.ENTRY
                     || target.injectMode == HookTargets.ENTRY_AND_RESULT) {
                 switch (target.hookId) {
-                    case HookTargets.SAVE_WORLD: // (Z)V: slot0=this(已初始化) slot1=boolean
+                    case HookTargets.SAVE_WORLD:
                         mv.visitVarInsn(Opcodes.ALOAD, 0);
-                        mv.visitVarInsn(Opcodes.ILOAD, 1);
+                        if ("(Z)V".equals(target.desc)) {
+                            // 0327: slot0=this(已初始化) slot1=boolean
+                            mv.visitVarInsn(Opcodes.ILOAD, 1);
+                        } else {
+                            // 0618 ()V: 无布尔参——indirect 观察位=常量 0（false），
+                            // 注释注明 0618 saveWorld 无布尔参（spec §2 InjectMV 分支）
+                            mv.visitInsn(Opcodes.ICONST_0);
+                        }
                         mv.visitMethodInsn(Opcodes.INVOKESTATIC, HOOKS, "onSaveWorld",
                                 "(Ljava/lang/Object;Z)V", false);
                         break;

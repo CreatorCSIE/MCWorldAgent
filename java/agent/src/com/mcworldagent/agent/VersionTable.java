@@ -18,11 +18,15 @@ public final class VersionTable {
     public String versionId;
     /** 混淆世代：G1=Classic 半可读 / G2=包路径混淆 / G3=扁平散件。 */
     public String family;
+    /** 原始 jar SHA1（戒律 14 索引圭臬；VersionResolver 对榫用，与锚库 JSON jarSha1 同源）。 */
+    public String jarSha1;
 
     // World 写读面
     public String setBlockM;        // setBlockWithNotify (IIII)Z
     public String getBlockM;        // getBlockId (III)I
-    public String saveWorldM;       // saveWorld (Z)V
+    public String saveWorldM;       // saveWorld（0327 (Z)V / 0618 ()V——签名漂移见 desc 字段）
+    /** saveWorld 描述符（档位二·签名差异，A2；null=按 0327 (Z)V 处理）。 */
+    public String saveWorldDesc;
     public String worldTimeF;       // public long worldTime（NBT "Time"）
     public String randSeedF;        // private long randSeed（NBT "RandomSeed"）
     public String spawnXF;
@@ -31,7 +35,9 @@ public final class VersionTable {
 
     // 玩家/实体定位面（Entity 基类）
     public String playerF;          // World.c=活体玩家
-    public String setPosRotM;       // setPositionAndRotation (DDDFF)V
+    public String setPosRotM;       // setPositionAndRotation（0327 (DDDFF)V / 0618 a(DDD)V——见 desc 字段）
+    /** setPosRot 描述符（档位二·签名差异，A2；null=按 0327 (DDDFF)V 处理）。 */
+    public String setPosRotDesc;
     public String posXF, posYF, posZF;
     public String motXF, motYF, motZF;
     public String yawF, pitchF;
@@ -71,10 +77,11 @@ public final class VersionTable {
     public String invSizeM, invGetM, invSetM; // IInventory 三方法
     public String teBurnF, teCookF; // TileEntityFurnace Burn/Cook
 
-    // 游戏 id 常量（版本相关：Classic 无 metadata 面即落此表达）
-    public int idCrops;
-    public int idSapling;
-    public int cropsRipeMeta;
+    // 游戏 id 常量（版本相关：Classic 无 metadata 面即落此表达；
+    // A2 档位一：Integer null=未钉，op 入口判 null→UnsupportedOp）
+    public Integer idCrops;
+    public Integer idSapling;
+    public Integer cropsRipeMeta;
 
     /** spawn 白名单：kind→实体类全名（含 tnt/giant/mob 特例）。 */
     public final Map<String, String> mobClasses = new HashMap<String, String>();
