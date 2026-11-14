@@ -267,3 +267,21 @@ Spec：`.trae/specs/meta-tree/`。判决变更：原批 gentree **砍除**——
 **NBT 新钉事实（llm-1 盘面取证顺带）**：
 1. **0327 的 `Pos`/`Motion`/`Rotation` 是 `TAG_List`（type 9，元素 6/6/5），不是现代格式的 double/float 数组（tag 11/12）**——Entity.c 用 `a:([D)Lcom/a/a/f`（f=ListTag，getTypeId=9）。盘面对账工具按数组读会静默漏掉。
 2. **saveWorld 的 Player compound 是条件写**：`getfield c(player) / ifnull 124`——`World.c==null` 时整段 Player 不落盘。游戏**载入期即调一次 saveWorld**（更新 LastPlayed/SizeOnDisk，此刻玩家尚未构造）→ level.dat 短暂退化为 125B 无 Player；当次会话位置靠内存 `World.y`（load 时读入的 Player NBT）恢复，不受影响。风险窗口：载入后、首次带玩家存盘前被强杀 → 盘面 Player 丢失，下次进世界=出生点（教训 1 家族新变体=**存盘时序窗**）。agent 会话内 save op 恒有 c≠null，安全。
+
+## 18. 物品栏批 `give` / `inv` / `sethealth`（2026-11-14，javap 全量反汇编取证 + 落码，实跑 `give-1` 待批准）
+
+**取证**（spec [.trae/specs/give-inv-health/spec.md](../../.trae/specs/give-inv-health/spec.md) §1 全表实锤）：类链 Entity=`a.c.b`←EntityLiving=`a.c.e`←EntityHuman=`a.c.e.a`←EntityPlayer=`client.g.a`（单人不另设类；`a.c.c`=Mob 非玩家，不 shadow 本批字段）。物品栏=EntityHuman `public b`=InventoryPlayer(`a.c.e.b`)：`a[36]` 主槽/`b[4]` 盔甲/`c` 当前槽/`a(ItemStack)Z`=addStack（同 id 且 dmg==0 才合并、单栈 64、false=装不下）。ItemStack=`net.minecraft.a.b.k`（a=Count/c=id/d=Damage；ctor `(II)`/`(III)`）；注册表 `i.b[]` 按 id 直索引含 null 空洞——**give 必须注册表校验**（游戏侧 `a()Li;=i.b[c]` 直索引，放行坏 id=后续 NPE）。持久化：EntityPlayer `a(NBT)` 写 "Inventory"（主槽 Slot 0..35、盔甲 100..103）→save 即落盘。
+
+**sethealth 判决**：直写 `W` 绕过 `b(I)V` 治疗钳制（20 上限；W<=0 不治疗）→op 侧自校验 0..20 **拒绝而非截断**；HUD `client.a_d` 每帧直读 W→即时生效零通知面。置 0=原版死亡流程接管（deathTicks>20→`k()`=die 玩家覆写空操作→`client.d` 弹死亡屏→按钮重生重建玩家 W=20）——**agent 不代打 respawn**；持久化 0 后重进=载入 Health=0 再次死亡屏（原版语义，不特殊处理）。
+
+**实现**：三 op 全惰性解析（eHealth 同模式：execute 期按实例类解析，NoSuch*→UNSUPPORTED 不静默），`resolve(Class)` 主段零改动；ItemStack 类经主槽数组**分量类型**取得（零硬编码类名）。协议沿用整数子集：`give(itemId,count[,dmg 缺省 0])`（"缺键=默认"面同 genscatter.seed）、`inv` 纯读、`sethealth(0..20)`；give/sethealth 写侧 saveSuffix，inv 忽略 save；KNOWN_OPS→21。零新终态。
+
+**验证**：build 零错；无头 **114/114**（+19 断言：FakeEntity 补 `b`=FakeInv{a[36]/b[4]/c/addStack 替身}、FakeStack 双构造器；**假注册表类 `net.minecraft.a.b.i` 真 FQCN 上测试 classpath**（假散布器同法），含 null 空洞槽——覆盖越界 999/洞 id 2/未注册 0 三类 bad-itemid；give 正常/合并/dmg 路径/满包 inventory-full/越界不改值；inv empty/混合槽对账 `0=64x5 3=1x35 d2 A0=1x298 cur=2`；sethealth 旧值回显、0/20 边界、-1/21 拒绝不截断、no-player）。
+
+**实跑 `give-1` 已完成全绿**（2026-11-14，World2，difficulty=0；流水归档 [cmds.txt](../../integrations/attic/out/give-1/cmds.txt)）：listops 21 项生效；give 55 x1/x64（用户指定齿轮 id 替换木板方案）、bad-itemid(999)/count 越界(0) 拒绝无副作用；工具 256-260 全注册、dmg=10 耐久放行→inv ` d10` 回读→**存退重进后 d10 仍在**（Damage 持久化闭环）；sethealth 10→HUD 半心、21 拒绝、置 0→**死亡屏弹出目视确认→点 Respawn→health=20 出生点**；满包 36 槽灌满后第 37 项 `inventory-full`；level.dat 盘面 NBT 与内存逐项一致（Slot 0..35/id/Count/Damage）。
+
+**实跑新钉四条**：
+1. **真实 addStack 会分栈**：gi2 x64 进 1x55 栈→`0=64x55 1=1x55`（先补满旧栈、余量开新槽）——无头假类是简化版（装不下即 false 不分栈），WorldOps 只检查 boolean 返回值，不受影响。
+2. **和平回血活体实锤**：difficulty=0 下 10→20 约 10 秒（每 20 tick b(1)）；重进后 health=20 是回血而非载入面缺陷（退前已回满并存盘）。
+3. **死亡重生清空物品栏**：Respawn=重建 EntityPlayer（iv4=empty），0327 无 keep-inventory；新实例经 `World.c` live 读自动生效，零钩补。
+4. **0327 level.dat 根 compound 无 `Level` 包装**（Player/Time/SizeOnDisk 直接在根下，与后世版本格式不同）——临时 node dumper 在 chunk Data 区解析翻车，但 Player/Inventory 区原始字节直读完成对账。

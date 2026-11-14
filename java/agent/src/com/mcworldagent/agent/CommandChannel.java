@@ -44,7 +44,8 @@ public final class CommandChannel {
             Arrays.asList("place", "dig", "getblock", "getinfo", "settime", "setspawn", "tp",
                     "save", "fill", "getblocks", "getplayer",
                     "getmeta", "setmeta", "genscatter", "listops",
-                    "getlight", "setlook", "setmotion"));
+                    "getlight", "setlook", "setmotion",
+                    "give", "inv", "sethealth"));
 
     /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。 */
     private static final String LISTOPS =
@@ -54,7 +55,8 @@ public final class CommandChannel {
           + "getplayer r;getmeta(x,y,z)r;setmeta(x,y,z,meta0..15)w;"
           + "genscatter(x,y,z,blockId[,seed])w;listops r;"
           + "getlight(x,y,z)r[0..15];setlook(yaw0..359,pitch-90..90 int-deg)w;"
-          + "setmotion(vx,vy,vz int-thousandths +-10000)w";
+          + "setmotion(vx,vy,vz int-thousandths +-10000)w;"
+          + "give(itemId1..255,count1..64[,dmg0..32767])w;inv r;sethealth(0..20)w";
 
     private static String cmdDirArg;
     private static File baseDir; // 解析后的 mca/ 根
@@ -363,6 +365,21 @@ public final class CommandChannel {
             // Player NBT "Motion" 随存盘持久，同上
             return WorldOps.setMotion(world, vx, vy, vz) + saveSuffix(world, c);
         }
+        // 物品栏三 op（give-inv-health 批）：give/sethealth 写侧 saveSuffix（"Inventory" NBT 随 save 落盘）；
+        // inv 纯读忽略 save；give 的 dmg 可选（缺省 0，"缺键=默认"面同 genscatter.seed）。
+        if ("give".equals(c.op)) {
+            int itemId = intArg(a, "itemId");
+            int count = intArg(a, "count");
+            int dmg = optionalIntArg(a, "dmg", 0);
+            return WorldOps.give(world, itemId, count, dmg) + saveSuffix(world, c);
+        }
+        if ("inv".equals(c.op)) {
+            return WorldOps.inv(world); // 读侧忽略 save
+        }
+        if ("sethealth".equals(c.op)) {
+            int health = intArg(a, "health");
+            return WorldOps.setHealth(world, health) + saveSuffix(world, c);
+        }
         if ("listops".equals(c.op)) {
             return LISTOPS; // agent 侧自省，零游戏调用（世界未捕获仍 not-ready——v1 从简）
         }
@@ -437,6 +454,23 @@ public final class CommandChannel {
             throw new WorldOps.Rejected("arg '" + k + "' must be integer");
         }
         return ((Long) v).longValue();
+    }
+
+    /** 可选整数参数（give.dmg）：缺键=默认值（"缺键=默认"面同 genscatter.seed）。 */
+    private static int optionalIntArg(Map<String, Object> a, String k, int def)
+            throws WorldOps.Rejected {
+        Object v = a == null ? null : a.get(k);
+        if (v == null) {
+            return def;
+        }
+        if (!(v instanceof Long)) {
+            throw new WorldOps.Rejected("arg '" + k + "' must be integer");
+        }
+        long l = ((Long) v).longValue();
+        if (l < Integer.MIN_VALUE || l > Integer.MAX_VALUE) {
+            throw new WorldOps.Rejected("arg '" + k + "' out of int range");
+        }
+        return (int) l;
     }
 
     /** 写操作默认存盘（§3：save=false 显式关闭），返回 detail 后缀。 */

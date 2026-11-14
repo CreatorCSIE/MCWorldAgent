@@ -74,6 +74,32 @@ public final class WorldOps {
     // W 在子类，World.c 声明类型=Entity 基类——execute 期按实例类惰性解析（失败→UnsupportedOp，不静默）。
     private static final String E_HEALTH = "W";
 
+    // 物品栏面（give/inv/sethealth 取证，javap 全量反汇编定向检索）：
+    //   EntityHuman=a.c.e.a public 字段 b=InventoryPlayer(a.c.e.b)：a:[ItemStack]=36 主槽、
+    //   b:[ItemStack]=4 盔甲槽、c:I=当前快捷槽(0..9)；a(ItemStack)Z=addStack（同 id 且 dmg==0
+    //   才合并、单栈上限 64、入包后设 k.b=5 拾取延迟；false=装不下）；EntityPlayer=client.g.a
+    //   不 shadow 本批任何字段。
+    //   ItemStack=net.minecraft.a.b.k：a:I=Count、b:I=拾取延迟、c:I=id、d:I=Damage；
+    //   构造器 (II)V=(id,count)、(III)V=(id,count,damage)；a()Li;=i.b[c] 直索引
+    //   （id 越界/空洞→后续 NPE，故 give 必须注册表校验）。
+    //   Item 注册表=net.minecraft.a.b.i：public static i[] b 按 id 索引（部分槽位 null）。
+    //   持久化：EntityPlayer.a(NBT) 写 "Inventory"（主槽 Slot 0..35、盔甲 100..103）→save 即落盘。
+    //   sethealth 直写 W 绕过 b(I)V 治疗钳制（20 上限；死亡中不治疗）→op 侧自校验 0..20；
+    //   HUD client.a_d 每帧直读 W→即时生效；置 0=deathTicks 流程接管（玩家 k() 覆写空操作、
+    //   死亡屏 client.d 自动弹出、重生=原版按钮）→agent 不代打 respawn。
+    //   全惰性解析（eHealth 同模式）：execute 期按实例类解析，NoSuch*→UnsupportedOp 不静默；
+    //   resolve(Class) 主段零改动（World 类签名不变）。
+    private static final String F_INV = "b";        // EntityHuman.b（InventoryPlayer）
+    private static final String INV_MAIN = "a";     // ItemStack[36] 主槽
+    private static final String INV_ARMOR = "b";    // ItemStack[4] 盔甲槽
+    private static final String INV_CUR = "c";      // 当前快捷槽
+    private static final String IS_COUNT = "a";     // ItemStack.Count
+    private static final String IS_ID = "c";        // ItemStack id
+    private static final String IS_DMG = "d";       // ItemStack Damage
+    private static final String M_ADDSTACK = "a";   // addStack (ItemStack)Z
+    private static final String G_ITEM_CLASS = "net.minecraft.a.b.i";
+    private static final String ITEMS = "b";        // public static i[] 按 id 索引
+
     // meta/genscatter 面（javap 取证，World L588/L637/L863 + a.a.c.b.b 散布器）：
     //   d(III)I=getBlockMetadata（Chunk.b(III)I 读 nibble g，索引 x<<11|z<<7|y）；
     //   b(IIII)V=静默 meta 写（h(IIII)Z→Chunk.b(IIII)V，仅 nibble+dirty，零通知——
@@ -113,6 +139,15 @@ public final class WorldOps {
     private static volatile Field eMotX, eMotY, eMotZ;
     private static volatile Field eYaw, ePitch;
     private static volatile Field eHealth; // 惰性：EntityLiving 子类字段，按实例类解析
+    // 物品栏面惰性缓存（give/inv 首用解析；ItemStack 类=主槽数组分量类型，零硬编码类名）
+    private static volatile Field invField;   // EntityHuman.b（InventoryPlayer）
+    private static volatile Field invMain;    // InventoryPlayer.a ItemStack[36]
+    private static volatile Field invArmor;   // InventoryPlayer.b ItemStack[4]
+    private static volatile Field invCur;     // InventoryPlayer.c int
+    private static volatile Method addStack;  // InventoryPlayer.a(ItemStack)Z
+    private static volatile Field isCount, isId, isDmg;
+    private static volatile Constructor<?> isCtor2, isCtor3;
+    private static volatile Field itemRegistry; // i.b public static（按 id 索引）
     private static volatile Method getMeta;
     private static volatile Method setMetaSilent;
     private static volatile Method light6;
@@ -349,21 +384,13 @@ public final class WorldOps {
         if (p == null) {
             throw new Rejected("no-player");
         }
-        Field h = eHealth;
-        if (h == null) {
-            try {
-                h = p.getClass().getField(E_HEALTH);
-            } catch (NoSuchFieldException e) {
-                throw new UnsupportedOp("entity health field: " + e);
-            }
-            eHealth = h;
-        }
+        int health = healthField(p).getInt(p);
         return "x=" + ePosX.getDouble(p) + " y=" + ePosY.getDouble(p)
                 + " z=" + ePosZ.getDouble(p)
                 + " motX=" + eMotX.getDouble(p) + " motY=" + eMotY.getDouble(p)
                 + " motZ=" + eMotZ.getDouble(p)
                 + " yaw=" + eYaw.getFloat(p) + " pitch=" + ePitch.getFloat(p)
-                + " health=" + h.getInt(p);
+                + " health=" + health;
     }
 
     /**
@@ -419,6 +446,159 @@ public final class WorldOps {
         if (v < -10000 || v > 10000) {
             throw new Rejected(name + "-out-of-range [-10000,10000] thousandths: " + v);
         }
+    }
+
+    /** W 惰性解析（getPlayer/setHealth 共用）：EntityLiving 子类字段，按实例类解析。 */
+    private static Field healthField(Object p) throws UnsupportedOp {
+        Field h = eHealth;
+        if (h == null) {
+            try {
+                h = p.getClass().getField(E_HEALTH);
+            } catch (NoSuchFieldException e) {
+                throw new UnsupportedOp("entity health field: " + e);
+            }
+            eHealth = h;
+        }
+        return h;
+    }
+
+    /** 物品栏面惰性解析（eHealth 同模式）：ItemStack 类取自主槽数组分量类型，零硬编码类名。 */
+    private static void resolveInventory(Object p) throws UnsupportedOp {
+        if (addStack != null) {
+            return;
+        }
+        try {
+            Field inv = p.getClass().getField(F_INV);
+            Class<?> invType = inv.getType();
+            Field main = invType.getField(INV_MAIN);
+            Class<?> stackType = main.getType().getComponentType();
+            if (stackType == null) {
+                throw new UnsupportedOp("inventory main not an array: " + main);
+            }
+            Field armor = invType.getField(INV_ARMOR);
+            Field cur = invType.getField(INV_CUR);
+            Method add = invType.getMethod(M_ADDSTACK, stackType);
+            Field cnt = stackType.getField(IS_COUNT);
+            Field id = stackType.getField(IS_ID);
+            Field dmg = stackType.getField(IS_DMG);
+            Constructor<?> c2 = stackType.getConstructor(int.class, int.class);
+            Constructor<?> c3 = stackType.getConstructor(int.class, int.class, int.class);
+            Class<?> itemClass = Class.forName(G_ITEM_CLASS, false, p.getClass().getClassLoader());
+            Field reg = itemClass.getField(ITEMS);
+            invField = inv;
+            invMain = main;
+            invArmor = armor;
+            invCur = cur;
+            addStack = add;
+            isCount = cnt;
+            isId = id;
+            isDmg = dmg;
+            isCtor2 = c2;
+            isCtor3 = c3;
+            itemRegistry = reg;
+        } catch (NoSuchFieldException e) {
+            throw new UnsupportedOp("inventory fields: " + e);
+        } catch (NoSuchMethodException e) {
+            throw new UnsupportedOp("inventory signatures: " + e);
+        } catch (ClassNotFoundException e) {
+            throw new UnsupportedOp("item registry class: " + e);
+        }
+    }
+
+    /**
+     * 给予物品（op=give）。注册表 i.b[] 直索引校验（越界/空洞→游戏侧 a() 即 NPE，必须拒
+     * bad-itemid）+ count∈[1,64] + damage∈[0,32767]；damage==0 走 (II)V 否则 (III)V；
+     * addStack false=装不下→Rejected inventory-full（原栈未消耗，可 inv 对账）。
+     * save 后经 EntityPlayer "Inventory" NBT 落盘（取证：主槽 Slot 0..35、盔甲 100..103）。
+     */
+    public static String give(Object world, int itemId, int count, int damage) throws Exception {
+        Object p = player.get(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        if (count < 1 || count > 64) {
+            throw new Rejected("count-out-of-range [1,64]: " + count);
+        }
+        if (damage < 0 || damage > 32767) {
+            throw new Rejected("dmg-out-of-range [0,32767]: " + damage);
+        }
+        resolveInventory(p);
+        Object[] items = (Object[]) itemRegistry.get(null);
+        if (itemId < 0 || itemId >= items.length || items[itemId] == null) {
+            throw new Rejected("bad-itemid: " + itemId);
+        }
+        Object stack = (damage == 0)
+                ? isCtor2.newInstance(Integer.valueOf(itemId), Integer.valueOf(count))
+                : isCtor3.newInstance(Integer.valueOf(itemId), Integer.valueOf(count),
+                        Integer.valueOf(damage));
+        boolean fitted = ((Boolean) addStack.invoke(invField.get(p), stack)).booleanValue();
+        if (!fitted) {
+            throw new Rejected("inventory-full");
+        }
+        return "gave " + itemId + " x" + count + (damage == 0 ? "" : " dmg=" + damage);
+    }
+
+    /** 物品栏快照（op=inv，纯读）：主槽 0..35、盔甲 A0..A3，槽=数量xID[ d伤害]，cur=快捷槽；全空→empty。 */
+    public static String inv(Object world) throws Exception {
+        Object p = player.get(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        resolveInventory(p);
+        Object inv = invField.get(p);
+        Object[] main = (Object[]) invMain.get(inv);
+        Object[] armor = (Object[]) invArmor.get(inv);
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < main.length; i++) {
+            if (main[i] != null) {
+                if (b.length() > 0) {
+                    b.append(' ');
+                }
+                b.append(i).append('=').append(describeStack(main[i]));
+            }
+        }
+        for (int i = 0; i < armor.length; i++) {
+            if (armor[i] != null) {
+                if (b.length() > 0) {
+                    b.append(' ');
+                }
+                b.append('A').append(i).append('=').append(describeStack(armor[i]));
+            }
+        }
+        if (b.length() == 0) {
+            return "empty";
+        }
+        b.append(" cur=").append(invCur.getInt(inv));
+        return b.toString();
+    }
+
+    private static String describeStack(Object s) throws Exception {
+        String r = isCount.getInt(s) + "x" + isId.getInt(s);
+        int dmg = isDmg.getInt(s);
+        if (dmg != 0) {
+            r += " d" + dmg;
+        }
+        return r;
+    }
+
+    /**
+     * 血量直写（op=sethealth）。W 直写绕过 b(I)V 治疗钳制（20 上限；死亡中不治疗）
+     * →op 侧自校验 0..20，越界拒绝而非截断；HUD 每帧直读 W→即时生效。
+     * 置 0=原版死亡流程接管（deathTicks→死亡屏→按钮重生），agent 不代打 respawn；
+     * 持久化 0 后重进=载入 Health=0 再次死亡屏（原版语义，不特殊处理）。
+     */
+    public static String setHealth(Object world, int health) throws Exception {
+        Object p = player.get(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        if (health < 0 || health > 20) {
+            throw new Rejected("health-out-of-range [0,20]: " + health);
+        }
+        Field h = healthField(p);
+        int old = h.getInt(p);
+        h.setInt(p, health);
+        return "health " + old + " -> " + health;
     }
 
     /** 方块元数据读（op=getmeta）。World.d(III)I=getBlockMetadata（Chunk nibble g，纯读）。 */
