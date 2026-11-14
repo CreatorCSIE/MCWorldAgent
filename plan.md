@@ -464,7 +464,7 @@ Minecraft classes should generally be discovered as Minecraft loads them. The Ag
 
 **Phase 0 status:** the observation half of this module is built and live-verified (`java/agent/`: premain, fingerprint table, two-pass weaving, handle-①, tick drain, logs).
 
-**Phase 1 status:** the write side is live-verified end-to-end — "first brick" reflection path (`FirstBrick.java`: setBlockWithNotify → explicit saveWorld → re-enter read-back → UNSUPPORTED failure semantics), zero new bytecode injection, full evidence in the Phase 1 case file. The external submit channel is now ALSO live-verified (file-queue v1: place/dig/getblock/save, dig+place persistence across re-entry — see Command-Channel case file). Remaining: deeper hook layer (`getChunkFromChunkCoords`), metadata/entity writes, settime/setspawn/tp (need javap names), batch writes, desktop-shell command panel.
+**Phase 1 status:** the write side is live-verified end-to-end — "first brick" reflection path (`FirstBrick.java`: setBlockWithNotify → explicit saveWorld → re-enter read-back → UNSUPPORTED failure semantics), zero new bytecode injection, full evidence in the Phase 1 case file. The external submit channel is now ALSO live-verified (file-queue v1: place/dig/getblock/save, dig+place persistence across re-entry — see Command-Channel case file). **Remaining-list updated 2026-11-14:** metadata/entity writes (setmeta batch), settime/setspawn/tp (tp/setw batches), batch writes (fill/replace batches) and the HUD observation hook (hud-overlay batch, EXIT mode) are now ALL live-verified — 33 ops total, see Command-Channel case file §18-23. What genuinely remains: the deeper hook layer (`getChunkFromChunkCoords`) — now carrying a hard constraint from the [0327 coverage audit](./docs/research/audit-0327-coverage.md): `getblocks`-style reads go through the provider and **in-place-generate whole unloaded chunks** (1729 vs 639 miss-count gap, Phase 0 lesson 5), so any read-only chunk export must gate on `chunkExists`/disk-direct and must not implicitly generate terrain (§3.4/§4.3 requirement). Desktop-shell command panel remains (workbench-model T1).
 
 ### 4.6 Player Controller
 
@@ -758,9 +758,11 @@ The following phases represent an initial dependency-oriented roadmap, not a fix
 
 ### Phase 2 — Standalone World Access
 
-- [ ] Implement initial storage adapter.
+**First slice landed (2026-11-14):** `java/storage` read-only chunk exporter (NbtReader + ChunkExport CLI, pure JDK8, zero game contact) live-verified against the static World2 save — 10/10 assertions green incl. Furnace TE/items matching the te-1 live-run ledger, `present:false` for absent chunks and a 2813-file SHA1 zero-write guarantee (see [chunk-export spec](./.trae/specs/chunk-export/spec.md) and [reconcile](./integrations/attic/out/chunk-export-1/reconcile.md)). Bytecode-corrected layout facts: flat 16×16×128 chunk, Blocks idx = `x<<11|z<<7|y` (y innermost), nibble even=low/odd=high. Remaining Phase 2 scope: writers/dirty tracking/safe save (unplanned so far — Agent Mode covers live writes), multi-chunk iteration, metadata surface.
+
+- [ ] Implement initial storage adapter. ← **first read-only adapter landed (java/storage, 2026-11-14)**
 - [ ] Load world metadata.
-- [ ] Read blocks and chunks.
+- [x] Read blocks and chunks. (chunk-export batch, static-save verified)
 - [ ] Implement dirty tracking.
 - [ ] Implement safe save operations.
 - [ ] Verify data preservation.

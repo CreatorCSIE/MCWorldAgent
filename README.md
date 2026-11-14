@@ -35,14 +35,20 @@
 - **观测闭环与证据链**：transform 日志（织入/类加载轨迹）+ hooks 日志（把手/tick/存盘/区块/光照事件，带毫秒时间戳）+ JVM 退出 SUMMARY 计数行；日志按 run 归档，`--dry-run` / `--no-agent` 基线对照 / `disable=<hookId>` 逐钩排除，全链可复跑。
 - **三缺口实证结论**（详见案卷）：G1 发行运行时的自动存被 legacyfix `AutoSavePatch` 改为 5 分钟节律——接管者必须经把手显式存盘；G2 0327 光照数据信任存档（`lightRecalc == chunkMiss` 不变量），写盘带齐合法数据即零重算；G3 关键 UI 类在 agent 下加载无恙。
 - **写入性接管"第一块砖"（Phase 1，零新字节码注入）**：经把手①在 tick 边界反射调用游戏自身 `setBlockWithNotify`（0327 实名 `c(IIII)Z`）在出生点放置圆石 → 显式 `saveWorld` 落盘 → 重进读回验证砖仍在（渲染通知链同步生效，用户目视实锤）；签名不符则记 `UNSUPPORTED` 且游戏零损伤——失败语义与织入层同纪律。写侧实名表与完整证据链见 Phase 1 案卷。
-- **命令通道 v1（Phase 1，2026-11-13 实跑）**：文件队列协议（tmp→inbox→processed=ACCEPTED→outbox 终态；protocolVersion/幂等去重/严格 JSON 子集/限额防积压），独立 daemon 线程解析、tick 边界执行；`place`/`dig`/`getblock`/`save` 四 op 全绿——**dig 与 place 均跨进程/跨重进持久化实锤**，四种 REJECTED 失败路径现场命中，并修复"同进程重进读旧 World"句柄缺陷（WORLD_SWITCHED）。设计案卷 [agent-command-channel.md](./docs/architecture/agent-command-channel.md)，实跑案卷 [phase1-command-channel.md](./docs/research/phase1-command-channel.md)。
+- **命令通道 v1（Phase 1，2026-11-13 实跑）**：文件队列协议（tmp→inbox→processed=ACCEPTED→outbox 终态；protocolVersion/幂等去重/严格 JSON 子集/限额防积压），独立 daemon 线程解析、tick 边界执行；四种 REJECTED 失败路径现场命中，并修复"同进程重进读旧 World"句柄缺陷（WORLD_SWITCHED）。设计案卷 [agent-command-channel.md](./docs/architecture/agent-command-channel.md)，实跑案卷 [phase1-command-channel.md](./docs/research/phase1-command-channel.md)。
+- **命令面 33 op 全谱（2026-11-14，十批实跑全绿）**：在 place/dig/getblock/save 之上扩展至——区域批量（fill/replace/getblocks，cap 4096+NO_CHANGE 语义）、属性（getinfo/settime/setspawn）、玩家（getplayer/tp/setlook/setmotion/sethealth/invulnerable）、物品栏（give/inv/setarmor/clearinv，注册表直索引校验+Damage 耐久面）、实体（spawn 九 kind/drop/explode/entitylist 账面对账面）、TileEntity（getchest/setchest/getfurnace，冶炼闭环出铁锭 265）、运行时（playsound/save）、自省（listops）。每批=spec 批准→javap/源码树双路取证→无头回归→单独批准实跑→归档，证据行全在案卷 §18-23。
+- **NEW_CTOR 受限构造器补全（戒律唯一豁免，跨版本复活能力）**：指纹表 `expectedHits:0`（类在但 `<init>` 被混淆管线剥离的死代码实体）触发四指令构造器注入——Giant 复活实锤（10 倍巨僵尸可见），泛化背景=0413/0414 全生物构造器丢失、0227/0313 实体功能大砍（版本扩展批调研钩子）。
+- **HUD 观察面（EXIT 织入模式首例）**：`GuiIngame.renderGameOverlay` RETURN 前注入，showFPS 门内于原版调试列下方绘制 XYZ 实时坐标 + `javaagents:` 加载列表；零 GL 状态改动（准星段残留反色 blendFunc 教训）、崩溃隔离永久停用。两条实跑硬教训入档：混淆表翻案（真 GuiIngame=`client.c.m`，GUI 类必须类体级证据钉）、"注入渲染先问原版同点状态"。
+- **0327 覆盖审计（能力矩阵首版）**：World 全方法面 67 员 × 33 op 三分判决表（已覆盖/缺口→值得 op/缺口→不做有因）——biome/结构/chunk 操作等疑点全销案，tick 面 12 实现者钉死（grow 候选成立）；案卷 [audit-0327-coverage.md](./docs/research/audit-0327-coverage.md)。
+- **Standalone 首件：chunk 只读导出（java/storage，2026-11-14）**：纯 JDK8 零依赖离线件（NbtReader 11 型 tag+全消费校验、ChunkExport CLI：b36 散件路径→JSON RLE 方块/meta/light/heightMap/TE+items），静态存档实跑 10 项断言全绿——含 Furnace TE items 与活体冶炼账面逐项一致、2813 文件 SHA1 零写入保证；索引公式字节码翻案钉死（Blocks idx=`x<<11|z<<7|y`，y 最内）。Three.js 视口数据源自此就绪。
 
-### 规划中（见 plan.md 路线图）
+### 规划中（见 plan.md 路线图 + workbench-model 分层判决）
 
-- **写侧扩展（Phase 1 后续）**：~~外部提交通道~~ ✅ 命令通道 v1 已实跑（见上）；剩余：钩层下探（`getChunkFromChunkCoords`）、元数据与实体写入、settime/setspawn/tp（待 javap 钉混淆名）、批量写、桌面壳命令台面板。
-- **版本适配器矩阵**：逐版本（c 系列 / indev / alpha / beta）钉死混淆实名与存储格式，落版本兼容登记表——只有验证过的操作才标记支持。
-- **Standalone 模式**：离线读写世界文件与无头生成，与 Agent 模式共享世界数据模型。
-- **桌面壳与外部接口**：Vue 3 + Tauri 工作台、Three.js 视口、MCP Server 供 AI Agent 接入。
+- **agent 队列待拍板**：grow/clear 两 op（审计缺口② 候选批，grow 语义=概率/循环催熟待拍）、harvest 存废、chunk 导出**进程内对账收口**（活体内存 vs 盘面一致性，用户判决"之后再收口"）、`getChunkFromChunkCoords` 深钩（Phase 0 教训 5 的 1729/639 缺口）、listops v2 能力元数据（Version Registry 机器可读形态）。
+- **版本扩展**：试点=跨阶段版本各选代表（Classic/Indev/Infdev 后段/Alpha/Beta，jar 库已本地齐备），0227/0313 次优先；每版重新 javap 钉指纹（版本映射漂移是实锤教训）。
+- **桌面壳（Workbench 模型已判决落档）**：T1 命令台面板（速记翻译器+双源轮询，agent 侧零依赖）→ T2 Editor 注册制+Three.js 真渲染（§12 垂直切片唯缺步 4，数据源已就绪）→ T3 分屏/拖放/Palette/持久化。栈=Vue 3 + shadcn-vue + Tauri（已 DECIDED 单壳，原型已验收）。
+- **游戏内控制台**（输入壳优先战略维持）：Classic 绕闸配方 / Infdev ConsoleScreen / Alpha sendChatMessage 数据层钩，见 [ingame-console.md](./docs/architecture/ingame-console.md)。
+- **MCP Server / 分析工具集成**（slime/monolith/pyramid 离线算法）：Phase 5/7 归位。
 
 ### 血统
 
@@ -55,8 +61,9 @@
 | 阶段 | 内容 | 状态 |
 |---|---|---|
 | Phase 0 | Java Agent 全链 PoC（infdev 20100327 × Attic harness） | ✅ 完成（2026-11-12）：建世界→游玩→重进同世界→正常退出全链跑通，五钩 HOOKED，三缺口自答落档 |
-| Phase 1 | 写入性接管（setBlock + 显式存盘 + 重进验证）与钩层下探 | 🔶 第一块砖 ✅ + 命令通道 v1 ✅（2026-11-13）：place/dig/getblock/save 实跑、dig+place 持久化实锤、失败路径全命中；钩层下探与 op 扩展（settime/setspawn/tp/批量写）待做 |
-| Phase 2+ | 版本适配器矩阵 / Standalone 模式 / 桌面壳 / MCP | 📋 见 plan.md |
+| Phase 1 | 写入性接管与命令通道 | ✅ 主体完成（2026-11-14）：**33 op 十批实跑全绿**（give→obs 六批+NEW_CTOR+HUD EXIT 钩）+ 0327 覆盖审计判决表落档；剩余收口项见"规划中" |
+| Phase 2 | Standalone World Access | 🔶 首件落地（2026-11-14）：`java/storage` chunk 只读导出（静态存档实跑 10/10，进程内对账待收口）；写侧离线/dirty tracking 未拍 |
+| Phase 3+ | 3D 视口 / 版本扩展 / 桌面壳 / MCP | 📋 见 plan.md + workbench-model（T1/T2/T3 分层判决；§12 垂直切片唯缺 3D 显示，数据源已就绪） |
 
 ---
 
@@ -102,19 +109,35 @@ $env:MCA_AGENT_EXTRA = 'disable=RUN_TICK;dump=C:\tmp\mca-dump'   # 逐钩禁用 
 
 日志落 `integrations/attic/out/<run>/`：`agent-transform.log`（织入轨迹）、`agent-hooks.log`（把手/tick/存盘事件+SUMMARY）、`game-stream.log`（CLI 通路游戏流）。历次 run 归档于 `out/run*/`、`out/cli-run/`。
 
+命令通道实跑（33 op 全谱见案卷 §6 表）：向 `out/<run>/mca/inbox/` 投递 JSON 信封（`{"protocolVersion":1,"id":"..","op":"fill","args":{..},"save":true}`），outbox 收终态。HUD 观察面：进世界 → Options → Show FPS ON → 左上调试列下 XYZ+`javaagents:` 列表。
+
+### 1b. Standalone chunk 导出（离线，零游戏接触）
+
+```powershell
+powershell -File java/storage/build.ps1
+# 导出单 chunk 为 JSON（RLE 方块/meta/light + heightMap + TE/items）；文件缺失=present:false，绝不生成
+java -cp java/storage/out/classes com.mcworldagent.storage.ChunkExport `
+  "%APPDATA%\.attic\default instance\saves\World2" 0 0 out.json
+```
+
+实跑对账与断言矩阵见 [chunk-export-1/reconcile.md](./integrations/attic/out/chunk-export-1/reconcile.md)。
+
 ### 2. 仓库结构 (Repository Layout)
 
 ```text
 MCWorldAgent
 ├── plan.md                 分阶段开发计划与架构
 ├── java/
-│   └── agent/              Java Agent：premain/指纹表/织入器/把手/日志（build.ps1 一键构建）
+│   ├── agent/              Java Agent：premain/指纹表/织入器/把手/命令通道/HUD（build.ps1 一键构建）
+│   └── storage/            Standalone 首件：NbtReader+ChunkExport 只读导出（build.ps1，纯 JDK8 零依赖）
+├── apps/desktop/           桌面壳静态原型（Vue 3 + shadcn-vue + Tauri，已验收；见 docs/ui）
 ├── integrations/
-│   └── attic/              launch-poc.cjs —— Phase 0 harness（备用/实验通路；默认走 attic-cli）
+│   └── attic/              launch-poc.cjs 备用 harness + out/<run>/ 历次实跑归档（证据链落盘地）
 ├── docs/
-│   └── research/           取证案卷（phase0-agent-poc.md、phase1-first-brick.md、phase1-command-channel.md、research-integration.md）
-├── apps/ · packages/ · java/core|adapters|storage|generator · integrations/mcp
-│                           规划骨架（见 plan.md，随阶段落地）
+│   ├── research/           取证案卷（phase0 / phase1-first-brick / phase1-command-channel §1-23 / audit-0327-coverage / research-integration）
+│   ├── architecture/       设计案卷（agent-command-channel / ingame-console / shell-command-panel / workbench-model）
+│   └── ui/                 桌面壳原型案卷
+├── .trae/specs/            批次 spec（批准制：每批一目录，含验收状态）
 └── LICENSE / README.md
 ```
 

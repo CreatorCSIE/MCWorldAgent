@@ -6,7 +6,7 @@
 
 第一块砖的 `submit()` 由 WORLD_CREATED 自动触发，是一次性演示。主线（用户拍板）：
 **新增命令操作面**（挖除、时间、出生点、传送、批量写…），通道第一个客户是 **CLI**（人工/脚本可直发），
-桌面壳与游戏内控制台（[ingame-console](ingame-console.md)）是后续客户。
+桌面壳与游戏内控制台（[ingame-console](ingame-console.md)）是后续客户；桌面壳 Workbench 模型与分层排期判决见 [workbench-model](workbench-model.md)（2026-11-14）。
 
 硬约束（继承既有纪律）：
 

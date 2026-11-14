@@ -1,5 +1,6 @@
 # Build outputs
 java/agent/out/
+java/storage/out/
 node_modules/
 
 # Downloaded dependencies (fetched by java/agent/build.ps1)
