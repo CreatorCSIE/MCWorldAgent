@@ -39,7 +39,7 @@
 
 ## 4. 状态与下一步
 
-命令通道 v1（place/dig/getblock/save 四 op）验收完毕。§5 判决的 P0 fixture 化（`noFirstBrick=`）与 P1 世界世代（`capturedWorldGeneration` + 信封 `targetGeneration`）已落码并实跑验收（2026-11-13，run `p0p1-gen`，见 §6）。Query `getinfo` 已落码并实跑验收（2026-11-13，run `getinfo-1`，见 §7）。写侧 `settime`/`setspawn` 已落码并实跑验收（2026-11-13，run `setw-1`，见 §8；setspawn 语义经用户判决纠正为 respawn 锚点）。写侧 `tp` 已落码并实跑验收（2026-11-13，run `tp-1`，见 §10：目视瞬移+边境之地远距+Pos[1]=y+1.62 磁盘对账+存退重进落 tp 点；setw-1 遗留的"实例归属"疑点闭环——当轮未执行重进，见教训 16）。批量写第二批 `fill`/`getblocks` + 顺手钉 `getplayer` 已落码并实跑验收（2026-11-13，run `fill-1`，见 §12：NO_CHANGE 协议 v2 首个活体实例、changed=220 同 id 短路实锤、存退重进 rle=1:324 持久化、FILL_MS 243 块含 save=9ms）。待办：桌面壳"命令台+事件流"底部面板（VS Code 式，速记→封包翻译器）为壳 Phase 2 首件；mca/ 证据已归档各 run `mca-archive/`。
+命令通道 v1（place/dig/getblock/save 四 op）验收完毕。§5 判决的 P0 fixture 化（`noFirstBrick=`）与 P1 世界世代（`capturedWorldGeneration` + 信封 `targetGeneration`）已落码并实跑验收（2026-11-13，run `p0p1-gen`，见 §6）。Query `getinfo` 已落码并实跑验收（2026-11-13，run `getinfo-1`，见 §7）。写侧 `settime`/`setspawn` 已落码并实跑验收（2026-11-13，run `setw-1`，见 §8；setspawn 语义经用户判决纠正为 respawn 锚点）。写侧 `tp` 已落码并实跑验收（2026-11-13，run `tp-1`，见 §10：目视瞬移+边境之地远距+Pos[1]=y+1.62 磁盘对账+存退重进落 tp 点；setw-1 遗留的"实例归属"疑点闭环——当轮未执行重进，见教训 16）。批量写第二批 `fill`/`getblocks` + 顺手钉 `getplayer` 已落码并实跑验收（2026-11-13，run `fill-1`，见 §12：NO_CHANGE 协议 v2 首个活体实例、changed=220 同 id 短路实锤、存退重进 rle=1:324 持久化、FILL_MS 243 块含 save=9ms）。元数据批 `getmeta`/`setmeta`/`genscatter`/`listops` 已落码并实跑验收（2026-11-14，run `meta-1`+修复复验 `meta-2`，见 §13/§14：difficulty 对账、setmeta nibble 持久化、火把目视转向、散布正例计数精确、NO_CHANGE；含草地→石头基底翻案与预扫盒上界修正两条活体翻案）。待办：桌面壳"命令台+事件流"底部面板（VS Code 式，速记→封包翻译器）为壳 Phase 2 首件；mca/ 证据已归档各 run `mca-archive/`。
 
 ## 5. 外部评审吸收与 v2 待办（2026-11-13，ChatGPT review 判决）
 
@@ -179,3 +179,67 @@
 - 持久化：`fill6` 复原圆石 changed=324 saved=true（**7ms**）→ 存退重进（WORLD_SWITCHED gen=2，新实例）→ `gb6` **`rle=1:324` 原样读回**；`gp2` health=20（重生后自然回血）、位置恢复落平台。
 - **tick 预算数据**：FILL_MS 243 块含 save=9ms、324 块含 save=7ms，其余亚毫秒（ms=0）；GETBLOCKS_MS 324 块读=0ms——cap 4096 内单 tick 无压力，快路径（v2 候选）暂无必要性证据。
 - 发令戒律补记：`powershell -File` 传含引号/逗号的 JSON 参数会被剥离破坏（bad-json @54 两连 REJECTED）——实跑发令改用内嵌 JSON 的 cmds.txt 批处理（tmp→inbox 同卷 rename，UTF8 无 BOM 不变）。
+
+## 13. 元数据批 `getmeta` / `setmeta` / `genscatter` / `listops`（2026-11-14，取证翻案 + 落码，实跑待验收）
+
+Spec：`.trae/specs/meta-tree/`。判决变更：原批 gentree **砍除**——复核翻案三条：
+
+1. **`World.f(III)I` = getBrightness，非气温**（旧笔记作废）：`Chunk.c(IIII)I` 读 h=SkyLight 减环境值（World.q）再与 i=BlockLight 取 max；`g(III)F` 只是亮度经 `t[]` 曲线查表。BlockSapling.updateTick 首行 `world.f(x,y+1,z)>=9` 是**光照门槛**。
+2. **0327 sapling 不长树**：meta<15 → `b(IIII)V` 静默 meta+1（20% 概率、`nextInt(5)==0`）；meta≥15 → `setTileNoUpdate(0)` 再 `setTileNoUpdate(this.blockID=6)`——原地重放，幂等。树结构生成在 0327 不存在。
+3. **`WorldGenTrees`（`a.a.c.b.b`）名不副实**：椭球曲线散布器（中心 `(x+8±2sinθ, y+2..4, z+8±2cosθ)` 16 步，静默 `a(IIII)Z` 写构造器 id，恒返 true）。~~命中格仅当现为 grass~~ **meta-1 实跑翻案**：基底检查=`x.i=r(1,1)`=**stone id 1**（`x(int,Material)` 构造器 `c[id]=this` 实锤）——该类实为**原版矿石团生成器**（地形生成 `a.a.c.a` 以 id 14/15/16/aj 调用它撒金/铁/煤/aj 矿），0327 无原生花草散布路径（树=内联死类 `b.c`）。**换 genscatter** 调此真生成器（0327 唯一原生"结构生成"，语义=石头基底散布任意 blockId）。
+
+取证钉面（javap dump + 可读树双向对榫）：
+
+- `d(III)I`=getBlockMetadata（Chunk.b(III)I 读 nibble g，索引 `x<<11|z<<7|y`）；`b(IIII)V`=`h(IIII)Z`→`Chunk.b(IIII)V` 仅 nibble+dirty **零通知实锤**——可读树名 `setBlockMetadataWithNotify` 系 deobf 误猜。
+- setmeta 通知复刻（对照 `c(IIII)Z` L699 配方）：观察者 `World.u`（private List）逐个 `a(III)V` + `e(IIII)V`=6 邻各一次 `i()`→`Block.b(f,III)`=updateLighting（第 4 参 id 被 i 忽略）。同 id 走 c() 被 Chunk 短路返 false 不通知——必须手动复刻。观察者方法按实例类惰性 getMethod（接口 `a.a.a` 名不硬编码，getplayer W 同模式）。
+- genscatter 运行时补通知：游戏写=静默（地形期无渲染可通知），已加载 chunk 上直调会留脏渲染——预扫影响盒~~[x+6..x+10]×[y+2..y+4]×[z+6..z+10]（75 格上界）~~ **meta-1 实跑修正为真实上界 [x+4..x+12]×[y..y+5]×[z+4..z+12]（486 格）**：中心线盒只覆盖曲线中心，椭球半径 `(sin+1)*rnd+1∈[1,3)` 半轴 + `(int)` 截断向零使单元循环外扩至 ±1~2 格（活体实锤：meta-1 gs6 changed=11 但读回盒外尚存 1 花=旧盒漏计漏通知）→复扫 diff→变更格逐个通知；changed=0→NO_CHANGE（生产者扩为 {fill, genscatter}）。可选 seed 参数=确定性散布。
+- 难度取证归档（用户判决：GUI 已覆盖，**不开 setdiff**，只补进 getinfo）：`World.d:I`=difficultySetting，真源=`GameSettings.difficulty`（options.txt，默认 2，`&3` 值域 0-3），主循环每帧强制同步（Minecraft L763）；消费面=peaceful 回血+伤害缩放（0→清零/1→/3+1/3→×3/2）+peaceful 杀怪；**客户端全局不进 level.dat**。
+
+盘点更正（后续批次候选）：零新取证=getlight（`f(III)I` 亮度读）+setlook/setmotion（Entity m/n、j/k/l 直写，tp 已证全链）；需定向取证=物品栏 give/inv（InventoryPlayer 混淆类未定位）。天气 0327 不存在。
+
+- 落码：WorldOps（resolve 扩 5 面 + getMeta/setMeta/genScatter/getInfo difficulty）、CommandChannel（KNOWN_OPS→15 + 四分支 + LISTOPS 静态表）。钩子面零改动。
+- 无头回归：MiniJsonTest **迁 package mcaut**（假生成器需以真 FQCN `net.minecraft.a.a.c.b.b` 上 classpath，默认包类不可被命名包引用）——**79/79 全绿**（65 旧+14 新：四 op validate 放行、setmeta 往返+通知计数、meta 越界/坐标拒绝、genscatter 正路径 changed=2+逐格通知+seed 回显、无草地 NO_CHANGE、id 越界拒绝）。跑法：`javac -encoding UTF-8 -cp java\agent\out\classes -d %TEMP%\mcaut\out %TEMP%\mcaut\mcaut\MiniJsonTest.java %TEMP%\mcaut\net\minecraft\a\a\c\b\b.java`；`java -cp "java\agent\out\classes;%TEMP%\mcaut\out" mcaut.MiniJsonTest`。
+
+## 14. 元数据批实跑（2026-11-14，run `meta-1` + 修复复验 `meta-2`）
+
+**run meta-1**（`integrations/attic/out/meta-1/`，`noFirstBrick=true`，用户手工存退重进经 WORLD_SWITCHED gen=2 日志独立复核）——除 genscatter 外全绿，但**活体翻案两条**：
+
+| 断言 | 证据 |
+|---|---|
+| getinfo difficulty 对账 | `difficulty=0` ↔ gameDir options.txt `difficulty:0`；seed/spawn 与历史 run 一致（setw-1 的 spawn=10/70/10 持久存续） |
+| listops 自表 | 15 op 全列出 |
+| place 火把+getmeta | `placed id=50`→meta=0（该格 nibble 原值即 0；place 经 `c(IIII)Z` **不动 meta 面**，与 meta-2 残值 5 互证） |
+| setmeta 转向+读回 | `meta 0 -> 1`→getmeta=1 |
+| setmeta 越界拒绝 | `meta:16` → REJECTED `meta out of range [0,15]: 16` |
+| **setmeta nibble 持久化** | 存退重进（WORLD_SWITCHED gen=2）后 getmeta=1——Chunk nibble 段随 chunk 存盘读回实锤 |
+| genscatter 草地前提**作废** | 花盒 4 个 seed 全 NO_CHANGE；扩盒读回仍无花→静态复核翻案（§13 条目 3：基底=stone 非 grass） |
+| **旧预扫盒漏计实锤** | 对准石头层 seed=11→changed=11，但中心线盒读回 0 花（全被游戏弹出）、扩盒盒外存活 1 花=**写在旧 75 格外**（漏计+漏通知） |
+
+**修复**（jar 重建+无头 79/79 复跑）：genScatter 预扫盒改真实上界 `[x+4..x+12]×[y..y+5]×[z+4..z+12]`（486 格，§13 通知条目）。
+
+**run meta-2**（`integrations/attic/out/meta-2/`，修复版 jar，全绿）：
+
+| 断言 | 证据 |
+|---|---|
+| 正例计数精确 | 石头层 seed=24/25 → changed=4+3=7；扩盒读回**恰 7 个 id=4**（RLE 逐段核对），上界完整覆盖实锤 |
+| NO_CHANGE（石头语义） | 平台上方盒先 getblocks 探明无 stone（3/2/4/0 混合）→ scatter → NO_CHANGE changed=0 |
+| 火把目视转向 | place (-2,71,-1) 立于草地 id=2→setmeta **旧值=5**（该格历史残留 nibble——place 不动 meta 面，与 meta-1 gm1=0 互证）→meta=1 用户目视**倾斜火把可见**=通知复刻生效 |
+| 存退重进持久化 | WORLD_SWITCHED gen=2 后散布 7 格 RLE 与退出前**逐字节一致**；火把 id=50+meta=1 双持久 |
+
+## 15. 教训续（meta-1/2）
+
+17. **静态取证必须给"活体反例"留复核位**：散布器基底 grass→stone 翻案源于 4 个 seed 零命中的"概率不信"——若满足于 NO_CHANGE 字面语义就漏掉；复核路径=反汇编比对字段真值（`x.i=r(1,1)`+构造器 `c[id]=this` 双钉）。同理"影响盒上界"只算了曲线中心，漏了椭球半径外扩——**写侧上界=中心线±半径半轴+截断向零**，活体读回盒外残花是免费实锤。
+18. **无支撑装饰会被游戏随机 tick 弹出**：花(37)写进石头 15 tick 内 10/11 消失、悬空火把(50)跨存退消失——0327 装饰块有自毁 tick；且 `setTile(0)` 不清 nibble（弹出后 getmeta 仍读回旧值=meta 持久化验证的意外红利）。验收写侧 op 用**稳定块**（圆石 4），装饰块只做通知/朝向目视。
+19. **同坐标重放 seed 会因基底被改而变果**：meta-1 用过的石头层 seed=11 写 11 花，弹出后变 11 空气格——meta-2 同区换 seed 才正例。散布类 op 的"确定性"仅在基底未动时成立。
+
+## 16. Populate 触发链取证（2026-11-14，用户线索"TerrainPopulated"）
+
+用户线索（归属已更正）：`TerrainPopulated` 标签系 **Infdev 20100330（0327 的下一个构建）** 才引入——chunk NBT 有此后"为假则调一次 populate"，取代 0327 的裸重放。**0327 实跑取证：无此标签**——全 jar 零 "Terrain" 字符串；Chunk NBT 键全集=xPos/zPos/LastUpdate/Blocks/Data/SkyLight/BlockLight/HeightMap/TileEntities（`e_d.a/b(NBT)` 双向）；Chunk 类亦无 populated 布尔（仅 `d`=dirty）。
+
+0327 的等价护栏是另一套（`e_c.b(II)`=getOrCreateChunk 链，全 jar 唯一 populate 触发点，javap 实锤）：
+
+- **缓存命中直接返回零副作用**；未命中→磁盘载入 `d(II)` 或就地生成 `provider.b(II)`，随后按 4 个对角各查"三邻在场"（如 `a(x+1,z+1)&&a(x,z+1)&&a(x+1,z)`）→ `a(this,x,z)` 接口转发 → `c_a.a(e.a,II)`=populate。**从盘载入的 chunk 同样走此链**——非"一生一次"，而是"每次出缓存重取即重跑"。
+- populate 体首条指令=`Random.setSeed(x*318279123 + z*919871212)`（**纯坐标派生，世界 seed 被覆写不参与**；零标志检查）——矿石散布对 chunk 坐标**确定性幂等**：重跑同 seed、同石头基底→写同位，不重复生矿。0327 没有 TerrainPopulated，靠确定性本身当幂等锁。
+- 4 段散布首段取 `x.x.ar`=煤 id 16（余为金 14/铁 15/aj），尾随 `b.c`=树空壳——与 §13 翻案一致。
+
+**活体对账**：meta-2 存退重进散布 7 格 RLE 逐字节一致=重进触发重 populate 亦无污染（同位重写 or 我方圆石已替换石头→游戏矿 seed 跳过节余格）。教训 19 获佐证：游戏自身 populate 同样"确定性仅在基底未动时成立"。**对 agent 的含义**：genscatter 非"触发游戏生成"而是同函数手动重放；手动补通知仍必需——游戏 populate 发生在 chunk 挂载时刻（整块随后上传渲染），我们在运行时改已加载 chunk。

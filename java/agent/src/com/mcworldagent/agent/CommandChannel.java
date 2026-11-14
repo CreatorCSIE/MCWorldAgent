@@ -42,7 +42,16 @@ public final class CommandChannel {
 
     private static final Set<String> KNOWN_OPS = new HashSet<String>(
             Arrays.asList("place", "dig", "getblock", "getinfo", "settime", "setspawn", "tp",
-                    "save", "fill", "getblocks", "getplayer"));
+                    "save", "fill", "getblocks", "getplayer",
+                    "getmeta", "setmeta", "genscatter", "listops"));
+
+    /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。 */
+    private static final String LISTOPS =
+            "ops=place(x,y,z,blockId)w;dig(x,y,z)w;getblock(x,y,z)r;getinfo r;settime(time)w;"
+          + "setspawn(x,y,z)w;tp(x,y,z)w[save-default-false];save w[explicit];"
+          + "fill(x1,y1,z1,x2,y2,z2,blockId)w[cap4096];getblocks(x1,y1,z1,x2,y2,z2)r[cap4096];"
+          + "getplayer r;getmeta(x,y,z)r;setmeta(x,y,z,meta0..15)w;"
+          + "genscatter(x,y,z,blockId[,seed])w;listops r";
 
     private static String cmdDirArg;
     private static File baseDir; // 解析后的 mca/ 根
@@ -330,6 +339,38 @@ public final class CommandChannel {
         }
         if ("getplayer".equals(c.op)) {
             return WorldOps.getPlayer(world); // 读侧快照；W 惰性解析失败→UnsupportedOp→UNSUPPORTED
+        }
+        if ("listops".equals(c.op)) {
+            return LISTOPS; // agent 侧自省，零游戏调用（世界未捕获仍 not-ready——v1 从简）
+        }
+        if ("getmeta".equals(c.op)) {
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            int m = WorldOps.getMeta(world, x, y, z);
+            return "x=" + x + " y=" + y + " z=" + z + " meta=" + m;
+        }
+        if ("setmeta".equals(c.op)) {
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            int meta = intArg(a, "meta");
+            return WorldOps.setMeta(world, x, y, z, meta) + saveSuffix(world, c);
+        }
+        if ("genscatter".equals(c.op)) {
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            int id = intArg(a, "blockId");
+            Object sd = a == null ? null : a.get("seed");
+            Long seed = null;
+            if (sd != null) {
+                if (!(sd instanceof Long)) {
+                    throw new WorldOps.Rejected("arg 'seed' must be integer");
+                }
+                seed = (Long) sd;
+            }
+            return WorldOps.genScatter(world, id, x, y, z, seed) + saveSuffix(world, c);
         }
         int x = intArg(a, "x");
         int y = intArg(a, "y");

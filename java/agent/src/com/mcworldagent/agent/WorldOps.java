@@ -1,8 +1,11 @@
 package com.mcworldagent.agent;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Random;
 
 /**
  * 命令操作面的反射执行体（案卷 agent-command-channel §6）。
@@ -71,6 +74,22 @@ public final class WorldOps {
     // W 在子类，World.c 声明类型=Entity 基类——execute 期按实例类惰性解析（失败→UnsupportedOp，不静默）。
     private static final String E_HEALTH = "W";
 
+    // meta/genscatter 面（javap 取证，World L588/L637/L863 + a.a.c.b.b 散布器）：
+    //   d(III)I=getBlockMetadata（Chunk.b(III)I 读 nibble g，索引 x<<11|z<<7|y）；
+    //   b(IIII)V=静默 meta 写（h(IIII)Z→Chunk.b(IIII)V，仅 nibble+dirty，零通知——
+    //   sapling 生长即此面；可读树名 "setBlockMetadataWithNotify" 系 deobf 误猜）；
+    //   e(IIII)V=光照 6 邻（逐邻 i()→Block.b(f,IIII)=updateLighting，第 4 参 id 被 i 忽略）；
+    //   u=private List 观察者（渲染标记 a(III)V）；
+    //   a.a.c.b.b(int)=椭球石头散布器（meta-1 实跑翻案：原版矿石团生成器，c_a 以 id 14/15/16/aj
+    //   调用；命中格仅当现为 stone(x.i=r(1,1) id=1) 时静默 a(IIII)Z 写入，恒返 true）；
+    //   World.d:I=difficultySetting（主循环每帧=GameSettings.difficulty，客户端全局不进 level.dat）。
+    private static final String M_GET_META = "d";
+    private static final String M_SET_META_SILENT = "b";
+    private static final String M_LIGHT6 = "e";
+    private static final String F_OBSERVERS = "u";
+    private static final String F_DIFFICULTY = "d";
+    private static final String G_SCATTER_CLASS = "net.minecraft.a.a.c.b.b";
+
     // 区域批量写读上限（fill/getblocks 共用）：16³=4096。
     // 取证：v1 fill=循环 c(IIII)Z（place/dig 同路径）；Chunk.setTile 内部已含 heightmap 重算
     // （g→f→world.d 观察者区间通知）+tile 移除+onPlace+isModified 脏位，快路径（a(IIII)Z）省不出数量级。
@@ -91,6 +110,11 @@ public final class WorldOps {
     private static volatile Field eMotX, eMotY, eMotZ;
     private static volatile Field eYaw, ePitch;
     private static volatile Field eHealth; // 惰性：EntityLiving 子类字段，按实例类解析
+    private static volatile Method getMeta;
+    private static volatile Method setMetaSilent;
+    private static volatile Method light6;
+    private static volatile Field observers;  // World.u private List
+    private static volatile Field difficulty; // World.d public int
 
     /** 签名探测（可在任意线程调用；NoSuchMethod/NoSuchField → UnsupportedOp）。 */
     static synchronized void resolve(Class<?> wc) throws UnsupportedOp {
@@ -121,6 +145,13 @@ public final class WorldOps {
             Field pjz = ec.getField(E_MOT_Z);
             Field pYaw = ec.getField(E_YAW);
             Field pPitch = ec.getField(E_PITCH);
+            // meta/genscatter/difficulty 面
+            Method gm = wc.getMethod(M_GET_META, int.class, int.class, int.class);
+            Method sm = wc.getMethod(M_SET_META_SILENT, int.class, int.class, int.class, int.class);
+            Method l6 = wc.getMethod(M_LIGHT6, int.class, int.class, int.class, int.class);
+            Field ob = wc.getDeclaredField(F_OBSERVERS);
+            ob.setAccessible(true);
+            Field df = wc.getField(F_DIFFICULTY);
             setBlock = sb;
             getBlock = gb;
             saveWorld = sv;
@@ -139,6 +170,11 @@ public final class WorldOps {
             eMotZ = pjz;
             eYaw = pYaw;
             ePitch = pPitch;
+            getMeta = gm;
+            setMetaSilent = sm;
+            light6 = l6;
+            observers = ob;
+            difficulty = df;
         } catch (NoSuchMethodException e) {
             throw new UnsupportedOp("world signatures: " + e);
         } catch (NoSuchFieldException e) {
@@ -153,8 +189,9 @@ public final class WorldOps {
         int sx = spawnX.getInt(world);
         int sy = spawnY.getInt(world);
         int sz = spawnZ.getInt(world);
+        int diff = difficulty.getInt(world);
         return "time=" + time + " spawnX=" + sx + " spawnY=" + sy + " spawnZ=" + sz
-                + " seed=" + seed;
+                + " seed=" + seed + " difficulty=" + diff;
     }
 
     /** 设置 worldTime（op=settime）。渲染每帧经 b(F) 实时读，无通知面；返回旧值供回滚。 */
@@ -321,6 +358,119 @@ public final class WorldOps {
                 + " motZ=" + eMotZ.getDouble(p)
                 + " yaw=" + eYaw.getFloat(p) + " pitch=" + ePitch.getFloat(p)
                 + " health=" + h.getInt(p);
+    }
+
+    /** 方块元数据读（op=getmeta）。World.d(III)I=getBlockMetadata（Chunk nibble g，纯读）。 */
+    public static int getMeta(Object world, int x, int y, int z) throws Exception {
+        validateCoords(x, y, z);
+        return ((Integer) getMeta.invoke(world, x, y, z)).intValue();
+    }
+
+    /**
+     * 方块元数据写（op=setmeta）。b(IIII)V 静默写（取证：游戏 sapling 同面）+ 手动复刻
+     * c(IIII)Z 通知段——同 id 走 c() 被 Chunk 短路不通知，必须观察者 a(III)V + e(IIII)V 光照 6 邻。
+     */
+    public static String setMeta(Object world, int x, int y, int z, int meta) throws Exception {
+        validateCoords(x, y, z);
+        if (meta < 0 || meta > 15) {
+            throw new Rejected("meta-out-of-range: " + meta);
+        }
+        int old = ((Integer) getMeta.invoke(world, x, y, z)).intValue();
+        setMetaSilent.invoke(world, x, y, z, meta);
+        notifyBlock(world, x, y, z, getBlockId(world, x, y, z));
+        return "meta " + old + " -> " + meta;
+    }
+
+    /** c(IIII)Z 通知段复刻：World.u 观察者 a(III)V（渲染标记）+ e(IIII)V 光照 6 邻。 */
+    private static void notifyBlock(Object world, int x, int y, int z, int id) throws Exception {
+        List<?> obs = (List<?>) observers.get(world);
+        for (Object o : obs) {
+            Method m;
+            try {
+                m = o.getClass().getMethod("a", int.class, int.class, int.class);
+            } catch (NoSuchMethodException e) {
+                throw new UnsupportedOp("observer notify: " + e);
+            }
+            m.invoke(o, x, y, z);
+        }
+        light6.invoke(world, x, y, z, id);
+    }
+
+    // genscatter 惰性解析（getplayer W 同模式）：生成器类不在 World 签名面，错版响亮 UnsupportedOp
+    private static volatile Constructor<?> scatterCtor;
+    private static volatile Method scatterGen;
+
+    private static void resolveScatter(Class<?> wc) throws UnsupportedOp {
+        if (scatterGen != null) {
+            return;
+        }
+        try {
+            Class<?> gc = Class.forName(G_SCATTER_CLASS, false, wc.getClassLoader());
+            Constructor<?> ct = gc.getConstructor(int.class);
+            Method gen = gc.getMethod("a", wc, Random.class, int.class, int.class, int.class);
+            scatterCtor = ct;
+            scatterGen = gen;
+        } catch (ClassNotFoundException e) {
+            throw new UnsupportedOp("scatter generator: " + e);
+        } catch (NoSuchMethodException e) {
+            throw new UnsupportedOp("scatter generator: " + e);
+        }
+    }
+
+    /**
+     * 石头基底散布（op=genscatter）。调真生成器 a.a.c.b.b(id).a(f,Random,III)Z——0327 唯一原生
+     * "结构生成"（椭球曲线把 id 撒在 **stone** 上；meta-1 实跑翻案：该类实为原版矿石团生成器，
+     * 基底检查 x.i=r(1,1) id=1 石头而非草地；名 WorldGenTrees 系误，sapling 在 0327 不长树）。
+     * 游戏写=静默（地形期语义），运行时补通知：预扫影响盒取真实上界
+     * [x+4..x+12]×[y..y+5]×[z+4..z+12]（486 格；中心线 [x+6..x+10]×[y+2..y+4]×[z+6..z+10]
+     * 加椭球半径 (sin+1)*rnd+1∈[1,3) 半轴，(int) 截断向零）→复扫 diff→变更格逐个通知。
+     * 零变更（盒内无石头）→NoChange（NO_CHANGE 第二生产者）。
+     */
+    public static String genScatter(Object world, int id, int x, int y, int z, Long seed)
+            throws Exception {
+        validateBlockId(id);
+        validateCoords(x, y, z);
+        resolveScatter(world.getClass());
+        Object gen = scatterCtor.newInstance(new Integer(id));
+        int x0 = x + 4;
+        int x1 = x + 12;
+        int y0 = y;
+        int y1 = y + 5;
+        int z0 = z + 4;
+        int z1 = z + 12;
+        int n = (x1 - x0 + 1) * (y1 - y0 + 1) * (z1 - z0 + 1);
+        int[] before = new int[n];
+        int idx = 0;
+        for (int cy = y0; cy <= y1; cy++) {
+            for (int cx = x0; cx <= x1; cx++) {
+                for (int cz = z0; cz <= z1; cz++) {
+                    before[idx++] = getBlockId(world, cx, cy, cz);
+                }
+            }
+        }
+        Random rnd = (seed == null) ? new Random() : new Random(seed.longValue());
+        scatterGen.invoke(gen, world, rnd, x, y, z);
+        int changed = 0;
+        idx = 0;
+        for (int cy = y0; cy <= y1; cy++) {
+            for (int cx = x0; cx <= x1; cx++) {
+                for (int cz = z0; cz <= z1; cz++) {
+                    int now = getBlockId(world, cx, cy, cz);
+                    if (now != before[idx]) {
+                        changed++;
+                        notifyBlock(world, cx, cy, cz, now);
+                    }
+                    idx++;
+                }
+            }
+        }
+        String detail = "scattered id=" + id + " changed=" + changed
+                + " at x=" + x + " y=" + y + " z=" + z
+                + (seed == null ? "" : " seed=" + seed.longValue());
+        if (changed == 0) {
+            throw new NoChange(detail);
+        }
+        return detail;
     }
 
     public static int getBlockId(Object world, int x, int y, int z) throws Exception {
