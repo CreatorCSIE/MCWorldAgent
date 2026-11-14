@@ -59,7 +59,7 @@ public final class CommandChannel {
           + "setmotion(vx,vy,vz int-thousandths +-10000)w;"
           + "give(itemId1..255,count1..64[,dmg0..32767])w;inv r;sethealth(0..20)w;"
           + "explode(x,y,z,size0..10)w;"
-          + "spawn(kind pig|sheep|creeper|skeleton|zombie|spider|tnt,x,y,z)t;"
+          + "spawn(kind pig|sheep|creeper|skeleton|zombie|spider|tnt|giant|mob,x,y,z)t;"
           + "drop(x,y,z,itemId1..255,count1..64[,dmg])t;"
           + "invulnerable(ticks0..32767 >=11-immune,0-cancel)t";
 

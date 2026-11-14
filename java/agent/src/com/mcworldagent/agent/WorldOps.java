@@ -144,6 +144,13 @@ public final class WorldOps {
         MOB_CLASSES.put("zombie", "net.minecraft.a.c.a.f");
         MOB_CLASSES.put("spider", "net.minecraft.a.c.a.b");
         MOB_CLASSES.put("tnt", "net.minecraft.a.c.c.a");
+        // giant=a.c.a.a：运行时 jar 无 <init>（混淆管线剥死代码构造器）——由 NEW_CTOR
+        // 受限构造器补全复活（HookTargets GIANT_CTOR，transform 日志 CTOR-INJECTED 对账）；
+        // 复活后=RenderGiantZombie scale 6.0 的 10 倍巨僵尸（EntityMonster 子类，和平即死面同）。
+        MOB_CLASSES.put("giant", "net.minecraft.a.c.a.a");
+        // mob=a.c.c=EntityCreature 基类（用户判决"非正常生物但可生成"）：构造器健在免注入；
+        // 渲染走 getEntityRenderObject 一级父类回退→EntityLiving=ModelBiped 人形（无 NPE）。
+        MOB_CLASSES.put("mob", "net.minecraft.a.c.c");
     }
 
     // meta/genscatter 面（javap 取证，World L588/L637/L863 + a.a.c.b.b 散布器）：

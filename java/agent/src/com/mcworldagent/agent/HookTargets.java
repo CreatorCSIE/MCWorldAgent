@@ -19,6 +19,15 @@ public final class HookTargets {
     /** 注入方式。 */
     public static final int ENTRY = 1;            // 方法入口注入（对称压弹，帧形不变）
     public static final int ENTRY_AND_RESULT = 2; // 入口注入 + 返回值 DUP 观察
+    /**
+     * 受限构造器补全（戒律 §1"命令执行面零注入"的唯一豁免，spec spawn-explode-drop §6）：
+     * 触发=指纹表 expectedHits:0（类在、<init> 被混淆管线剥掉的死代码实体类）；
+     * 注入体=标准四指令构造器（ALOAD 0/ALOAD 1/INVOKESPECIAL super<init>/RETURN——
+     * 构造器先 super 是 verifier 合法序列，非"构造期 this 作 INVOKESTATIC 实参"禁区）；
+     * 父链缺构造→类校验 VerifyError→Class.forName 失败→spawn UNSUPPORTED=优雅降级。
+     * 泛化背景=用户启示：0413/0414 版本全生物构造器丢失，本模式是跨版本复活能力非一次性补丁。
+     */
+    public static final int NEW_CTOR = 3;
 
     /** 钩 id（注入 dispatch 用）。 */
     public static final String WORLD_CTOR = "world-ctor";
@@ -26,6 +35,7 @@ public final class HookTargets {
     public static final String RUN_TICK = "run-tick";
     public static final String LOAD_CHUNK = "load-chunk";
     public static final String GEN_HEIGHT = "gen-height";
+    public static final String GIANT_CTOR = "giant-ctor";
 
     public static final class Target {
         public final String className;  // internal name
@@ -36,9 +46,15 @@ public final class HookTargets {
         public final int injectMode;
         public final String hookId;
         public final String label;
+        public final String superOwner; // 仅 NEW_CTOR：INVOKESPECIAL 目标父类 internal name
 
         Target(String className, String methodName, String desc, int access,
                int expectedHits, int injectMode, String hookId, String label) {
+            this(className, methodName, desc, access, expectedHits, injectMode, hookId, label, null);
+        }
+
+        Target(String className, String methodName, String desc, int access,
+               int expectedHits, int injectMode, String hookId, String label, String superOwner) {
             this.className = className;
             this.methodName = methodName;
             this.desc = desc;
@@ -47,6 +63,7 @@ public final class HookTargets {
             this.injectMode = injectMode;
             this.hookId = hookId;
             this.label = label;
+            this.superOwner = superOwner;
         }
     }
 
@@ -71,6 +88,13 @@ public final class HookTargets {
         // G2：Chunk.generateHeightMap()（light/height 回退重算事件计数）
         new Target("net/minecraft/a/a/e/d", "a", "()V",
                 0x0011, 1, ENTRY, GEN_HEIGHT, "Chunk.generateHeightMap()"),
+        // 受限构造器补全（NEW_CTOR 首例）：EntityGiant=a.c.a.a，混淆管线剥掉 <init>
+        // （javap 全量实锤，类仅存 a(III)F+a()String 两方法）；父=EntityMonster=a.c.a.e
+        // 其 (World)V 构造健在（javap 实锤）；渲染面 RenderGiantZombie(scale 6.0) 已注册
+        // （RenderManager L53）——复活后=可生成的 10 倍巨僵尸。
+        new Target("net/minecraft/a/c/a/a", "<init>", "(Lnet/minecraft/a/a/f;)V",
+                0x0001, 0, NEW_CTOR, GIANT_CTOR, "EntityGiant.<init>(World) resurrect",
+                "net/minecraft/a/c/a/e"),
     };
 
     private static final Map<String, List<Target>> BY_CLASS = new HashMap<String, List<Target>>();

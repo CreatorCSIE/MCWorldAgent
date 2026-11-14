@@ -109,9 +109,31 @@ public final class Transformers implements ClassFileTransformer {
         }, 0);
 
         for (HookTargets.Target t : targets) {
+            if (t.injectMode == HookTargets.NEW_CTOR) {
+                continue; // 下面单独建方法，日志 CTOR-INJECTED
+            }
             MCWorldAgent.logTransform("HOOKED " + t.label + " @ " + className
                     + " [" + t.methodName + t.desc + "]");
         }
+
+        // 受限构造器补全（NEW_CTOR，戒律唯一豁免见 HookTargets 注释）：
+        // 标准四指令序列，构造器先 super=verifier 合法；无分支=无 StackMapTable 新增需求。
+        for (HookTargets.Target t : targets) {
+            if (t.injectMode != HookTargets.NEW_CTOR) {
+                continue;
+            }
+            MethodVisitor mv = writer.visitMethod(Opcodes.ACC_PUBLIC, "<init>", t.desc, null, null);
+            mv.visitCode();
+            mv.visitVarInsn(Opcodes.ALOAD, 0);
+            mv.visitVarInsn(Opcodes.ALOAD, 1);
+            mv.visitMethodInsn(Opcodes.INVOKESPECIAL, t.superOwner, "<init>", t.desc, false);
+            mv.visitInsn(Opcodes.RETURN);
+            mv.visitMaxs(2, 2); // COMPUTE_MAXS 重算，此处仅占位合法
+            mv.visitEnd();
+            MCWorldAgent.logTransform("CTOR-INJECTED " + t.label + " @ " + className
+                    + " super=" + t.superOwner);
+        }
+
         byte[] out = writer.toByteArray();
         if (MCWorldAgent.dumpDir != null) {
             try {
