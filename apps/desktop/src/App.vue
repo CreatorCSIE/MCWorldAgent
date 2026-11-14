@@ -10,7 +10,7 @@ import ConsolePanel from '@/components/console/ConsolePanel.vue'
 import PanelShell from '@/components/layout/PanelShell.vue'
 import StatusBar from '@/components/layout/StatusBar.vue'
 import TopBar from '@/components/layout/TopBar.vue'
-import ViewportPlaceholder from '@/components/layout/ViewportPlaceholder.vue'
+import VoxelViewport from '@/viewport/VoxelViewport.vue'
 import InspectorPanel from '@/components/inspector/InspectorPanel.vue'
 import WorldTree from '@/components/explorer/WorldTree.vue'
 import AgentCard from '@/components/runtime/AgentCard.vue'
@@ -76,7 +76,7 @@ function toggle(panel: ComponentPublicInstance | null, collapsed: boolean) {
             <ResizableHandle with-handle />
 
             <ResizablePanel :min-size="25" class="min-w-0">
-              <ViewportPlaceholder :workspace-label="leftTitle" />
+              <VoxelViewport />
             </ResizablePanel>
 
             <ResizableHandle with-handle />
