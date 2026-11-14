@@ -285,3 +285,25 @@ Spec：`.trae/specs/meta-tree/`。判决变更：原批 gentree **砍除**——
 2. **和平回血活体实锤**：difficulty=0 下 10→20 约 10 秒（每 20 tick b(1)）；重进后 health=20 是回血而非载入面缺陷（退前已回满并存盘）。
 3. **死亡重生清空物品栏**：Respawn=重建 EntityPlayer（iv4=empty），0327 无 keep-inventory；新实例经 `World.c` live 读自动生效，零钩补。
 4. **0327 level.dat 根 compound 无 `Level` 包装**（Player/Time/SizeOnDisk 直接在根下，与后世版本格式不同）——临时 node dumper 在 chunk Data 区解析翻车，但 Player/Inventory 区原始字节直读完成对账。
+
+## 19. 实体面批 `explode` / `spawn` / `drop`（2026-11-14，源码树+javap 双路取证 + 落码，实跑 `sed-1` 待批准）
+
+**取证**（spec [.trae/specs/spawn-explode-drop/spec.md](../../.trae/specs/spawn-explode-drop/spec.md) §1）：本批启用**反编译源码树** `E:\4k\github-projects\minecraft-verification-analysis\src-minecraft\src-minecraft-infdev-20100327`（234 文件全语义名）做语义面，混淆实名仍 javap 指纹钉——双路交叉。入口：World `a(Entity,DDDF)V`=createExplosion（Explosion 类=空标记，16³ 壳射线+方块阻力采样全在 World 方法内；source=null 判等实现零 NPE 但**伤害不豁免玩家**）；World `a(Entity)V`=spawnEntityInWorld=loadedEntityList.add（主循环每 tick 遍历=加入即活）；Entity(World) 构造零副作用（仅 worldObj+pos(0,0,0)）。**混淆实体类表=字符串常量判决法**（贴图路径/实体名/getEntityName 串实锤）：pig=`a.c.b.c`、sheep=`a.c.b.b`、creeper=`a.c.a.d`、skeleton=`a.c.a.c`、zombie=`a.c.a.f`、spider=`a.c.a.b`（六 mob `(World)V`）、tnt=`a.c.c.a`（`(World,FFF)V` fuse=80 内置）、item=`a.c.c.b`（`(World,DDD,ItemStack)V`）；giant 无 `(World)V` 构造器排除；层级注记：混淆包重排致旧判读偏差（`a.c.c`=EntityCreature 非 Mob、`a.c.a.e`=EntityMonster）——不影响本批（只依赖具体类构造器+Entity 基类面）。**0327 saveWorld 不写实体**（Infdev 特性）→spawn/drop=瞬态（save 忽略、detail 无 saved= 防误导），explode 破坏方块持久。tileentity 面（Furnace=`a.a.b.a.b`/Chest=`a.a.b.a.c`/TE 基=`a.a.b.a.a`，World `h(III)`/`a(III+TE)V`/`i(III)` 三件套已钉）留下批。
+
+**实现**：三 op 全惰性解析（resolveEntity：explode/spawnEntity 两 Method + kind→Constructor 缓存表；Entity 基类=player 字段声明类型、ItemStack 类=主槽分量类型，零硬编码 FQCN 纪律延伸）；`spawn`=白名单查表→Class.forName→构造→setPosRot(x+0.5,y,z+0.5,0,0)（tnt 特例 float 构造后同调用无害幂等）→spawnEntityInWorld；`drop` 校验复用 give 面同序同串（no-player→count→dmg→bad-itemid）+isCtor2/3 复用；`explode` size∈[0,10] 整数（invoke 转 float）。KNOWN_OPS→**24**；explode 写侧 saveSuffix，spawn/drop 瞬态忽略 save。零新终态。
+
+**验证**：build 零错；无头 **125/125**（+11 断言：假实体八类**真混淆 FQCN 上测试 classpath**（假散布器/假注册表同法，extends 去 final 的 FakeEntity）+FakeWorld 补 `a(Entity)V`/`a(Entity,DDDF)V` 记录面；用例=explode null-source 参数记录+size 0/10/-1/11 边界、spawn 七 kind 构造+落位（g=x+0.5、**h=y+1.62 眼偏移经 setPosRot**）+世界表+bad-kind(giant)、drop EntityItem 收 ItemStack（id/count/dmg 对账）+瞬态拒绝不改表）。无头两处翻案注记：①FakeEntity.b 复刻眼偏移致 `h=64+1.62f` 浮点精度陷阱（断言容差 1e-5）；②EntityItem 替身须复刻构造内 setPosition（g/h/i 直写无眼偏移，与 spawn 经 setPosRot 的路径不同）。
+
+**实跑 `sed-1` 已完成全绿**（2026-11-14，World2，Easy=启动前 options.txt difficulty:1；流水归档 [cmds.txt](../../integrations/attic/out/sed-1/cmds.txt)）：listops 25 项生效；spawn 七 kind 上台活体目视（pig/sheep 游走、敌对四怪围攻而玩家**零掉血**=invulnerable 免疫实锤、tnt fuse 80 tick 自爆掀台 24 块）；giant bad-kind/size=11/ticks=-1 全 REJECTED 无副作用；explode size=4 定向爆台 25 块破坏，**存退重进 gb 逐项一致=破坏持久**；**实体存退即失**（重进目视台净）；drop 齿轮落地旋转目视。
+
+**实跑新钉五条**：
+1. **水面筑台=命令通道自造地面**：World2 出生区为海洋（西 1792 全水扫描实锤），玩家反复落水溺亡——`fill` 筑石台（49 块 changed=49）后 spawn/tp/爆测全部上台进行，"找地面"从地形问题降维成 op 组合拳。
+2. **实体碰撞盒推人**：六怪围台把用户推下水（活体物理交互，spawn 的敌对不止是观赏物——实跑站位戒律加一条）。
+3. **Easy 夜间自然刷怪围攻**：重进后 health=2（iframes 14=持续重置中）——难度切换前提闭环（和平=怪即死+不刷，Easy=刷怪+可打），invulnerable 的实战价值当场验证。
+4. **水下爆炸仍破坏方块**：tnt/explode 台实际在水位线下，破坏照常（0327 爆炸无防水判决）。
+5. **i-frame 瞬态钉版**：存退重进后 `iframes 0 -> 30000`（新实例 K=0=heartsLife 不进 Player NBT）；同会话内 K 跨 tick 连续自减（28017 读数=非重进，曾短暂疑持久，重进实验排除）。
+
+**批前增量（用户判决"玩家不死先"+Giant 质询，2026-11-14）**：
+1. **新 op `invulnerable(ticks)`（KNOWN_OPS→25）**：Entity `K`=heartsLife（public int，原版 i-frame 计时器）直写——`EntityPlayer.attackEntityFrom` L188 `K>heartsHalvesLife/2(=10) → return false` **拒绝全部伤害源**（伤害入口全搜=单入口实锤：怪物近战/箭 EntityArrow L127/火焰 EntityLiving L95/坠落 L300/虚空 Entity L150/157/346/爆炸同路）；每 tick 自减 1（L112）→限时免疫语义（≥11 生效、0 取消、32767≈27 分钟）；副作用=HUD 心闪烁（GuiIngame L47 读同字段，仅视觉）；不进 NBT=瞬态。无头 +4=**129/129**。
+2. **和平抹杀敌对实锤**：`EntityMonster.onUpdate` L27 `difficultySetting==0 → setEntityDead()`——和平下 spawn 的 creeper/skeleton/zombie/spider **首 tick 即死**（pig/sheep/tnt 不受影响）；`World.d` 每帧被 `gameSettings.difficulty` 覆写（Minecraft L763）→**写 d 无效**，切换=启动前 `<gameDir>\options.txt difficulty:0→1`（Easy，GameSettings L142 读入）——sed-1 前置。
+3. **源码树地位翻案（用户实锤）**：`src-minecraft-infdev-20100327` 为**补构造器过编译的改装 build**（EntityGiant(World) 即后补；运行时 jar `a.c.a.a` 仅默认无参构造，javap 全量复核）——判决=语义面可用（本批 i-frame/抹杀/入口结论全部经 javap 反汇编交叉验证），**结构面（构造器/字段存在性）一律以运行时 jar 为准**。Giant 维持排除不测（白名单外 bad-kind 上游拦截+强构造 worldObj=null NPE，无信息增量）。

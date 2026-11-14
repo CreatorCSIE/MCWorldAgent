@@ -4,7 +4,9 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -100,6 +102,50 @@ public final class WorldOps {
     private static final String G_ITEM_CLASS = "net.minecraft.a.b.i";
     private static final String ITEMS = "b";        // public static i[] 按 id 索引
 
+    // 实体面（spawn-explode-drop 批取证，反编译源码树语义 + javap 混淆指纹双路交叉）：
+    //   World a(Lnet/minecraft/a/c/b;DDDF)V public final=createExplosion(Entity source,x,y,z,float size)
+    //   （Explosion 类=空标记，逻辑全在此：16³ 壳射线采样+方块阻力→HashSet 破坏集→区域实体伤害击退
+    //   →playSoundEffect("random.explode")）；source=null 零 NPE（区域取实体遍历 `entity5!=entity1`
+    //   判等实锤 L1180）——但**不豁免玩家**，实跑必须远距离。
+    //   World a(Lnet/minecraft/a/c/b;)V public final=spawnEntityInWorld(Entity)=loadedEntityList.add——
+    //   主循环每 tick 遍历该表，加入即活零新钩；Entity(World) 构造仅 set worldObj+pos(0,0,0) 零副作用
+    //   （源码 L68-71），配方=构造→b(DDDFF)V 定位（tp 轮已钉）→spawn。
+    //   **0327 saveWorld 不写实体**（Infdev 特性）——spawn/drop 恒临时态，存退即失；explode 破坏方块持久。
+    //   混淆实体类表（字符串常量判决：贴图路径/实体名/getEntityName）：
+    //   pig=a.c.b.c、sheep=a.c.b.b、creeper=a.c.a.d、skeleton=a.c.a.c、zombie=a.c.a.f、spider=a.c.a.b
+    //   （六 mob 构造器全 (World)V）；tnt=a.c.c.a（(World,FFF)V，fuse=80 内置 bipush 实锤）；
+    //   item=a.c.c.b（(World,DDD,ItemStack)V）；giant=a.c.a.a 无 (World)V 构造器→排除；
+    //   arrow/painting 面留后续取证（shooter/朝向+EnumArt），不进 v1 白名单。
+    private static final String M_EXPLODE = "a";       // createExplosion (Entity,DDDF)V
+    private static final String M_SPAWN_ENTITY = "a";  // spawnEntityInWorld (Entity)V
+    private static final String G_ITEM_ENTITY = "net.minecraft.a.c.c.b"; // EntityItem
+
+    // invulnerable 面（sed-1 批前用户判决"玩家不死先"，源码+javap 双路实锤）：
+    //   EntityPlayer.attackEntityFrom L188 `heartsLife > heartsHalvesLife/2(=10) → return false`
+    //   =**全伤害源拒绝**——伤害入口全搜实锤：怪物近战/箭(EntityArrow L127)/火焰(EntityLiving L95)/
+    //   坠落(L300)/虚空(Entity L150/157/346)/爆炸全部走 attackEntityFrom(Entity,int) 单入口。
+    //   heartsLife=Entity(a.c.b) public int K（原版 i-frame 计时器，EntityLiving L112 每 tick>0 自减 1，
+    //   正常受击 L233 重置 20=1 秒无敌帧）；写 K≥11=免疫窗口，写 0=取消；HUD 副作用=心闪烁
+    //   （GuiIngame L47 读同字段，仅视觉噪音）。瞬态：不进 NBT，save 无作用。
+    //   难度判决（sed-1 实跑前置）：EntityMonster.onUpdate L27 `difficultySetting==0→setEntityDead()`
+    //   =和平抹杀敌对（spawn 四怪首 tick 即死）；World.d 每帧被 gameSettings.difficulty 覆写（Minecraft
+    //   L763）写 d 无效——切换=启动前 options.txt difficulty:1（Easy，GameSettings L142 读入实锤）。
+    //   Giant 更正：源码树有 EntityGiant(World) 构造器但**运行时 jar a.c.a.a 仅默认无参构造**
+    //   （javap 全量复核，worldObj=null 首 tick NPE）——排除维持；教训=源码树与 jar 可能不同 build，
+    //   构造器面以运行时 jar 为准。
+    private static final String E_IFRAMES = "K";       // Entity.heartsLife（public int）
+    private static final Map<String, String> MOB_CLASSES = new HashMap<String, String>();
+
+    static {
+        MOB_CLASSES.put("pig", "net.minecraft.a.c.b.c");
+        MOB_CLASSES.put("sheep", "net.minecraft.a.c.b.b");
+        MOB_CLASSES.put("creeper", "net.minecraft.a.c.a.d");
+        MOB_CLASSES.put("skeleton", "net.minecraft.a.c.a.c");
+        MOB_CLASSES.put("zombie", "net.minecraft.a.c.a.f");
+        MOB_CLASSES.put("spider", "net.minecraft.a.c.a.b");
+        MOB_CLASSES.put("tnt", "net.minecraft.a.c.c.a");
+    }
+
     // meta/genscatter 面（javap 取证，World L588/L637/L863 + a.a.c.b.b 散布器）：
     //   d(III)I=getBlockMetadata（Chunk.b(III)I 读 nibble g，索引 x<<11|z<<7|y）；
     //   b(IIII)V=静默 meta 写（h(IIII)Z→Chunk.b(IIII)V，仅 nibble+dirty，零通知——
@@ -148,6 +194,12 @@ public final class WorldOps {
     private static volatile Field isCount, isId, isDmg;
     private static volatile Constructor<?> isCtor2, isCtor3;
     private static volatile Field itemRegistry; // i.b public static（按 id 索引）
+    // 实体面惰性缓存（spawn-explode-drop 批；仅游戏线程访问，无需并发容器）
+    private static volatile Method explode;      // World a(Entity,DDDF)V
+    private static volatile Method spawnEntity;  // World a(Entity)V
+    private static volatile Constructor<?> itemCtor; // EntityItem (World,DDD,ItemStack)V
+    private static volatile Field eIframes;      // Entity.K=heartsLife（惰性，eHealth 同模式）
+    private static final Map<String, Constructor<?>> MOB_CTORS = new HashMap<String, Constructor<?>>();
     private static volatile Method getMeta;
     private static volatile Method setMetaSilent;
     private static volatile Method light6;
@@ -599,6 +651,148 @@ public final class WorldOps {
         int old = h.getInt(p);
         h.setInt(p, health);
         return "health " + old + " -> " + health;
+    }
+
+    /** 实体面惰性解析（物品栏面同模式）：Entity 基类=player 字段声明类型，零硬编码 FQCN。 */
+    private static void resolveEntity(Object world) throws UnsupportedOp {
+        if (spawnEntity != null) {
+            return;
+        }
+        try {
+            Class<?> wc = world.getClass();
+            Class<?> ec = player.getType();
+            explode = wc.getMethod(M_EXPLODE, ec,
+                    double.class, double.class, double.class, float.class);
+            spawnEntity = wc.getMethod(M_SPAWN_ENTITY, ec);
+        } catch (NoSuchMethodException e) {
+            throw new UnsupportedOp("entity surface: " + e);
+        }
+    }
+
+    /**
+     * 爆炸（op=explode）。createExplosion(null,x,y,z,(float)size)——source=null 零 NPE
+     * （区域取实体判等实锤），但**伤害不豁免玩家**（原版语义，实跑远距离戒律见 spec §4）；
+     * size∈[0,10] 整数入参（MiniJson 整数子集），越界拒绝。破坏方块进方块表→save 落盘。
+     */
+    public static String explode(Object world, int x, int y, int z, int size) throws Exception {
+        if (size < 0 || size > 10) {
+            throw new Rejected("size-out-of-range [0,10]: " + size);
+        }
+        resolveEntity(world);
+        explode.invoke(world, null,
+                Double.valueOf(x), Double.valueOf(y), Double.valueOf(z), Float.valueOf(size));
+        return "exploded at " + x + "," + y + "," + z + " size=" + size;
+    }
+
+    /**
+     * 生成实体（op=spawn）。白名单七 kind（混淆类表 spec §1）；配方=构造(World)→
+     * setPosRot(x+0.5,y,z+0.5,0,0)（tnt float 构造已定位，同调用无害幂等）→spawnEntityInWorld
+     * （加入即活，主循环每 tick 遍历）；**0327 实体不落盘=恒临时态**（存退即失，save 忽略）。
+     */
+    public static String spawn(Object world, String kind, int x, int y, int z) throws Exception {
+        String fqcn = MOB_CLASSES.get(kind);
+        if (fqcn == null) {
+            throw new Rejected("bad-kind: " + kind);
+        }
+        resolveEntity(world);
+        boolean tnt = "tnt".equals(kind);
+        Constructor<?> ctor = MOB_CTORS.get(kind);
+        if (ctor == null) {
+            try {
+                Class<?> wc = world.getClass();
+                Class<?> mc = Class.forName(fqcn, false, wc.getClassLoader());
+                ctor = tnt
+                        ? mc.getConstructor(wc, float.class, float.class, float.class)
+                        : mc.getConstructor(wc);
+            } catch (ClassNotFoundException e) {
+                throw new UnsupportedOp("mob class: " + e);
+            } catch (NoSuchMethodException e) {
+                throw new UnsupportedOp("mob ctor: " + e);
+            }
+            MOB_CTORS.put(kind, ctor);
+        }
+        Object ent = tnt
+                ? ctor.newInstance(world, Float.valueOf(x + 0.5f), Float.valueOf(y), Float.valueOf(z + 0.5f))
+                : ctor.newInstance(world);
+        setPosRot.invoke(ent, Double.valueOf(x + 0.5), Double.valueOf(y), Double.valueOf(z + 0.5),
+                Float.valueOf(0f), Float.valueOf(0f));
+        spawnEntity.invoke(world, ent);
+        return "spawned " + kind + " at " + x + "," + y + "," + z;
+    }
+
+    /**
+     * 掉落物实体（op=drop）。count/dmg/注册表校验复用 give 面（同序同串）；
+     * EntityItem(World,DDD,ItemStack) 构造（位置=格中心）→spawnEntityInWorld；
+     * 实体不落盘=save 忽略（同 spawn）；走近由原版拾取面收起（addStack 同规则）。
+     */
+    public static String drop(Object world, int itemId, int count, int damage, int x, int y, int z)
+            throws Exception {
+        Object p = player.get(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        if (count < 1 || count > 64) {
+            throw new Rejected("count-out-of-range [1,64]: " + count);
+        }
+        if (damage < 0 || damage > 32767) {
+            throw new Rejected("dmg-out-of-range [0,32767]: " + damage);
+        }
+        resolveInventory(p);
+        Object[] items = (Object[]) itemRegistry.get(null);
+        if (itemId < 0 || itemId >= items.length || items[itemId] == null) {
+            throw new Rejected("bad-itemid: " + itemId);
+        }
+        Object stack = (damage == 0)
+                ? isCtor2.newInstance(Integer.valueOf(itemId), Integer.valueOf(count))
+                : isCtor3.newInstance(Integer.valueOf(itemId), Integer.valueOf(count),
+                        Integer.valueOf(damage));
+        resolveEntity(world);
+        if (itemCtor == null) {
+            try {
+                Class<?> wc = world.getClass();
+                Class<?> ic = Class.forName(G_ITEM_ENTITY, false, wc.getClassLoader());
+                itemCtor = ic.getConstructor(wc, double.class, double.class, double.class,
+                        stack.getClass());
+            } catch (ClassNotFoundException e) {
+                throw new UnsupportedOp("item entity class: " + e);
+            } catch (NoSuchMethodException e) {
+                throw new UnsupportedOp("item entity ctor: " + e);
+            }
+        }
+        Object ent = itemCtor.newInstance(world,
+                Double.valueOf(x + 0.5), Double.valueOf(y), Double.valueOf(z + 0.5), stack);
+        spawnEntity.invoke(world, ent);
+        return "dropped " + itemId + " x" + count + (damage == 0 ? "" : " dmg=" + damage)
+                + " at " + x + "," + y + "," + z;
+    }
+
+    /**
+     * 免伤窗口（op=invulnerable）。写 Entity.K=heartsLife（原版 i-frame 计时器）——
+     * EntityPlayer.attackEntityFrom 入口 `K>10 → return false` **拒绝全部伤害源**
+     * （近战/箭/火焰/坠落/虚空/爆炸同走单入口，实锤见常量区注释）；每 tick 自减 1，
+     * ticks≥11=免疫窗口、0=取消（32767≈27 分钟）；HUD 副作用=心闪烁（仅视觉）。
+     * 瞬态：heartsLife 不进 NBT，save 无作用。
+     */
+    public static String invulnerable(Object world, int ticks) throws Exception {
+        Object p = player.get(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        if (ticks < 0 || ticks > 32767) {
+            throw new Rejected("ticks-out-of-range [0,32767]: " + ticks);
+        }
+        Field f = eIframes;
+        if (f == null) {
+            try {
+                f = p.getClass().getField(E_IFRAMES);
+            } catch (NoSuchFieldException e) {
+                throw new UnsupportedOp("entity iframes field: " + e);
+            }
+            eIframes = f;
+        }
+        int old = f.getInt(p);
+        f.setInt(p, ticks);
+        return "iframes " + old + " -> " + ticks;
     }
 
     /** 方块元数据读（op=getmeta）。World.d(III)I=getBlockMetadata（Chunk nibble g，纯读）。 */

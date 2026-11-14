@@ -45,7 +45,8 @@ public final class CommandChannel {
                     "save", "fill", "getblocks", "getplayer",
                     "getmeta", "setmeta", "genscatter", "listops",
                     "getlight", "setlook", "setmotion",
-                    "give", "inv", "sethealth"));
+                    "give", "inv", "sethealth",
+                    "explode", "spawn", "drop", "invulnerable"));
 
     /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。 */
     private static final String LISTOPS =
@@ -56,7 +57,11 @@ public final class CommandChannel {
           + "genscatter(x,y,z,blockId[,seed])w;listops r;"
           + "getlight(x,y,z)r[0..15];setlook(yaw0..359,pitch-90..90 int-deg)w;"
           + "setmotion(vx,vy,vz int-thousandths +-10000)w;"
-          + "give(itemId1..255,count1..64[,dmg0..32767])w;inv r;sethealth(0..20)w";
+          + "give(itemId1..255,count1..64[,dmg0..32767])w;inv r;sethealth(0..20)w;"
+          + "explode(x,y,z,size0..10)w;"
+          + "spawn(kind pig|sheep|creeper|skeleton|zombie|spider|tnt,x,y,z)t;"
+          + "drop(x,y,z,itemId1..255,count1..64[,dmg])t;"
+          + "invulnerable(ticks0..32767 >=11-immune,0-cancel)t";
 
     private static String cmdDirArg;
     private static File baseDir; // 解析后的 mca/ 根
@@ -380,6 +385,36 @@ public final class CommandChannel {
             int health = intArg(a, "health");
             return WorldOps.setHealth(world, health) + saveSuffix(world, c);
         }
+        // 实体面三 op（spawn-explode-drop 批）：explode 写侧 saveSuffix（破坏方块进方块表）；
+        // spawn/drop **忽略 save**（0327 saveWorld 不写实体=恒临时态，spec §1 实锤——
+        // detail 不拼 saved= 防误导，标记 t=transient 见 listops）。
+        if ("explode".equals(c.op)) {
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            int size = intArg(a, "size");
+            return WorldOps.explode(world, x, y, z, size) + saveSuffix(world, c);
+        }
+        if ("spawn".equals(c.op)) {
+            String kind = stringArg(a, "kind");
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            return WorldOps.spawn(world, kind, x, y, z); // 实体不落盘，save 无作用
+        }
+        if ("drop".equals(c.op)) {
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            int itemId = intArg(a, "itemId");
+            int count = intArg(a, "count");
+            int dmg = optionalIntArg(a, "dmg", 0);
+            return WorldOps.drop(world, itemId, count, dmg, x, y, z); // 同上
+        }
+        if ("invulnerable".equals(c.op)) {
+            int ticks = intArg(a, "ticks");
+            return WorldOps.invulnerable(world, ticks); // i-frame 计时器不进 NBT，save 无作用
+        }
         if ("listops".equals(c.op)) {
             return LISTOPS; // agent 侧自省，零游戏调用（世界未捕获仍 not-ready——v1 从简）
         }
@@ -471,6 +506,15 @@ public final class CommandChannel {
             throw new WorldOps.Rejected("arg '" + k + "' out of int range");
         }
         return (int) l;
+    }
+
+    /** 字符串参数（spawn.kind）：类型面已由 validate 保证（String ≤256），此处只做取用与判空。 */
+    private static String stringArg(Map<String, Object> a, String k) throws WorldOps.Rejected {
+        Object v = a == null ? null : a.get(k);
+        if (!(v instanceof String)) {
+            throw new WorldOps.Rejected("arg '" + k + "' must be string");
+        }
+        return (String) v;
     }
 
     /** 写操作默认存盘（§3：save=false 显式关闭），返回 detail 后缀。 */
