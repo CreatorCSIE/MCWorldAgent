@@ -118,3 +118,27 @@
 **边界与风险**：G1 Classic 半可读世代锚库需独立一族规则（可读名直给但字段短名仍需钉）；0624 zone 类单日异型件聚类应识别为独立型；b1.2_02-20110517 未混淆例外件=零成本直通；高仿件拓扑继承母本→聚类归属前禁并表。
 
 **验收判据（开工时）**：9 版回归全绿；聚类收敛比实测入档；任一版本任一面错表时实跑表现为 UNSUPPORTED 而非错钩。
+
+---
+
+## 8. 版本适用指令集（Version × Op 能力矩阵——版本扩展北极星交付物）
+
+> 来源：2026-11-14 用户判决（Classic 范围+结构差异提醒）+ ChatGPT 审议落档（四因可区分/登记表=JAR 契约/能力描述层进 Registry）。原料=§4 能力断代矩阵+§5 存储断代+verscan 9 版表；本方案把它从案卷判决表升格为三层结构。
+
+**① 每版一个适用指令集（不是全 35 op 通吃假设）**
+- `inf-20100327`=基线全 35；`inf-20100618`=同代换指纹；`b1.7.3`=35+growTree 转正（Beta 1.2 断代翻转，树苗 grow 由 UNSUPPORTED→OK）。
+- **Classic 线最小集（用户判决）**：world 操控面（place/dig/fill/getblocks/getinfo）+ spawn 单一 mob（G 键等价物）≈6~7 op；其余 28 全落 `UNSUPPORTED(capability-absent)`。Classic 无 metadata/TileEntity/NBT ⇒ getmeta/setmeta/getchest/grow/clear 连载体都不存在。
+- Indev 段=中间态（metadata 有、tileentity 半、inventory 形态异），逐 op 判待取证。
+
+**② 五态模型（op × 版本单元，非布尔）**
+`OK` / `UNSUPPORTED(capability-absent 版本真没有)` / `UNSUPPORTED(fingerprint-unconfirmed 有但未钉)` / `UNSUPPORTED(not-implemented agent 未写)` / `REJECTED(runtime-condition 此刻不行)`。
+四因必须可诊断（审议判决：否则跨版后 UNSUPPORTED 成黑箱）——detail 文案分域，A5 落码进 runOp 前置查表。
+
+**③ 落点**
+- B1 锚库：每版 JSON 加 `capabilities` 节（与 `targets` 指纹节并列，分开管理）；结构预留 tiny 对账字段（B2 diff 用）。
+- A1 Registry 抽象必须容**方法缺失/签名差异/语义差异**三档（戒律 15：Classic≠换名）。
+- listops v2（C4）=本表机器可读出口，桌面按当前版本灰化不适用 op。
+- **0.24~0.30 翻转区间**（戒律 16）：同版两模式能力面不同，spawn 挂 runtime-condition 维；逐件扫描钉翻转构建=A4-Classic 前置取证；G 键路径与 agent 直写路径不同构，分开验。
+
+**取证缺口**：a) 0.24~0.30 生存翻转逐件扫；b) Classic spawn 面（G 键配方/Entity 构造/mob 存活旗标）新面取证；c) Indev 段逐 op 能力判（verscan 0223 只有指纹面无 op 判）。
+**工作量口径**：Classic=新面（adapter 级），非新列（换表级）——A4 排期按此估。
