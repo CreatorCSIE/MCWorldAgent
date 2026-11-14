@@ -107,6 +107,8 @@ The initial compatibility scope covers the following historical generations:
 
 Exact supported version numbers must be established through source-code investigation and compatibility testing.
 
+**Coverage scope (user reaffirmed):** the tool covers **original builds and high-fidelity reconstruction builds** (launcher-provided reconstructions of lost versions are first-class coverage targets, not a research-only side path). Registry entries must label each build's tri-state (original / high-fidelity / no jar). High-fidelity builds carry no behavioral guarantee of matching the original, so their hook fingerprint tables are pinned per-build independently; era/feature conclusions still rest on original builds plus index notes.
+
 The project must not assume that all versions within one generation share the same world format or runtime architecture.
 
 Each supported version should have an explicit compatibility profile.
@@ -894,6 +896,7 @@ The following principles should guide implementation.
 11. **Template-Based UI Development:** Reuse mature UI components and editor layout conventions instead of designing every interface from scratch.
 12. **Viewport-Centered Workflow:** Keep the 3D World Viewport central to world exploration and editing.
 13. **UI / Core Separation:** UI components should communicate through defined interfaces rather than directly depending on Minecraft internals.
+14. **Index-Authoritative Version Pinning:** Version identification and existence claims must go through the Archaeology Workspace indexes (`version-index.md` for client, `server-index.md` for server) as the sole authority — a version number not listed is treated as nonexistent; every jar must match its index row by SHA1 before being used as evidence; jar tri-state (original / high-fidelity reconstruction / no jar) determines evidential weight, and high-fidelity reconstructions must always be labeled as such when cited. Coverage scope = original + high-fidelity (user reaffirmed): high-fidelity builds are formal coverage targets, but the labeling and per-build fingerprint-pinning discipline is never relaxed. High-fidelity source: `nasko222/the-minecraft-recreation-project` (reconstruction of lost/internal client builds, client-only; jars stored per stage branch, `main` holds only `hashes.info` MD5 list, `testing` is the pre-release community area) — match its jars against the index row and label tri-state before use. Notes-column claims must be cited as "index note (maintainer summary)", not as "community record".
 
 ---
 

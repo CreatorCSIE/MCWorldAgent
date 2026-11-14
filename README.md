@@ -41,11 +41,12 @@
 - **HUD 观察面（EXIT 织入模式首例）**：`GuiIngame.renderGameOverlay` RETURN 前注入，showFPS 门内于原版调试列下方绘制 XYZ 实时坐标 + `javaagents:` 加载列表；零 GL 状态改动（准星段残留反色 blendFunc 教训）、崩溃隔离永久停用。两条实跑硬教训入档：混淆表翻案（真 GuiIngame=`client.c.m`，GUI 类必须类体级证据钉）、"注入渲染先问原版同点状态"。
 - **0327 覆盖审计（能力矩阵首版）**：World 全方法面 67 员 × 33 op 三分判决表（已覆盖/缺口→值得 op/缺口→不做有因）——biome/结构/chunk 操作等疑点全销案，tick 面 12 实现者钉死（grow 候选成立）；案卷 [audit-0327-coverage.md](./docs/research/audit-0327-coverage.md)。
 - **Standalone 首件：chunk 只读导出（java/storage，2026-11-14）**：纯 JDK8 零依赖离线件（NbtReader 11 型 tag+全消费校验、ChunkExport CLI：b36 散件路径→JSON RLE 方块/meta/light/heightMap/TE+items），静态存档实跑 10 项断言全绿——含 Furnace TE items 与活体冶炼账面逐项一致、2813 文件 SHA1 零写入保证；索引公式字节码翻案钉死（Blocks idx=`x<<11|z<<7|y`，y 最内）。Three.js 视口数据源自此就绪。
+- **版本扩展试点调研（9 版指纹+四代拓扑，2026-11-14）**：Classic c0.30-c/Indev 0223/Infdev 0327 基线+0618+0629/Alpha a1.1.2_01+a1.2.6/Beta b1.7.3+b1.8.1 全原始件（索引三态对榫+SHA1 表入卷）——混淆四代拓扑（半可读/包路径/扁平散件+入口包路径世系 Indev 起 `net.minecraft.*` 不变）、存储断代（序列化 level.dat→mclevel→散件→b1.3 region 分界，Infdev 0327 前无存档链路全区间扫描钉死）、33 op×9 版能力矩阵、逐版全表制确立；RetroMCP 语料解剖+133 映射 zip 拉取+72 树 `client.tiny` 反哺姊妹仓；指纹工业化方案钉档（tiny 为主+锚库补洞+家族聚类+详表=回归 oracle）。主卷 [version-expansion-pilot.md](./docs/research/version-expansion-pilot.md)，逐版详表 `docs/compatibility/verscan/`×8。
 
 ### 规划中（见 plan.md 路线图 + workbench-model 分层判决）
 
 - **agent 队列待拍板**：grow/clear 两 op（审计缺口② 候选批，grow 语义=概率/循环催熟待拍）、harvest 存废、chunk 导出**进程内对账收口**（活体内存 vs 盘面一致性，用户判决"之后再收口"）、`getChunkFromChunkCoords` 深钩（Phase 0 教训 5 的 1729/639 缺口）、listops v2 能力元数据（Version Registry 机器可读形态）。
-- **版本扩展**：试点=跨阶段版本各选代表（Classic/Indev/Infdev 后段/Alpha/Beta，jar 库已本地齐备），0227/0313 次优先；每版重新 javap 钉指纹（版本映射漂移是实锤教训）。
+- **版本扩展**：试点调研已毕（见上案卷）；待拍板=接入次序（建议 0618→0629→a1.1.2→b1.7.3）与首个跨版实跑批；指纹工业化编译器（tiny 为主+锚库补洞+聚类，方案已钉未开工）；0227/0313 次优先；高仿件覆盖放开（来源=nasko222 重建仓库，逐件对榫索引+逐件独立钉表）。
 - **桌面壳（Workbench 模型已判决落档）**：T1 命令台面板（速记翻译器+双源轮询，agent 侧零依赖）→ T2 Editor 注册制+Three.js 真渲染（§12 垂直切片唯缺步 4，数据源已就绪）→ T3 分屏/拖放/Palette/持久化。栈=Vue 3 + shadcn-vue + Tauri（已 DECIDED 单壳，原型已验收）。
 - **游戏内控制台**（输入壳优先战略维持）：Classic 绕闸配方 / Infdev ConsoleScreen / Alpha sendChatMessage 数据层钩，见 [ingame-console.md](./docs/architecture/ingame-console.md)。
 - **MCP Server / 分析工具集成**（slime/monolith/pyramid 离线算法）：Phase 5/7 归位。
