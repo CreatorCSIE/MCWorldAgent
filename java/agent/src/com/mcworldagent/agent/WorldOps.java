@@ -86,6 +86,9 @@ public final class WorldOps {
     private static final String M_GET_META = "d";
     private static final String M_SET_META_SILENT = "b";
     private static final String M_LIGHT6 = "e";
+    // getlight 面（meta 轮翻案钉死）：World.f(III)I=getBrightness——Chunk.c(IIII)I 读
+    // h=SkyLight 减环境值 World.q 后与 i=BlockLight 取 max，纯读返回 0-15（旧"气温"笔记作废）。
+    private static final String M_GET_LIGHT = "f";
     private static final String F_OBSERVERS = "u";
     private static final String F_DIFFICULTY = "d";
     private static final String G_SCATTER_CLASS = "net.minecraft.a.a.c.b.b";
@@ -113,6 +116,7 @@ public final class WorldOps {
     private static volatile Method getMeta;
     private static volatile Method setMetaSilent;
     private static volatile Method light6;
+    private static volatile Method getLight;
     private static volatile Field observers;  // World.u private List
     private static volatile Field difficulty; // World.d public int
 
@@ -149,6 +153,7 @@ public final class WorldOps {
             Method gm = wc.getMethod(M_GET_META, int.class, int.class, int.class);
             Method sm = wc.getMethod(M_SET_META_SILENT, int.class, int.class, int.class, int.class);
             Method l6 = wc.getMethod(M_LIGHT6, int.class, int.class, int.class, int.class);
+            Method gl = wc.getMethod(M_GET_LIGHT, int.class, int.class, int.class);
             Field ob = wc.getDeclaredField(F_OBSERVERS);
             ob.setAccessible(true);
             Field df = wc.getField(F_DIFFICULTY);
@@ -173,6 +178,7 @@ public final class WorldOps {
             getMeta = gm;
             setMetaSilent = sm;
             light6 = l6;
+            getLight = gl;
             observers = ob;
             difficulty = df;
         } catch (NoSuchMethodException e) {
@@ -360,6 +366,61 @@ public final class WorldOps {
                 + " health=" + h.getInt(p);
     }
 
+    /**
+     * 朝向直写（op=setlook）。Entity m/n=yaw/pitch（public float，tp 轮 setFloat 活体实锤）；
+     * 零通知面——渲染/瞄准直读字段（tp 轮 b(DDDFF) 设 m/n 即生效同证）。
+     * 协议：整数角度（MiniJson 拒浮点），yaw∈[0,360)、pitch∈[-90,90]。返回旧值供回滚。
+     */
+    public static String setLook(Object world, int yawDeg, int pitchDeg) throws Exception {
+        Object p = player.get(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        if (yawDeg < 0 || yawDeg >= 360) {
+            throw new Rejected("yaw-out-of-range [0,360): " + yawDeg);
+        }
+        if (pitchDeg < -90 || pitchDeg > 90) {
+            throw new Rejected("pitch-out-of-range [-90,90]: " + pitchDeg);
+        }
+        float oy = eYaw.getFloat(p);
+        float op = ePitch.getFloat(p);
+        eYaw.setFloat(p, (float) yawDeg);
+        ePitch.setFloat(p, (float) pitchDeg);
+        return "look yaw " + oy + " -> " + yawDeg + " pitch " + op + " -> " + pitchDeg;
+    }
+
+    /**
+     * 速度直写（op=setmotion）。Entity j/k/l=motion（public double，tp 轮清速度 setDouble 活体实锤；
+     * spec 表"float"系笔误，以代码为准）。mover 每 tick 由 AABB 自愈重算 pos——写速度后物理自洽。
+     * 协议：整数千分位（|v|≤10000=±10 格/tick），旧值按千分位回显供回滚。
+     * 活体疑点（llm-1 定语义）：站方块上写 vy 是否被 mover 首 tick 碰撞解算清零。
+     */
+    public static String setMotion(Object world, int vx1000, int vy1000, int vz1000)
+            throws Exception {
+        Object p = player.get(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        checkMotionThousandths("vx", vx1000);
+        checkMotionThousandths("vy", vy1000);
+        checkMotionThousandths("vz", vz1000);
+        double ox = eMotX.getDouble(p);
+        double oy = eMotY.getDouble(p);
+        double oz = eMotZ.getDouble(p);
+        eMotX.setDouble(p, vx1000 / 1000.0);
+        eMotY.setDouble(p, vy1000 / 1000.0);
+        eMotZ.setDouble(p, vz1000 / 1000.0);
+        return "motion x=" + Math.round(ox * 1000.0) + " y=" + Math.round(oy * 1000.0)
+                + " z=" + Math.round(oz * 1000.0)
+                + " -> x=" + vx1000 + " y=" + vy1000 + " z=" + vz1000;
+    }
+
+    private static void checkMotionThousandths(String name, int v) throws Rejected {
+        if (v < -10000 || v > 10000) {
+            throw new Rejected(name + "-out-of-range [-10000,10000] thousandths: " + v);
+        }
+    }
+
     /** 方块元数据读（op=getmeta）。World.d(III)I=getBlockMetadata（Chunk nibble g，纯读）。 */
     public static int getMeta(Object world, int x, int y, int z) throws Exception {
         validateCoords(x, y, z);
@@ -379,6 +440,12 @@ public final class WorldOps {
         setMetaSilent.invoke(world, x, y, z, meta);
         notifyBlock(world, x, y, z, getBlockId(world, x, y, z));
         return "meta " + old + " -> " + meta;
+    }
+
+    /** 亮度读（op=getlight）。World.f(III)I=getBrightness（纯读，0-15；光照不进存盘对账——由方块表实时算）。 */
+    public static int getLightValue(Object world, int x, int y, int z) throws Exception {
+        validateCoords(x, y, z);
+        return ((Integer) getLight.invoke(world, x, y, z)).intValue();
     }
 
     /** c(IIII)Z 通知段复刻：World.u 观察者 a(III)V（渲染标记）+ e(IIII)V 光照 6 邻。 */

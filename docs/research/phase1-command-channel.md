@@ -243,3 +243,27 @@ Spec：`.trae/specs/meta-tree/`。判决变更：原批 gentree **砍除**——
 - 4 段散布首段取 `x.x.ar`=煤 id 16（余为金 14/铁 15/aj），尾随 `b.c`=树空壳——与 §13 翻案一致。
 
 **活体对账**：meta-2 存退重进散布 7 格 RLE 逐字节一致=重进触发重 populate 亦无污染（同位重写 or 我方圆石已替换石头→游戏矿 seed 跳过节余格）。教训 19 获佐证：游戏自身 populate 同样"确定性仅在基底未动时成立"。**对 agent 的含义**：genscatter 非"触发游戏生成"而是同函数手动重放；手动补通知仍必需——游戏 populate 发生在 chunk 挂载时刻（整块随后上传渲染），我们在运行时改已加载 chunk。
+
+## 17. 亮度/朝向/速度批 `getlight` / `setlook` / `setmotion`（2026-11-14，零新取证落码，实跑 `llm-1` 全绿）
+
+**取证**：本批三面全部落在已钉面，零新 javap——`World.f(III)I`=getBrightness（meta 轮翻案钉死，§13：Chunk.c(IIII)I 读 h=SkyLight 减环境值 `World.q` 后与 i=BlockLight 取 max，纯读 0-15）；Entity `m/n`=yaw/pitch、`j/k/l`=motion、玩家句柄 `World.c`（tp 轮全字段，§10）。
+
+**协议判决**（MiniJson 严格子集拒浮点）：
+- `setlook(yaw,pitch)`：**整数角度**，yaw∈[0,360)、pitch∈[-90,90]，越界 REJECTED；直写字段即生效（零通知面——tp 轮 `b(DDDFF)` 设 m/n 渲染/瞄准直读同证）。
+- `setmotion(vx,vy,vz)`：**整数千分位**，|v|≤10000（=±10 格/tick），直写 `j/k/l = v/1000`；旧值按千分位回显供回滚。
+- **纠正**：spec 表曾记 `j/k/l` 为 "public float"——活体真值 **double**（tp 轮清速度 `setDouble` 全绿；若 float，`Field.setDouble` 必抛 IllegalArgumentException）。以代码为准。
+
+**持久化**：Player NBT `Rotation`/`Motion` 随 saveWorld 落盘（setw-1/tp-1 已证 Player compound 独立持久化）；写侧默认 save=true。零新终态（直写字段恒 OK，无 NO_CHANGE 生产者新增）。
+
+**验证**：build 零错；无头 **95/95**（+16 断言：FakeWorld 补 `f(III)I` 面；getlight 回显/坐标校验；setlook 旧→新、yaw 360/-1 与 pitch ±91 拒绝、拒绝不改值、边界 yaw=0/pitch=90 接受；setmotion 千分位转换、±10001 拒绝、no-player、边界 ±10000 接受）。
+
+**实跑 `llm-1`（2026-11-14 批准，World2 活体，全绿）**：
+- getlight：地表头顶 `light=15`、地下 y=5 `light=0`（st1 先置 time=6000 保白天）✓
+- setlook：`yaw 11384.945 -> 180 pitch 90 -> 0` 目视转身 + getplayer 回读 180/0 ✓；`yaw=360` → REJECTED `yaw-out-of-range` ✓
+- setmotion：`vy=20000` → REJECTED ✓；`vy=+5000` **站方块写速度不被 mover 首 tick 清零**（疑点定案）——上抛 y 71→130→151，motY 5→2.647→1.431 重力衰减自洽；副作用=落差 ~84 格**摔死**（和平难度照摔），教训：上抛量级 ±0.5-1.0 格/tick 足够，5 格/tick 是致死弹道
+- 死亡重生语义（活体新钉）：respawn=新 EntityPlayer 构造器路径，**不读 NBT Rotation**（yaw 归 0）、位置=spawnXYZ（本图出生点在水面→溺亡二连，用户目视确认）
+- 持久化：setlook 270/45+save → 存退重进（WORLD_SWITCHED gen=2/3）→ getplayer 回读原始累积值 6164.3955/90（活体 yaw 是累积浮点，非归一化）→ agent save → **盘面 `Player/Rotation=list<5>[6164.3955, 90.0]`、`Pos=list<6>[-1.2603, 72.62, -1.7]`（眼高语义）、`Motion=list<6>[0, -0.08, 0]` 逐项一致** ✓
+
+**NBT 新钉事实（llm-1 盘面取证顺带）**：
+1. **0327 的 `Pos`/`Motion`/`Rotation` 是 `TAG_List`（type 9，元素 6/6/5），不是现代格式的 double/float 数组（tag 11/12）**——Entity.c 用 `a:([D)Lcom/a/a/f`（f=ListTag，getTypeId=9）。盘面对账工具按数组读会静默漏掉。
+2. **saveWorld 的 Player compound 是条件写**：`getfield c(player) / ifnull 124`——`World.c==null` 时整段 Player 不落盘。游戏**载入期即调一次 saveWorld**（更新 LastPlayed/SizeOnDisk，此刻玩家尚未构造）→ level.dat 短暂退化为 125B 无 Player；当次会话位置靠内存 `World.y`（load 时读入的 Player NBT）恢复，不受影响。风险窗口：载入后、首次带玩家存盘前被强杀 → 盘面 Player 丢失，下次进世界=出生点（教训 1 家族新变体=**存盘时序窗**）。agent 会话内 save op 恒有 c≠null，安全。

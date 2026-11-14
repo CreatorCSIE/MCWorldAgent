@@ -43,7 +43,8 @@ public final class CommandChannel {
     private static final Set<String> KNOWN_OPS = new HashSet<String>(
             Arrays.asList("place", "dig", "getblock", "getinfo", "settime", "setspawn", "tp",
                     "save", "fill", "getblocks", "getplayer",
-                    "getmeta", "setmeta", "genscatter", "listops"));
+                    "getmeta", "setmeta", "genscatter", "listops",
+                    "getlight", "setlook", "setmotion"));
 
     /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。 */
     private static final String LISTOPS =
@@ -51,7 +52,9 @@ public final class CommandChannel {
           + "setspawn(x,y,z)w;tp(x,y,z)w[save-default-false];save w[explicit];"
           + "fill(x1,y1,z1,x2,y2,z2,blockId)w[cap4096];getblocks(x1,y1,z1,x2,y2,z2)r[cap4096];"
           + "getplayer r;getmeta(x,y,z)r;setmeta(x,y,z,meta0..15)w;"
-          + "genscatter(x,y,z,blockId[,seed])w;listops r";
+          + "genscatter(x,y,z,blockId[,seed])w;listops r;"
+          + "getlight(x,y,z)r[0..15];setlook(yaw0..359,pitch-90..90 int-deg)w;"
+          + "setmotion(vx,vy,vz int-thousandths +-10000)w";
 
     private static String cmdDirArg;
     private static File baseDir; // 解析后的 mca/ 根
@@ -339,6 +342,26 @@ public final class CommandChannel {
         }
         if ("getplayer".equals(c.op)) {
             return WorldOps.getPlayer(world); // 读侧快照；W 惰性解析失败→UnsupportedOp→UNSUPPORTED
+        }
+        if ("getlight".equals(c.op)) {
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            int light = WorldOps.getLightValue(world, x, y, z);
+            return "x=" + x + " y=" + y + " z=" + z + " light=" + light;
+        }
+        if ("setlook".equals(c.op)) {
+            int yaw = intArg(a, "yaw");
+            int pitch = intArg(a, "pitch");
+            // Player NBT "Rotation" 随存盘持久（setw-1/tp-1 已证 Player compound 独立持久化）
+            return WorldOps.setLook(world, yaw, pitch) + saveSuffix(world, c);
+        }
+        if ("setmotion".equals(c.op)) {
+            int vx = intArg(a, "vx");
+            int vy = intArg(a, "vy");
+            int vz = intArg(a, "vz");
+            // Player NBT "Motion" 随存盘持久，同上
+            return WorldOps.setMotion(world, vx, vy, vz) + saveSuffix(world, c);
         }
         if ("listops".equals(c.op)) {
             return LISTOPS; // agent 侧自省，零游戏调用（世界未捕获仍 not-ready——v1 从简）

@@ -70,8 +70,8 @@ save 策略（评审采纳，按操作类型）：
 
 | 类型 | 默认 |
 |---|---|
-| 写（place/dig/settime/setspawn/fill/setmeta/genscatter） | `save=true`（零变更 NO_CHANGE 时跳过存盘） |
-| 读（getblock/getinfo/getblocks/getplayer/getmeta/listops） | 忽略 save |
+| 写（place/dig/settime/setspawn/fill/setmeta/genscatter/setlook/setmotion） | `save=true`（零变更 NO_CHANGE 时跳过存盘） |
+| 读（getblock/getinfo/getblocks/getplayer/getmeta/getlight/listops） | 忽略 save |
 | 临时态（tp） | `save=false`，显式要求才存 |
 | `save` 独立 op | 显式刷盘用 |
 
@@ -109,8 +109,11 @@ save 策略（评审采纳，按操作类型）：
 | setmeta | `b(IIII)V` 静默写（h(IIII)Z→Chunk.b(IIII)V 仅 nibble+dirty，零通知实锤——sapling 生长即此面）+ 手动复刻 `c(IIII)Z` 通知段（观察者 `World.u` a(III)V + `e(IIII)V` 光照 6 邻）——同 id 走 c() 被 Chunk 短路不通知；meta∈[0,15] 否则 REJECTED `meta-out-of-range` | **取证闭环**（可读树名 `setBlockMetadataWithNotify` 系 deobf 误猜，javap 实锤静默） | 写侧 save=true；nibble 随 Chunk 存盘 "Data" |
 | genscatter | 调真生成器 `a.a.c.b.b(id).a(f,Random,III)Z`（0327 唯一原生"结构生成"：椭球曲线把 id 撒在 **stone** 上——meta-1 实跑翻案，基底 `x.i`=id 1 石头，该类实为原版矿石团生成器，c_a 以矿 id 调用；名 WorldGenTrees 系误，sapling 在 0327 不长树）；args x/y/z/blockId+可选 seed（确定性，仅基底未动时成立）；游戏写=静默（populate 触发链取证见 phase1 §16：0327 无 TerrainPopulated NBT，护栏=getOrCreateChunk 三邻规则+坐标 seed 确定性幂等），运行时补：影响盒真实上界 `[x+4..x+12]×[y..y+5]×[z+4..z+12]`（486 格=中心线±椭球半径半轴+截断向零；meta-1 实锤旧 75 格盒漏计漏通知）预扫→复扫 diff→变更格逐个通知；changed=0→NO_CHANGE；类惰性 forName 失败→UNSUPPORTED | **取证闭环**（BlockSapling 翻案：`f(III)I`=getBrightness 非气温，光照≥9+20% 概率+meta 幂等重放；散布器基底翻案见 phase1 §13/§14） | 写侧 save=true；✅ 实跑验收 run meta-1+meta-2（2026-11-14） |
 | listops | agent 侧自省（KNOWN_OPS+参数表静态串），零游戏调用；世界未捕获仍 not-ready（v1 从简） | n/a | n/a（只读） |
+| getlight | `getBrightness f(III)I`（args x/y/z；Chunk.c(IIII)I 读 h=SkyLight 减环境值 `World.q` 后与 i=BlockLight 取 max，返回 0-15；纯读——光照不进存盘对账，由方块表实时算） | **已钉**（meta 轮翻案，phase1 §13；本批零新取证） | n/a（只读） |
+| setlook | Entity `m/n`=yaw/pitch（public float）直写；args yaw∈[0,360)、pitch∈[-90,90] **整数角度**（MiniJson 拒浮点），越界 REJECTED；零通知面——渲染/瞄准直读字段（tp 轮 `b(DDDFF)` 设 m/n 即生效同证） | **已钉**（tp 轮全字段，phase1 §10；本批零新取证） | Player NBT "Rotation" 随存盘（setw-1/tp-1 Player compound 独立持久化已证） |
+| setmotion | Entity `j/k/l`=motion（**public double**——tp 轮清速度 setDouble 活体实锤）直写 `v/1000`；args vx/vy/vz **整数千分位**，\|v\|≤10000（=±10 格/tick），越界 REJECTED `v?-out-of-range`；mover 每 tick 由 AABB 自愈重算 pos——写速度后物理自洽 | **已钉**（tp 轮全字段；本批零新取证） | Player NBT "Motion" 随存盘（同上） |
 
-批量写第二批已实装并验收（2026-11-13 落码，实跑 run `fill-1` 全项通过——NO_CHANGE 活体实例、同 id 短路 changed=220、存退重进持久化、FILL_MS 243 块含 save=9ms，见 [phase1-command-channel](../research/phase1-command-channel.md) §12）。第三批（getmeta/setmeta/genscatter/listops，2026-11-14 落码，无头 79/79）取证与判决变更见 [phase1-command-channel](../research/phase1-command-channel.md) §13，实跑验收 run `meta-1`+修复复验 `meta-2` 全项通过（difficulty 对账、setmeta nibble 持久化、火把目视转向、散布计数精确、NO_CHANGE；活体翻案=散布器基底 stone+预扫盒上界 486 格，见 §14/§15），见 [phase1-command-channel](../research/phase1-command-channel.md) §14。
+批量写第二批已实装并验收（2026-11-13 落码，实跑 run `fill-1` 全项通过——NO_CHANGE 活体实例、同 id 短路 changed=220、存退重进持久化、FILL_MS 243 块含 save=9ms，见 [phase1-command-channel](../research/phase1-command-channel.md) §12）。第三批（getmeta/setmeta/genscatter/listops，2026-11-14 落码，无头 79/79）取证与判决变更见 [phase1-command-channel](../research/phase1-command-channel.md) §13，实跑验收 run `meta-1`+修复复验 `meta-2` 全项通过（difficulty 对账、setmeta nibble 持久化、火把目视转向、散布计数精确、NO_CHANGE；活体翻案=散布器基底 stone+预扫盒上界 486 格，见 §14/§15），见 [phase1-command-channel](../research/phase1-command-channel.md) §14。第四批（getlight/setlook/setmotion，2026-11-14 落码，**零新取证**——三面全部已钉面；协议=整数角度/整数千分位，无头 95/95）取证引用与 motion=double 纠正见 [phase1-command-channel](../research/phase1-command-channel.md) §17，实跑验收 `llm-1` 已完成全绿（2026-11-14：vy 不被首 tick 清零、存退重进 Rotation 盘面一致、新钉 0327 Player NBT=TAG_List 与 saveWorld 的 c==null 条件写窗）。
 
 ## 7. 戒律（不变项）
 
