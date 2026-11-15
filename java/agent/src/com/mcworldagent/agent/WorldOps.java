@@ -201,9 +201,13 @@ public final class WorldOps {
                 getBlock = wc.getMethod(M_GET_BLOCK, int.class, int.class, int.class);
             }
             if (M_SAVE_WORLD != null) {
-                // 档位二：按表描述符分支（0327 (Z)V / 0618 ()V）
-                saveWorld = "(Z)V".equals(T.saveWorldDesc)
+                // 档位二：按表描述符分支（0327 (Z)V / 0618 ()V / 0629 (Liw;)V 单引用型参）。
+                // 0629 参数类名从 desc 解析（"(Liw;)V"→"iw"，具体类，el0629-2 实锤），零表外新槽。
+                String sd = T.saveWorldDesc;
+                saveWorld = "(Z)V".equals(sd)
                         ? wc.getDeclaredMethod(M_SAVE_WORLD, boolean.class)
+                        : sd != null && sd.startsWith("(L") && sd.endsWith(";)V")
+                        ? wc.getDeclaredMethod(M_SAVE_WORLD, Class.forName(sd.substring(2, sd.length() - 3)))
                         : wc.getDeclaredMethod(M_SAVE_WORLD);
                 saveWorld.setAccessible(true);
             }
@@ -275,6 +279,9 @@ public final class WorldOps {
             throw new UnsupportedOp("world signatures: " + e);
         } catch (NoSuchFieldException e) {
             throw new UnsupportedOp("world fields: " + e);
+        } catch (ClassNotFoundException e) {
+            // 0629 档位二：saveWorld 参数类名从 desc 解析（"iw"）——类不存在=表钉错，响亮
+            throw new UnsupportedOp("saveWorld param class: " + e);
         }
     }
 
@@ -1500,11 +1507,17 @@ public final class WorldOps {
     }
 
     public static void saveWorld(Object world) throws Exception {
-        // 档位二（spec §3）：0327 a(Z)V 传 FALSE=现行为；0618 f()V 零参
-        if (saveWorld.getParameterTypes().length == 1) {
+        // 档位二（spec §3）：0327 a(Z)V 传 FALSE=现行为；0618 f()V 零参；
+        // 0629 a(Liw;)V 传 null（el0629-2 活体翻案：iw=具体类非接口，Proxy 作废；
+        // 本体 a(boolean,iw) 有完整 null 守卫 ifnull@13/25，游戏构造器尾 490 处自身裸传 null——
+        // 包装恒直调本体，null=无进度 UI，语义正当）
+        Class<?>[] pt = saveWorld.getParameterTypes();
+        if (pt.length == 0) {
+            saveWorld.invoke(world);
+        } else if (pt[0] == boolean.class) {
             saveWorld.invoke(world, Boolean.FALSE);
         } else {
-            saveWorld.invoke(world);
+            saveWorld.invoke(world, (Object) null);
         }
     }
 

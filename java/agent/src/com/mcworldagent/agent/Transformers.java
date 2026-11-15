@@ -170,12 +170,12 @@ public final class Transformers implements ClassFileTransformer {
                 switch (target.hookId) {
                     case HookTargets.SAVE_WORLD:
                         mv.visitVarInsn(Opcodes.ALOAD, 0);
-                        if ("(Z)V".equals(target.desc)) {
-                            // 0327: slot0=this(已初始化) slot1=boolean
+                        if (target.desc.startsWith("(Z")) {
+                            // 0327 (Z)V / 旧 0629 本体钉 (ZLiw;)V：slot0=this slot1=boolean
                             mv.visitVarInsn(Opcodes.ILOAD, 1);
                         } else {
-                            // 0618 ()V: 无布尔参——indirect 观察位=常量 0（false），
-                            // 注释注明 0618 saveWorld 无布尔参（spec §2 InjectMV 分支）
+                            // 0618 ()V / 0629 包装 (Liw;)V（el0629-2 翻案：钩回挂 public 包装）——
+                            // 无布尔参，indirect 观察位=常量 0（false）
                             mv.visitInsn(Opcodes.ICONST_0);
                         }
                         mv.visitMethodInsn(Opcodes.INVOKESTATIC, HOOKS, "onSaveWorld",

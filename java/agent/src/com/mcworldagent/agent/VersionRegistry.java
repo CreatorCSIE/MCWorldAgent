@@ -30,12 +30,13 @@ public final class VersionRegistry {
 
     private static final VersionTable T_0327 = build0327();
     private static final VersionTable T_0618 = build0618();
+    private static final VersionTable T_0629 = build0629();
 
     private static final Map<String, VersionTable> BY_ID = new HashMap<String, VersionTable>();
     private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
 
     static {
-        VersionTable[] tables = { T_0327, T_0618 };
+        VersionTable[] tables = { T_0327, T_0618, T_0629 };
         for (VersionTable t : tables) {
             BY_ID.put(t.versionId, t);
             BY_SHA1.put(t.jarSha1, t);
@@ -252,6 +253,103 @@ public final class VersionRegistry {
         // invSizeM/invGetM/invSetM（getchest/setchest/getfurnace 在 resolveTe 响亮）、
         // teBurnF/teCookF（getfurnace）、itemEntityG（EntityItem 构造器未钉）、
         // idCrops/idSapling/cropsRipeMeta（grow）。mobClasses 空=spawn 版本面无。
+        return t;
+    }
+
+    /**
+     * 0629 表（第三版，G3 扁平散件族首例——0627/0629 形态分界实弹，pilot §5.1）。
+     * 值源=本会话 javap 原始 jar 复核（解包 %TEMP%\mca0629-scan\x，SHA1 eb50bce3… 对榫
+     * 主卷 §0）+ 详表 verscan/inf-20100629.md；**两处详表翻案**：
+     * ① saveWorld 详表钉 a(Z)Z=错——方法体首串 "TickNextTick list out of synch"=world
+     *   tick 本体；真链=public final a(Liw;)V 包装（iconst_1→invokespecial 私有
+     *   a(boolean,iw)：level.dat_new/old 轮转+Saving chunks 循环）。档位二新形态：
+     *   单引用型参（IProgressUpdate），WorldOps 按 desc 解析参数类名，调用传 null。
+     * ② setPosRot 详表标"pos 双组归属需重钉"——NBT 双向对榫：Pos↔j/k/l（写点 d(ac)V
+     *   三连 putfield，读点 e(ac)V getfield j 三复制 g/E）、Motion↔m/n/o、Rotation↔p/q
+     *   （r/s=prev 复制位）；g/h/i=lastTickPos（mover 每 tick 从 j/k/l 复制）。
+     *   setPosRot=b(DDDFF)V public final 与 0327 同形同字母（档位二零触发）。
+     * 类名为根类（"ez"/"em"/"ht"…无包路径）——G3 扁平混淆形态，HookTargets 同组。
+     */
+    private static VersionTable build0629() {
+        VersionTable t = new VersionTable();
+        t.versionId = "inf-20100629";
+        t.family = "G3"; // 扁平散件混淆（根类单/双字母）
+        t.jarSha1 = "eb50bce3cb542488b3039aa0f4c3c0ec7595ab24"; // 主卷 §0 对榫表
+
+        // World 写读面（ez；getBlockId a(III)I / setBlock c(IIII)Z 同 0327 形）
+        t.setBlockM = "c";
+        t.getBlockM = "a";
+        t.getMetaM = "d";        // (III)I：边界检查→jr.c(III)I→hw nibble 访问器（meta 字节码级实锤）
+        t.saveWorldM = "a";      // public final a(Liw;)V 包装（翻案①；el0629-2 活体：iw=具体类，
+        // 本体 null 守卫齐全——ops 传 null 直调包装，Proxy 作废见 HookTargets 注释）
+        t.saveWorldDesc = "(Liw;)V";
+        t.worldTimeF = "b";      // long，NBT "Time" 写读配对
+        t.randSeedF = "m";       // long，NBT "RandomSeed" 写读配对
+        t.spawnXF = "i";         // NBT "SpawnX/Y/Z" 写读配对（i/j/k 与 0618 同字母——巧合非规则，逐版取证）
+        t.spawnYF = "j";
+        t.spawnZF = "k";
+
+        // 玩家/实体定位面（Entity=em；⚠️ pos=j/k/l 非 0327 g/h/i 亦非 0618 h/i/j）
+        t.playerF = "f";         // public em f（声明基类 em，运行时 gc）
+        t.setPosRotM = "b";      // b(DDDFF)V public final 同 0327；双写 g..i+j..l（tp 主入口）
+        t.setPosRotDesc = "(DDDFF)V"; // 档位二显式（与 0327 同形；resolve 分支判据）
+        t.posXF = "j";
+        t.posYF = "k";
+        t.posZF = "l";
+        t.motXF = "m";
+        t.motYF = "n";
+        t.motZF = "o";
+        t.yawF = "p";            // Rotation↔p/q NBT 配对（r/s=prev 位）
+        t.pitchF = "q";
+        t.healthF = "ab";        // EntityLiving(jv) int ab：写点 "Health"←i2s、读点 containsKey→ab
+        // 保底 10、构造器 bipush 10→ab 三重实锤（healthF=Z 模板复用）
+        t.iframesF = null;       // 档位一：invulnerable 面未钉
+
+        // 物品栏面（EntityPlayer=gc.b→ho；ItemStack=hr a/c/d NBT 钉；注册表 fz.b）
+        t.invF = "b";
+        t.invMainF = "a";
+        t.invArmorF = "b";
+        t.invCurF = "c";
+        t.isCountF = "a";
+        t.isIdF = "c";
+        t.isDmgF = "d";
+        t.addStackM = "a";       // ho.a(hr)Z
+        t.itemClassG = "fz";     // 根类（[Lfz; 全 jar 唯一注册表锚）
+        t.itemsF = "b";
+        t.itemEntityG = "gt";    // EntityItem 构造器 (ez,DDD,hr)V 全 jar 扫描唯一命中
+
+        // 实体/世界事件面（explode/addEntity/setEntityDead/playSound 全同 0327 形）
+        t.explodeM = "a";        // a(Lem;DDDF)V public final
+        t.spawnEntityM = "a";    // addEntity a(Lem)V（"Failed to add entity"+p.add 双实锤）
+        t.setEntityDeadM = "b";  // public static b(em)V（0327 同 static 形）
+        t.entityListM = "h";     // h()List 返字段 p：构造器 new ArrayList→p、addEntity p.add 两重实锤
+        t.entityTypeM = null;    // per-instance 面 em.r()String=基类 aconst_null 死桩（0618 判决同族，不钉）
+        t.entityListClassG = "ht"; // 扁平世代 EntityList=ht：static{} 注册串 "PrimedTnt" 全 jar 唯一命中
+        t.entityListLookupM = "a"; // public static a(em)String=Map 查表（注册 11 件：Mob=jv Monster=gl
+        // Giant=aa Zombie=gr Spider=cf Skeleton=fj Creeper=ft Pig=hx Sheep=dk PrimedTnt=cy FallingSand=ie；
+        // 无 Item/Arrow/Painting/Minecart——比 0618 少 4 件，未注册件走类简名保底）
+        t.playSoundM = "a";      // a(DDD,String,F,F)V
+
+        // 档位一 null 槽（对齐 0618 欠账形态）：setMetaSilentM/light6M/getLightM/observersF/
+        // difficultyF/scatterClassG（setmeta/getlight/genscatter）；invSizeM/invGetM/invSetM/
+        // teBurnF/teCookF（chest/furnace 内部面——teGetM 已钉，resolveTe 可通）；
+        // idCrops/idSapling/cropsRipeMeta（Infdev 无农业=grow 响亮 UNSUPPORTED）。
+        t.teGetM = "b";          // (III)Lbf;（TE 基类=bf）
+
+        // spawn 白名单（构造器 (ez)V 逐个 javap 实锤；tnt=(ez,FFF)V 同 0327 配方；
+        // giant=aa 构造健在——0327 NEW_CTOR 复活面在 G3 无需要，HookTargets 0629 组不挂 GIANT_CTOR；
+        // ⚠️ mob=gl(EntityMonster)：0629 无 EntityCreature 层（0327 mob=EntityCreature），
+        // 语义=敌对基类——档位三语义漂移，活体冒烟观察渲染/行为后定案卷）
+        t.mobClasses.put("pig", "hx");
+        t.mobClasses.put("sheep", "dk");
+        t.mobClasses.put("creeper", "ft");
+        t.mobClasses.put("skeleton", "fj");
+        t.mobClasses.put("zombie", "gr");
+        t.mobClasses.put("spider", "cf");
+        t.mobClasses.put("tnt", "cy");
+        t.mobClasses.put("giant", "aa");
+        t.mobClasses.put("mob", "gl");
+
         return t;
     }
 }

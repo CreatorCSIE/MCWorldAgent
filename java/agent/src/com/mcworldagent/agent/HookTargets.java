@@ -149,6 +149,39 @@ public final class HookTargets {
                 0x0011, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float)"),
     };
 
+    /**
+     * 0629 钩组（第三版，G3 扁平散件族首例——类名为根类无包路径）。
+     * SAVE_WORLD 活体二次翻案（el0629-2 实跑）：iw=**具体类**（public class iw，构造器 iw(at)）
+     * 非接口——Proxy no-op 方案作废（无头假类 iw 误写成 interface=假绿，教训 20）；
+     * 本体 a(boolean,iw) 有完整 null 守卫（ifnull@13/25）且游戏构造器尾 490 处裸传 null——
+     * ops 直调 public 包装 a(null) 即可。钩回挂 public 包装 a(Liw;)V 0x0011
+     * （InjectMV else 分支 ICONST_0：包装无布尔参，indirect 观察位=常量 0，
+     * 包装恒直调本体）。游戏内部 UI 进度调用亦经包装→钩会记录之（观察面更全，无害）。
+     * LOAD_WORLD：Minecraft(at).a(ez,String) private（与 0618 同形态，slot1=活体 World）。
+     * RUN_TICK：at.m()V private（详表 §2，run() 内 invokespecial）。
+     * HUD_RENDER：gf.a(F)V public final 0x0011（详表 §6 与 0327/0618 全同形）。
+     * 省略：WORLD_CTOR（cmd= 覆盖，同 0618 判决）、LOAD_CHUNK/GEN_HEIGHT（未钉）、
+     * GIANT_CTOR（aa 构造健在，G3 无复活需求）。
+     */
+    public static final Target[] TARGETS_0629 = {
+        new Target("ez", "a", "(Liw;)V",
+                0x0011, 1, ENTRY, SAVE_WORLD, "World.saveWorld(progress) public wrapper"),
+        new Target("at", "a", "(Lez;Ljava/lang/String;)V",
+                0x0002, 1, ENTRY, LOAD_WORLD, "Minecraft.loadWorld(World,String)"),
+        new Target("at", "m", "()V",
+                0x0002, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
+        new Target("gf", "a", "(F)V",
+                0x0011, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float)"),
+    };
+
+    private static final Map<String, Target[]> GROUPS = new HashMap<String, Target[]>();
+
+    static {
+        GROUPS.put("inf-20100327", TARGETS_0327);
+        GROUPS.put("inf-20100618", TARGETS_0618);
+        GROUPS.put("inf-20100629", TARGETS_0629);
+    }
+
     private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);
 
     private static Map<String, List<Target>> index(Target[] group) {
@@ -164,9 +197,10 @@ public final class HookTargets {
         return m;
     }
 
-    /** premain 期版本激活（未知 id=保持 0327 组=现行为零变化）。 */
+    /** premain 期版本激活（未知 id=保持 0327 组=现行为零变化；A2 后按 GROUPS 表扩展）。 */
     public static synchronized void activate(String versionId) {
-        BY_CLASS = index("inf-20100618".equals(versionId) ? TARGETS_0618 : TARGETS_0327);
+        Target[] group = GROUPS.get(versionId);
+        BY_CLASS = index(group == null ? TARGETS_0327 : group);
     }
 
     public static Target[] forClass(String internalName) {
