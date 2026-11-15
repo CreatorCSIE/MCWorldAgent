@@ -193,3 +193,19 @@
 - 缺口：5 项 UNSUPPORTED 次级槽未钉（setmeta/setchest/getchest/getfurnace/genscatter/grow）；对照漂移记档（World4 现无 SnowCovered=跨版本开档剥离，结论不变）。
 
 **证据**：`integrations/attic/out/el120-3/`（hooks/transform+biome-scan/fine/wide/ray+ops-batchA/C/D）+`el120-4/`（hooks/transform+marker-readback+level-dat-final）。**repo 面**：M=VersionTable/VersionRegistry/HookTargets/WorldOps/锚 JSON 等 5 件+?? a1.2.0_02.md/a1.2.0.json+归档件（未 commit，待指令）；测试件不入库（%TEMP%\mcaut）。
+
+## 11. b1.2_02 接入批活体记录（2026-11-15，el1202-1；Alpha 散件存储末期锚）
+
+**链路**：verscan 详表（[b1.2_02.md](../compatibility/verscan/b1.2_02.md)，§11 活体已回填）→ 借 retromcp b1.2 tiny 直钉（15/15 同形+方法级对榫全过）→ 锚 JSON `java/agent/registry/fingerprints/b1.2_02.json`（BY_SHA1 双件别名 551be326+093f371e）→ VersionRegistry.build1202+HookTargets.TARGETS_1202+WorldOps 三 fallback → 假类复刻无头 17 套件 ALL GREEN → Attic 启动器活体 World5（-Xbootclasspath asm-9.7；agent protocol=1）。
+
+**判决**（详表 §11 为准，此处索引）：
+- **sidecar 实拉=纯独立件 551be326**（VERSION 行实锤；sidecar 走 betacraft 源非 Mojang manifest）——§0"实拉=LW 件"前判**推翻**；LW 件 093f371e 同形复核另行完成（官方 URL 拉取 SHA1 吻合、11 类 javap 逐字母同形、580 条目一致）=双件别名两件同时有效。
+- 五钩 HOOKED 全中（钩形与 a1.2.0 完全同构：loadWorld `a(Ldn;String)V`/runTick `i()V`/saveWorld 包装 `a(Lru;)V`/`<init>(File,String)V`/renderGameOverlay `a(FZII)V`）。
+- **tnt spawn DDD 活体定夺=OK**（`mb(dn,DDD)V` 反射构造入列）；**Giant h=200 存活**（jv:53）；**Squid×8 野外**（rm:94）；Cow/Chicken 修复号（92/93）活体生效——§4 注册表全对。
+- ops 批 31 在游全绿+**biome 12 列零错**（Desert/Shrubland/Savanna/Forest 命中 12 系旧表，ro→hf.m 链闭环；Desert↔sand 对拍）；sethealth **S:I** 读回、spawnX/Y/Z **m/n/o** 读回、e:J time——字母断代面全兑现。
+- **level.dat 键集活体修正**：Data 实到 7+Version 键、零天气键；**`Dimension` 键缺席**（读侧接口残留≠写侧生成=下界删除的持久化侧影，§2 断言已修正）。
+- **marker 磁盘持久化定夺**：首轮 marker 磁盘=0=**TNT 爆炸波及**（Δz=7.5 破坏边缘，实体含爆炸掉落=爆后态）；干净隔离批 marker2 不退出直接读盘 `c.b.-4.dat` **id=4 命中**=写盘链路完好。**新行为钉**：chunk 卸载存盘=卸载时快照，退出 saveLevel 仅重存脏 chunk——**卸载后在游改动不回写**（数据侧 adapter 须知）。
+- UNSUPPORTED 五槽实报（iframesF/observersF/teBurnF/scatterClassG/idCrops）；chest 面 REJECTED no-tileentity=`b(III)Lkp;` 活体可达。
+- 运维戒律再证：agent jar 不含 ASM，活体必须 `-Xbootclasspath/a:asm-9.7.jar`（裸挂 premain 崩=已录）；envelope 须带 `protocolVersion:1`。
+
+**证据**：`integrations/attic/out/el1202-1/`（lw-jar-forensics+ops-batch0/A/B/C+agent-hooks/transform+sidecar-stdout）。**repo 面**：M=VersionRegistry/HookTargets/WorldOps+?? b1.2_02.md/b1.2_02.json/el1202-1 归档（未 commit，待指令）；测试件不入库（%TEMP%\mcaut）。

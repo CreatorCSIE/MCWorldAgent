@@ -33,12 +33,13 @@ public final class VersionRegistry {
     private static final VersionTable T_0629 = build0629();
     private static final VersionTable T_1121 = build1121();
     private static final VersionTable T_120 = build120();
+    private static final VersionTable T_1202 = build1202();
 
     private static final Map<String, VersionTable> BY_ID = new HashMap<String, VersionTable>();
     private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
 
     static {
-        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120 };
+        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202 };
         for (VersionTable t : tables) {
             BY_ID.put(t.versionId, t);
             BY_SHA1.put(t.jarSha1, t);
@@ -47,6 +48,12 @@ public final class VersionRegistry {
         // 43ffc4de，内嵌 stamp=v1.2.0）与 manifest 件（8632ea71=_02）7 class 签名级
         // diff 零——BY_SHA1 别名让两件自动同表；活体旁证批 el1257-* 验证映射无偏移。
         BY_SHA1.put("43ffc4de410512c3ca10dd5cd9812ea5df5dc0ed", T_120);
+        // b1.2_02 两态同名版（详表 b1.2_02.md §0）：纯独立构建件 551be326（内嵌
+        // stamp=Minecraft Beta 1.2_02，主表 jarSha1）与官方 manifest LW 重打包件
+        // 093f371e（mainClass=Launch，1136276B，sidecar 实拉件）——BY_SHA1 别名两件
+        // 同表；游戏类表同形已由借 b1.2 tiny 15/15 classlist 核验+方法级对榫实锤，
+        // 活体冒烟 el1202-* 复核。
+        BY_SHA1.put("093f371e1a05d89664cfb8068d607953687d5d94", T_1202);
     }
 
     /** 激活表（premain 前默认 0327=现行为零变化；VersionResolver 命中后切换）。 */
@@ -564,6 +571,112 @@ public final class VersionRegistry {
         t.biomeWcmM = "a";        // cu.a()Lpb; getWorldChunkManager（cu 唯一无参 a——getMethod 安全）
         t.biomeAtM = "a";         // pb.a(II)Lfy; func_4073_a（pb 的 a 重载中 (II) 唯一）
         t.biomeNameF = "m";       // fy.m=biomeName public String（子类 de/lz/i 继承 getField 可达）
+
+        return t;
+    }
+
+    /**
+     * b1.2_02 表（Beta 首例，G3-beta）。值源=锚库
+     * java/agent/registry/fingerprints/b1.2_02.json；取证=
+     * docs/compatibility/verscan/b1.2_02.md（借 retromcp b1.2 client.tiny 直钉——
+     * 姊妹仓无 b1.2_02 tiny，15/15 关键类 classlist 同形核验+World 方法级对榫全过）。
+     * 本批=字母断代批（详表 §9 对榫表）：World 方法字母大面积漂移——
+     * setBlockWithNotify d→e（⚠️ d(IIII)Z 现为 setBlockMetadata=签名同形语义移位
+     * 陷阱，严禁按签名猜名）、setMetaSilent b→c、getLight j→l、saveLevel o→r、
+     * entityList k→l、randSeed v→u、spawn n/o/p→m/n/o、Entity pos ap..ar→aF..aH、
+     * mot as..au→aI..aK、yaw/pitch av/aw→aL/aM、health J→S、inv e→f、invCur d→c、
+     * setEntityDead I()V→F()V——描述符骨架全同形，五元组锚定风险大降。
+     * 两态同名版（详表 §0）：纯独立构建件 551be326（主表）与官方 manifest LW 重打包
+     * 件 093f371e（sidecar 实拉）=BY_SHA1 双件别名同表。
+     * 档位一 null 槽：iframesF（⚠️ nl.aW=isDead 撞车，heartsLife 未钉——
+     * invulnerable UNSUPPORTED，历代 aW 稳定惯例本版破裂）；light6M/observersF
+     * （setmeta 连坐）、scatterClassG（genscatter）、invSizeM/invGetM/invSetM/
+     * teBurnF/teCookF（chest/furnace 内部面）、idCrops/idSapling/cropsRipeMeta
+     * （农业 id 未取证）——a1.2.0 同档。
+     */
+    private static VersionTable build1202() {
+        VersionTable t = new VersionTable();
+        t.versionId = "b1.2_02";
+        t.family = "G3"; // 扁平散件+未混淆主类（G3-beta，a1.2.0 同族）
+        t.jarSha1 = "551be32655e81a410d81e76259502dde83ebe525"; // 纯独立构建件（内嵌 stamp=Minecraft Beta 1.2_02；LW manifest 件 093f371e=BY_SHA1 别名，详表 §0）
+
+        // World 写读面（dn；详表 §2，借 b1.2 tiny 直钉+javap 逐验）
+        t.setBlockM = "e";        // e(IIII)Z=setBlockWithNotify 主写面（⚠️ d(IIII)Z=setBlockMetadata 陷阱；裸 setBlock=b(IIII)Z）
+        t.getBlockM = "a";        // a(III)I ✓同字母
+        t.getMetaM = "e";         // e(III)I getBlockData ✓
+        t.saveWorldM = "a";       // a(Lru)V public 包装（IProgressUpdate ph→ru 断代；
+        t.saveWorldDesc = "(Lru;)V"; // 本体 a(ZLru)V null 守卫齐全=0629/a1.2.0 配方；a(Z)Z=TickUpdates 禁钩）
+        t.worldTimeF = "e";       // public long e=worldTime ✓同字母
+        t.randSeedF = "u";        // randomSeed v→u（⚠️a1.2.0=v）
+        t.spawnXF = "m";          // m/n/o=SpawnX/Y/Z（⚠️a1.2.0=n/o/p 整体左移一位）
+        t.spawnYF = "n";
+        t.spawnZF = "o";
+        t.teGetM = "b";           // b(III)Lkp;（TE 基类 iz→kp 漂移）
+
+        // 玩家/实体定位面（Entity=nl；档位三同族：World 无玩家直字段）
+        t.playerF = null;
+        t.playerListF = "d";      // playerEntities=d:List ✓同字母
+        t.entityClassG = "nl";
+        t.setPosRotM = "b";       // b(DDDFF)V ✓同字母同形
+        t.setPosRotDesc = "(DDDFF)V";
+        t.posXF = "aF";           // ⚠️a1.2.0=ap/aq/ar 整体断代（NBT "Pos" 写读配对）
+        t.posYF = "aG";
+        t.posZF = "aH";
+        t.motXF = "aI";           // NBT "Motion" 配对
+        t.motYF = "aJ";
+        t.motZF = "aK";
+        t.yawF = "aL";            // NBT "Rotation" 配对
+        t.pitchF = "aM";
+        t.healthF = "S";          // EntityLiving(ig).S（NBT "Health" 写读配对+保底 10；⚠️a1.2.0=J）
+        t.iframesF = null;        // 档位一：nl.aW=isDead 撞车，heartsLife 未钉——invulnerable UNSUPPORTED
+
+        // 物品栏面（EntityPlayer=eu.f；⚠️inv e→f、invCur d→c 双漂移）
+        t.invF = "f";
+        t.invMainF = "a";         // gl.a=mainInventory
+        t.invArmorF = "b";
+        t.invCurF = "c";          // ⚠️a1.2.0=d 左移一位
+        t.isCountF = "a";         // gm a/c/d ✓全同字母（isDmg d=private——WorldOps setAccessible fallback）
+        t.isIdF = "c";
+        t.isDmgF = "d";
+        t.addStackM = "a";        // gl.a(gm)Z addItemStackToInventory ✓
+        t.itemClassG = "eo";
+        t.itemsF = "c";           // public static eo[] c=itemsList ✓同字母
+        t.itemEntityG = "fh";     // EntityItem (dn,DDD,gm)V ✓（gm 无 (II)V 构造——newStack 走 (III)V）
+
+        // 实体/世界事件面（详表 §2/§4）
+        t.explodeM = "a";         // a(Lnl;DDDF)V ✓tiny createExplosion
+        t.spawnEntityM = "a";     // a(Lnl;)Z entityJoinedWorld ✓
+        t.setEntityDeadM = "d";   // d(Lnl;)V 实例 ✓
+        t.entityListM = "l";      // l()List getLoadedEntityList（⚠️a1.2.0=k）
+        t.entityTypeM = null;     // per-instance 命名面未钉（同族判决）
+        t.entityListClassG = "gn";
+        t.entityListLookupM = "b"; // b(nl)String ✓同字母（static{} 23 项详表 §4：Giant=jv:53 存活；Cow92/Chicken93/Squid94=a1.2.0 三动物 id=91 怪癖修复）
+        t.playSoundM = "a";       // a(DDD,String,F,F)V ✓tiny playSoundEffect
+
+        // getinfo 面
+        t.difficultyF = "k";      // difficultySetting=k:I ✓同字母
+
+        // meta/光面（详表 §2；notify 段 light6M/observersF 未钉⇒setmeta UNSUPPORTED 连坐）
+        t.setMetaSilentM = "c";   // c(IIII)V setBlockMetadataWithNotify（⚠️a1.2.0=b）
+        t.getLightM = "l";        // l(III)I getBrightness（⚠️a1.2.0=j）
+
+        // spawn 白名单（gn 注册表+javap 构造器 (dn)V 逐个实锤；tnt=mb
+        // ⚠️(dn,DDD)V 历代 FFF 断代——WorldOps fallback；giant=jv=EntityZombieSimple
+        // 存活（注册 53）；mob=fz=EntityCreature）
+        t.mobClasses.put("pig", "qk");
+        t.mobClasses.put("sheep", "ch");
+        t.mobClasses.put("creeper", "eh");
+        t.mobClasses.put("skeleton", "dy");
+        t.mobClasses.put("zombie", "pn");
+        t.mobClasses.put("spider", "bn");
+        t.mobClasses.put("tnt", "mb");
+        t.mobClasses.put("giant", "jv");
+        t.mobClasses.put("mob", "fz");
+
+        // biome 面（详表 §8 三锚链与 a1.2.0 全同形——读回链冒烟判据复用）
+        t.biomeWcmM = "a";        // dn.a()Lro; getWorldChunkManager（dn 唯一无参 a ✓）
+        t.biomeAtM = "a";         // ro.a(II)Lhf; func_4073_a ✓（ro 的 a 重载中 (II) 唯一）
+        t.biomeNameF = "m";       // hf.m=biomeName public String ✓（12 系 a..l 旧表保留）
 
         return t;
     }

@@ -233,6 +233,33 @@ public final class HookTargets {
                 0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
     };
 
+    /**
+     * b1.2_02 钩组（Beta 首例，G3-beta：扁平散件 World=dn/GuiIngame=pe，主类未混淆）。
+     * 详表 verscan/b1.2_02.md §2/§6/§7（借 b1.2 tiny 直钉+javap 逐验）。
+     * SAVE_WORLD：dn.a(Lru)V public 包装（IProgressUpdate ph→ru 档位二断代；本体
+     * a(ZLru)V null 守卫齐全=0629/a1.2.0 配方三连用；a(Z)Z=TickUpdates 禁钩同字母预避）。
+     * WORLD_CTOR：dn(File,String) public（启用，同 a1.2.0 双钩保底）。
+     * LOAD_WORLD：Minecraft.a(dn,String) public 0x0001（钩形不变——(cu,String)→
+     * (dn,String) 仅类字母断代；(dn,String,eu) 三维参重载=维度切换接口不钩）。
+     * RUN_TICK：Minecraft.i()V public ✓同字母同形。
+     * HUD_RENDER：pe.a(FZII)V public EXIT（钩形与 a1.2.0 mz 完全同构——ll
+     * (EntityRenderer) 字节码 L281 invokevirtual pe.a:(FZII)V 调用点实锤）。
+     * onHud 反射链字母本版未钉→HUD_HOOK_DISABLED 优雅降级=钩已触发证据（同族判决）。
+     * 省略：LOAD_CHUNK/GEN_HEIGHT/GIANT_CTOR（同 a1.2.0 判决）。
+     */
+    public static final Target[] TARGETS_1202 = {
+        new Target("dn", "a", "(Lru;)V",
+                0x0001, 1, ENTRY, SAVE_WORLD, "World.saveWorld(progress) public wrapper"),
+        new Target("dn", "<init>", "(Ljava/io/File;Ljava/lang/String;)V",
+                0x0001, 1, ENTRY, WORLD_CTOR, "World.<init>(File,String)"),
+        new Target("net/minecraft/client/Minecraft", "a", "(Ldn;Ljava/lang/String;)V",
+                0x0001, 1, ENTRY, LOAD_WORLD, "Minecraft.loadWorld(World,String)"),
+        new Target("net/minecraft/client/Minecraft", "i", "()V",
+                0x0001, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
+        new Target("pe", "a", "(FZII)V",
+                0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
+    };
+
     private static final Map<String, Target[]> GROUPS = new HashMap<String, Target[]>();
 
     static {
@@ -241,6 +268,7 @@ public final class HookTargets {
         GROUPS.put("inf-20100629", TARGETS_0629);
         GROUPS.put("a1.1.2_01", TARGETS_1121);
         GROUPS.put("a1.2.0", TARGETS_120);
+        GROUPS.put("b1.2_02", TARGETS_1202);
     }
 
     private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);

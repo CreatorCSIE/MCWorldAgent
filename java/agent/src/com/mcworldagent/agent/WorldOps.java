@@ -617,8 +617,24 @@ public final class WorldOps {
             Field cur = invType.getField(INV_CUR);
             Field cnt = stackType.getField(IS_COUNT);
             Field id = stackType.getField(IS_ID);
-            Field dmg = stackType.getField(IS_DMG);
-            Constructor<?> c2 = stackType.getConstructor(int.class, int.class);
+            Field dmg;
+            try {
+                dmg = stackType.getField(IS_DMG);
+            } catch (NoSuchFieldException e1) {
+                // b1.2_02 断代（详表 §5）：ItemStack(gm).itemDamage=d 为 **private**——
+                // getDeclaredField+setAccessible（teBurnF private 先例同配方）；
+                // isDmg 读写（inv 快照/drop 对账）全经此 Field 对象。
+                dmg = stackType.getDeclaredField(IS_DMG);
+                dmg.setAccessible(true);
+            }
+            Constructor<?> c2;
+            try {
+                c2 = stackType.getConstructor(int.class, int.class);
+            } catch (NoSuchMethodException e2) {
+                // b1.2_02 断代（详表 §5）：gm 无 (II)V 构造——容忍 null，
+                // 构造走 newStack 配方（(III)V dmg=0 等价，字节码实钉）。
+                c2 = null;
+            }
             Constructor<?> c3 = stackType.getConstructor(int.class, int.class, int.class);
             invField = inv;
             invMain = main;
@@ -637,6 +653,18 @@ public final class WorldOps {
         } catch (NoSuchMethodException e) {
             throw new UnsupportedOp("inventory signatures: " + e);
         }
+    }
+
+    /** ItemStack 构造配方（b1.2_02 断代批，详表 §5）：damage==0 且二参构造健在
+     *  （0327..a1.2.0）→(II)V 原配方零变化；二参缺失（isCtor2=null 容忍）或
+     *  damage>0 →(III)V（gm 字节码实钉 arg1→c id、arg2→a count、arg3→d dmg，
+     *  dmg=0 与 (II)V 等价）。 */
+    private static Object newStack(int itemId, int count, int damage) throws Exception {
+        if (damage == 0 && isCtor2 != null) {
+            return isCtor2.newInstance(Integer.valueOf(itemId), Integer.valueOf(count));
+        }
+        return isCtor3.newInstance(Integer.valueOf(itemId), Integer.valueOf(count),
+                Integer.valueOf(damage));
     }
 
     /** give 面（addStack+注册表，spec §5）：任一槽 null→UnsupportedOp（give/setarmor/drop 入口守卫）。 */
@@ -670,10 +698,7 @@ public final class WorldOps {
         if (itemId < 0 || itemId >= items.length || items[itemId] == null) {
             throw new Rejected("bad-itemid: " + itemId);
         }
-        Object stack = (damage == 0)
-                ? isCtor2.newInstance(Integer.valueOf(itemId), Integer.valueOf(count))
-                : isCtor3.newInstance(Integer.valueOf(itemId), Integer.valueOf(count),
-                        Integer.valueOf(damage));
+        Object stack = newStack(itemId, count, damage);
         boolean fitted = ((Boolean) addStack.invoke(invField.get(p), stack)).booleanValue();
         if (!fitted) {
             throw new Rejected("inventory-full");
@@ -802,9 +827,17 @@ public final class WorldOps {
             try {
                 Class<?> wc = world.getClass();
                 Class<?> mc = Class.forName(fqcn, false, wc.getClassLoader());
-                ctor = tnt
-                        ? mc.getConstructor(wc, float.class, float.class, float.class)
-                        : mc.getConstructor(wc);
+                if (tnt) {
+                    try {
+                        ctor = mc.getConstructor(wc, float.class, float.class, float.class);
+                    } catch (NoSuchMethodException e1) {
+                        // b1.2_02 断代（详表 §4）：EntityTNTPrimed(mb)=(dn,DDD)V 非历代
+                        // FFF（0327..a1.2.0 fuse 内置配方）——fallback 三 double 参构造。
+                        ctor = mc.getConstructor(wc, double.class, double.class, double.class);
+                    }
+                } else {
+                    ctor = mc.getConstructor(wc);
+                }
             } catch (ClassNotFoundException e) {
                 throw new UnsupportedOp("mob class: " + e);
             } catch (NoSuchMethodException e) {
@@ -812,9 +845,18 @@ public final class WorldOps {
             }
             MOB_CTORS.put(kind, ctor);
         }
-        Object ent = tnt
-                ? ctor.newInstance(world, Float.valueOf(x + 0.5f), Float.valueOf(y), Float.valueOf(z + 0.5f))
-                : ctor.newInstance(world);
+        Object ent;
+        if (tnt) {
+            if (ctor.getParameterTypes()[1] == double.class) {
+                ent = ctor.newInstance(world, Double.valueOf(x + 0.5), Double.valueOf(y),
+                        Double.valueOf(z + 0.5));
+            } else {
+                ent = ctor.newInstance(world, Float.valueOf(x + 0.5f), Float.valueOf(y),
+                        Float.valueOf(z + 0.5f));
+            }
+        } else {
+            ent = ctor.newInstance(world);
+        }
         invokeSetPosRot(ent, x + 0.5, y, z + 0.5, 0f, 0f); // 档位二参长适配
         spawnEntity.invoke(world, ent);
         return "spawned " + kind + " at " + x + "," + y + "," + z;
@@ -843,10 +885,7 @@ public final class WorldOps {
         if (itemId < 0 || itemId >= items.length || items[itemId] == null) {
             throw new Rejected("bad-itemid: " + itemId);
         }
-        Object stack = (damage == 0)
-                ? isCtor2.newInstance(Integer.valueOf(itemId), Integer.valueOf(count))
-                : isCtor3.newInstance(Integer.valueOf(itemId), Integer.valueOf(count),
-                        Integer.valueOf(damage));
+        Object stack = newStack(itemId, count, damage);
         resolveEntity(world);
         if (itemCtor == null) {
             try {
@@ -1037,10 +1076,7 @@ public final class WorldOps {
             if (itemId < 0 || itemId >= items.length || items[itemId] == null) {
                 throw new Rejected("bad-itemid: " + itemId);
             }
-            stack = (damage == 0)
-                    ? isCtor2.newInstance(Integer.valueOf(itemId), Integer.valueOf(count))
-                    : isCtor3.newInstance(Integer.valueOf(itemId), Integer.valueOf(count),
-                            Integer.valueOf(damage));
+            stack = newStack(itemId, count, damage);
             what = "<- " + itemId + " x" + count + (damage == 0 ? "" : " dmg=" + damage);
         }
         inv[2].invoke(te, Integer.valueOf(slot), stack);
@@ -1255,10 +1291,7 @@ public final class WorldOps {
         if (itemId < 0 || itemId >= items.length || items[itemId] == null) {
             throw new Rejected("bad-itemid: " + itemId);
         }
-        Object stack = (damage == 0)
-                ? isCtor2.newInstance(Integer.valueOf(itemId), Integer.valueOf(count))
-                : isCtor3.newInstance(Integer.valueOf(itemId), Integer.valueOf(count),
-                        Integer.valueOf(damage));
+        Object stack = newStack(itemId, count, damage);
         ((Object[]) invArmor.get(invField.get(p)))[slot] = stack;
         return "setarmor slot=" + slot + " <- " + itemId + " x" + count
                 + (damage == 0 ? "" : " dmg=" + damage);
