@@ -48,7 +48,7 @@
 | 面 | c0.30-c | in-20100223 | inf-20100618 | inf-20100629 | a1.1.2_01 | a1.2.6 | b1.7.3 | b1.8.1 |
 |---|---|---|---|---|---|---|---|---|
 | World/Level | level/Level `getTile(III)I`/`setTile(IIII)Z` | `a.a.g` `d(III)B`! | `a.a.g` `a(III)I`/`c(IIII)Z` | `ez` `a(III)I`/`c(IIII)Z` | `cn` 同形 | `cy` 同形+维度 | `fd` `a(III)I` | `rv` 同 fd 形 |
-| 存盘 | (无 NBT 序列化) | 序列化器 a.a.a.a | `f()V`→level.dat | `a(Z)Z` | 同 0629 形 | 同 | SaveHandler | 同+GameType |
+| 存盘 | (无 NBT 序列化) | 序列化器 a.a.a.a | `f()V`→level.dat | `a(Z)Z` | `a(Lnu)V` 包装（活体翻案≠0629） | 同 | SaveHandler | 同+GameType |
 | Minecraft | `l`（thePlayer=`f:Player`） | `client.d` thePlayer=`f` | `client.d` thePlayer=`f` | `at` | 可读 Minecraft | 可读 | 可读 | 可读 |
 | Entity pos | **float x/y/z**（z-up） | **float h/i/j** | **double h/i/j** | `em` j/k/l | `kh` ak..am | `lw` aw..ay | `sn`+`a(DDD)V` | `kj` 同 |
 | ItemStack | **无**（平行 int[] slots/count） | `a.b.k` a=Count,c=id,d=Damage | `a.b.o` 同布局 | `hr` 同布局 | `ev` | `fp` | `iz`(stackSize/damage) | `ul` |
@@ -158,3 +158,20 @@
 
 **取证缺口**：a) 0.24~0.30 生存翻转逐件扫；b) Classic spawn 面（G 键配方/Entity 构造/mob 存活旗标）新面取证；c) Indev 段逐 op 能力判（verscan 0223 只有指纹面无 op 判）。
 **工作量口径**：Classic=新面（adapter 级），非新列（换表级）——A4 排期按此估。
+
+---
+
+## 9. a1.1.2_01 接入批活体记录（2026-11-15，el1121-1/2）
+
+**链路**：verscan 详表（[a1.1.2_01.md](../compatibility/verscan/a1.1.2_01.md)，含 §11 活体判决）→ 锚 JSON `java/agent/registry/fingerprints/a1.1.2_01.json`（SHA1 daa4b9f1…）→ VersionRegistry.build1121+HookTargets.TARGETS_1121+WorldOps → 假类复刻无头三件全绿（A2Table1121 260/FakeOps1121 52/InjectSmoke1121 22）→ Attic 启动器活体 World4（-Xbootclasspath asm-9.7）。
+
+**判决**（详表 §11 为准，此处索引）：
+- 五钩 HOOKED 全中；HUD 次级链断链即禁（HUD_HOOK_DISABLED，无错钩）。
+- **saveWorld 活体翻案**（0629 翻案①同型）：a(Z)Z=tick 本体（体首串 "TickNextTick list out of synch"，g() 每 tick 直调）→ 初钉致 SAVE_WORLD 刷屏 820 次；重钉 `a(Lnu)V` public 包装后 14 次全 ops 触发。
+- **setBlock 主写面定夺=`d(IIII)Z`**：marker place(-34,70,169,id=1) 退出重进 getblock=id=1 持久化。
+- **档位三玩家回退实锤**：World.k.get(0)=bi（entitylist N=327 含 bi@…[h=9]，未注册类简名留档=§4 预期）。
+- **冬天模式冒烟命中**：level.dat 终验 World4 Data 含 **SnowCovered=1**、World3(0629) 无=移除与生物群系同版（§5.1 a1.0.4 行）；SpawnX/Y/Z=-34/70/169（setspawn 持久化+o/p/q 三轴）、Time=6501（c:J）。
+- ops 面：38op 批 38/38 应答（26 OK/6 REJECTED 参数名错/其余 UNSUPPORTED 如设计）+s3 修正批 8/8；getinfo 实锤 o=spawnX+seed=u+difficulty=l；getlight=13 实锤 j；spawn sheep 跨存档存活+TNT 爆炸→Item@ 掉落簇持久化闭环。
+- **§5.1 生物群系带冒烟判据兑现**：数据面读回（level.dat 键集 diff）=防"字母对、语义错"机制首次全链执行。
+
+**证据**：`integrations/attic/out/el1121-1/`+`el1121-2/`（transform/hooks/game-stream 三 log+mca 全队列）。**repo 面**：M=VersionTable/VersionRegistry/HookTargets/WorldOps/锚 JSON/详表/本卷（未 commit，待指令）；测试件不入库（%TEMP%\mcaut）。

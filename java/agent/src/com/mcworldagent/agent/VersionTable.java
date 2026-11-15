@@ -35,6 +35,10 @@ public final class VersionTable {
 
     // 玩家/实体定位面（Entity 基类）
     public String playerF;          // World.c=活体玩家
+    /** 档位三（a1.1.2_01）：World 无玩家直字段——playerEntities 列表字段名（op 取 get(0) 回退）。 */
+    public String playerListF;
+    /** Entity 基类名（仅 playerF==null 时消费：tp/entity 面经此解析；null=走 playerF.getType() 推导）。 */
+    public String entityClassG;
     public String setPosRotM;       // setPositionAndRotation（0327 (DDDFF)V / 0618 a(DDD)V——见 desc 字段）
     /** setPosRot 描述符（档位二·签名差异，A2；null=按 0327 (DDDFF)V 处理）。 */
     public String setPosRotDesc;

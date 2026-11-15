@@ -61,6 +61,8 @@ public final class WorldOps {
     // tp/getplayer 面（表值；取证见 VersionRegistry。注意 W 在子类——execute 期按实例类
     // 惰性解析，失败→UnsupportedOp 不静默）
     private static final String F_WORLD_PLAYER = T.playerF;
+    private static final String F_WORLD_PLAYER_LIST = T.playerListF;   // 档位三：无玩家直字段版本的列表面
+    private static final String G_ENTITY_CLASS = T.entityClassG;       // 仅 F_WORLD_PLAYER==null 时消费
     private static final String M_SET_POS_ROT = T.setPosRotM;
     private static final String E_POS_X = T.posXF;
     private static final String E_POS_Y = T.posYF;
@@ -146,6 +148,8 @@ public final class WorldOps {
     private static volatile Field spawnY;
     private static volatile Field spawnZ;
     private static volatile Field player;      // World.c（类型=Entity 基类，活体玩家）
+    private static volatile Field playerList;  // 档位三回退：World.playerEntities（a1.1.2_01.k）
+    private static volatile Class<?> entityClass; // Entity 基类（playerF 型或 entityClassG 装载）
     private static volatile Method setPosRot;  // Entity.b(DDDFF)V
     private static volatile Field ePosX, ePosY, ePosZ;
     private static volatile Field eMotX, eMotY, eMotZ;
@@ -201,10 +205,11 @@ public final class WorldOps {
                 getBlock = wc.getMethod(M_GET_BLOCK, int.class, int.class, int.class);
             }
             if (M_SAVE_WORLD != null) {
-                // 档位二：按表描述符分支（0327 (Z)V / 0618 ()V / 0629 (Liw;)V 单引用型参）。
-                // 0629 参数类名从 desc 解析（"(Liw;)V"→"iw"，具体类，el0629-2 实锤），零表外新槽。
+                // 档位二：按表描述符分支（0327 (Z)V / 0618 ()V / 0629 (Liw;)V /
+                // a1.1.2_01 (Lnu;)V——el1121-1 翻案后同 0629 单引用型参形）。
+                // 参数类名从 desc 解析（"(Liw;)V"→"iw"、"(Lnu;)V"→"nu"），零表外新槽。
                 String sd = T.saveWorldDesc;
-                saveWorld = "(Z)V".equals(sd)
+                saveWorld = ("(Z)V".equals(sd) || "(Z)Z".equals(sd))
                         ? wc.getDeclaredMethod(M_SAVE_WORLD, boolean.class)
                         : sd != null && sd.startsWith("(L") && sd.endsWith(";)V")
                         ? wc.getDeclaredMethod(M_SAVE_WORLD, Class.forName(sd.substring(2, sd.length() - 3)))
@@ -227,14 +232,22 @@ public final class WorldOps {
             if (F_SPAWN_Z != null) {
                 spawnZ = wc.getField(F_SPAWN_Z);
             }
-            // tp 面：World.c 的类型即 Entity 基类，公开成员 getField/getMethod 直取
+            // tp 面：World.c 的类型即 Entity 基类，公开成员 getField/getMethod 直取。
+            // 档位三（a1.1.2_01）：World 无玩家直字段——playerEntities 列表回退，
+            // Entity 基类经表槽 entityClassG 装载（javap 实锤 World 无 dm 字段，verscan §7）。
             Field pl = null;
             if (F_WORLD_PLAYER != null) {
                 pl = wc.getField(F_WORLD_PLAYER);
                 player = pl;
+                entityClass = pl.getType();
+            } else if (F_WORLD_PLAYER_LIST != null) {
+                playerList = wc.getField(F_WORLD_PLAYER_LIST);
+                if (G_ENTITY_CLASS != null) {
+                    entityClass = Class.forName(G_ENTITY_CLASS, false, wc.getClassLoader());
+                }
             }
-            if (M_SET_POS_ROT != null && pl != null) {
-                Class<?> ec = pl.getType();
+            if (M_SET_POS_ROT != null && entityClass != null) {
+                Class<?> ec = entityClass;
                 // 档位二：0327 (DDDFF)V 五参 / 0618 (DDD)V 三参。
                 // a3-0618-3 活体翻案：0618 a(DDD)V 是 **protected final**——getMethod 只认
                 // public 报 NoSuchMethod 并连坐整块 resolve（listops 全堵）。改 getDeclaredMethod：
@@ -292,6 +305,21 @@ public final class WorldOps {
         }
     }
 
+    /** 玩家获取（档位三建模）：playerF 已钉=直读字段；否则 playerEntities.get(0)
+     *  （a1.1.2_01 javap 实锤 World 无玩家字段；单人客户端列表首件=活体玩家，
+     *  verscan §7 判决；空表=未载入→与 no-player 同语义 Rejected）。 */
+    private static Object worldPlayer(Object world) throws Exception {
+        Field pl = player;
+        if (pl != null) {
+            return pl.get(world);
+        }
+        if (playerList == null) {
+            throw new UnsupportedOp("player face: neither playerF nor playerListF pinned for " + T.versionId);
+        }
+        List<?> l = (List<?>) playerList.get(world);
+        return (l == null || l.isEmpty()) ? null : l.get(0);
+    }
+
     /** setPosRot 调用适配（档位二）：5 参版透传 yaw/pitch；3 参版（0618 a(DDD)V）
      *  直写面不含旋转——调用方已先直写字段，yaw/pitch 未动=等价（spec §3）。 */
     private static void invokeSetPosRot(Object target, double x, double y, double z,
@@ -339,7 +367,7 @@ public final class WorldOps {
      * 返回旧位供回滚记录。
      */
     public static String tp(Object world, int x, int y, int z) throws Exception {
-        Object p = player.get(world);
+        Object p = worldPlayer(world);
         if (p == null) {
             throw new Rejected("no-player");
         }
@@ -462,7 +490,7 @@ public final class WorldOps {
     /** 玩家快照（op=getplayer，只读）：pos/motion/rot（tp 轮已 resolve 字段）+ Health（惰性解析，0327=W/0618=Z）。 */
     public static String getPlayer(Object world) throws Exception {
         require("healthF", E_HEALTH); // 档位一守卫（双表已钉，spec §3）
-        Object p = player.get(world);
+        Object p = worldPlayer(world);
         if (p == null) {
             throw new Rejected("no-player");
         }
@@ -481,7 +509,7 @@ public final class WorldOps {
      * 协议：整数角度（MiniJson 拒浮点），yaw∈[0,360)、pitch∈[-90,90]。返回旧值供回滚。
      */
     public static String setLook(Object world, int yawDeg, int pitchDeg) throws Exception {
-        Object p = player.get(world);
+        Object p = worldPlayer(world);
         if (p == null) {
             throw new Rejected("no-player");
         }
@@ -506,7 +534,7 @@ public final class WorldOps {
      */
     public static String setMotion(Object world, int vx1000, int vy1000, int vz1000)
             throws Exception {
-        Object p = player.get(world);
+        Object p = worldPlayer(world);
         if (p == null) {
             throw new Rejected("no-player");
         }
@@ -601,7 +629,7 @@ public final class WorldOps {
      * save 后经 EntityPlayer "Inventory" NBT 落盘（取证：主槽 Slot 0..35、盔甲 100..103）。
      */
     public static String give(Object world, int itemId, int count, int damage) throws Exception {
-        Object p = player.get(world);
+        Object p = worldPlayer(world);
         if (p == null) {
             throw new Rejected("no-player");
         }
@@ -629,7 +657,7 @@ public final class WorldOps {
 
     /** 物品栏快照（op=inv，纯读）：主槽 0..35、盔甲 A0..A3，槽=数量xID[ d伤害]，cur=快捷槽；全空→empty。 */
     public static String inv(Object world) throws Exception {
-        Object p = player.get(world);
+        Object p = worldPlayer(world);
         if (p == null) {
             throw new Rejected("no-player");
         }
@@ -678,7 +706,7 @@ public final class WorldOps {
      */
     public static String setHealth(Object world, int health) throws Exception {
         require("healthF", E_HEALTH); // 档位一守卫（双表已钉，spec §3）
-        Object p = player.get(world);
+        Object p = worldPlayer(world);
         if (p == null) {
             throw new Rejected("no-player");
         }
@@ -698,7 +726,10 @@ public final class WorldOps {
         }
         try {
             Class<?> wc = world.getClass();
-            Class<?> ec = player.getType();
+            Class<?> ec = entityClass;
+            if (ec == null) {
+                throw new UnsupportedOp("entity class not resolved for " + T.versionId);
+            }
             explode = wc.getMethod(M_EXPLODE, ec,
                     double.class, double.class, double.class, float.class);
             spawnEntity = wc.getMethod(M_SPAWN_ENTITY, ec);
@@ -771,7 +802,7 @@ public final class WorldOps {
     public static String drop(Object world, int itemId, int count, int damage, int x, int y, int z)
             throws Exception {
         require("spawnEntityM", M_SPAWN_ENTITY); // 0618 未钉→UNSUPPORTED（spec §3）
-        Object p = player.get(world);
+        Object p = worldPlayer(world);
         if (p == null) {
             throw new Rejected("no-player");
         }
@@ -819,7 +850,7 @@ public final class WorldOps {
      */
     public static String invulnerable(Object world, int ticks) throws Exception {
         require("iframesF", E_IFRAMES); // 0618 未钉→UNSUPPORTED（spec §3）
-        Object p = player.get(world);
+        Object p = worldPlayer(world);
         if (p == null) {
             throw new Rejected("no-player");
         }
@@ -1180,7 +1211,7 @@ public final class WorldOps {
      */
     public static String setArmor(Object world, int slot, int itemId, int count, int damage)
             throws Exception {
-        Object p = player.get(world);
+        Object p = worldPlayer(world);
         if (p == null) {
             throw new Rejected("no-player");
         }
@@ -1209,7 +1240,7 @@ public final class WorldOps {
 
     /** 背包清空（op=clearinv，**不可逆**——无 undo 面，spec §4）。主槽+盔甲全 null。写侧。 */
     public static String clearInv(Object world) throws Exception {
-        Object p = player.get(world);
+        Object p = worldPlayer(world);
         if (p == null) {
             throw new Rejected("no-player");
         }
@@ -1276,7 +1307,7 @@ public final class WorldOps {
         Method kill = setEntityDeadM;
         if (kill == null) {
             try {
-                kill = world.getClass().getMethod(M_SET_ENTITY_DEAD, player.getType());
+                kill = world.getClass().getMethod(M_SET_ENTITY_DEAD, entityClass);
             } catch (NoSuchMethodException e) {
                 throw new UnsupportedOp("setEntityDead: " + e);
             }
@@ -1325,7 +1356,8 @@ public final class WorldOps {
                     continue;
                 }
             }
-            kill.invoke(null, e);
+            // 档位二（a1.1.2_01）：0327/0629=static b(kh)V 收 null；a1.1.2_01=**实例** d(kh)V 收 world
+            kill.invoke(java.lang.reflect.Modifier.isStatic(kill.getModifiers()) ? null : world, e);
             n++;
         }
         if (n == 0) {

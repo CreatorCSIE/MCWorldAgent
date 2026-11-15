@@ -174,12 +174,43 @@ public final class HookTargets {
                 0x0011, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float)"),
     };
 
+    /**
+     * a1.1.2_01 钩组（Alpha 首例，G3-alpha：扁平散件 World=cn/Gui=lu，但主类未混淆
+     * =net/minecraft/client/Minecraft 自带 main）。详表 verscan/a1.1.2_01.md §9。
+     * SAVE_WORLD：cn.a(Lnu)V public 包装（el1121-1 活体翻案：初钉 a(Z)Z 系 0629 翻案①同型误判——
+     * 体首串 "TickNextTick list out of synch"=tick 本体，g() 每 tick 直调致 SAVE_WORLD 刷屏
+     * （820 次/75s）且 ops save 无磁盘效果；真链=a(Lnu)V→a(true,nu)→a(ZLnu)V 本体，
+     * 本体 nu null 守卫齐全（ifnull@13）→ops 传 null 直调包装，0629 配方复用）。
+     * WORLD_CTOR：cn(File,String) public——本版启用（详表 §2：Minecraft 换世界流程唯一
+     * new 点，dir 面入把手，同 0327 双钩保底）。
+     * LOAD_WORLD：Minecraft.a(cn,String)——详表 §7 标 private，javap 复核=**public**
+     * （0x0001 按实钉；slot1=活体 World，0618 同形态保底）。
+     * RUN_TICK：Minecraft.i()V **public**（档位二：0327/0629 private——五项全中按实访问位）。
+     * HUD_RENDER：lu.a(FZII)V public EXIT（档位二换形：0327/0618/0629 a(F)V 形失效——
+     * iq L1110 渲染路径 invokevirtual 实锤，hud-1 教训规避）。onHud 反射链字母 f/m/u/d
+     * 在本版必断（thePlayer=g、font=o）→HUD_HOOK_DISABLED 优雅降级=钩已触发证据，
+     * 0629 同族先例（el0629-1/2/3 cz.a 断链判决）。
+     */
+    public static final Target[] TARGETS_1121 = {
+        new Target("cn", "a", "(Lnu;)V",
+                0x0001, 1, ENTRY, SAVE_WORLD, "World.saveWorld(progress) public wrapper"),
+        new Target("cn", "<init>", "(Ljava/io/File;Ljava/lang/String;)V",
+                0x0001, 1, ENTRY, WORLD_CTOR, "World.<init>(File,String)"),
+        new Target("net/minecraft/client/Minecraft", "a", "(Lcn;Ljava/lang/String;)V",
+                0x0001, 1, ENTRY, LOAD_WORLD, "Minecraft.loadWorld(World,String)"),
+        new Target("net/minecraft/client/Minecraft", "i", "()V",
+                0x0001, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
+        new Target("lu", "a", "(FZII)V",
+                0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
+    };
+
     private static final Map<String, Target[]> GROUPS = new HashMap<String, Target[]>();
 
     static {
         GROUPS.put("inf-20100327", TARGETS_0327);
         GROUPS.put("inf-20100618", TARGETS_0618);
         GROUPS.put("inf-20100629", TARGETS_0629);
+        GROUPS.put("a1.1.2_01", TARGETS_1121);
     }
 
     private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);

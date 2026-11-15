@@ -31,12 +31,13 @@ public final class VersionRegistry {
     private static final VersionTable T_0327 = build0327();
     private static final VersionTable T_0618 = build0618();
     private static final VersionTable T_0629 = build0629();
+    private static final VersionTable T_1121 = build1121();
 
     private static final Map<String, VersionTable> BY_ID = new HashMap<String, VersionTable>();
     private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
 
     static {
-        VersionTable[] tables = { T_0327, T_0618, T_0629 };
+        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121 };
         for (VersionTable t : tables) {
             BY_ID.put(t.versionId, t);
             BY_SHA1.put(t.jarSha1, t);
@@ -349,6 +350,109 @@ public final class VersionRegistry {
         t.mobClasses.put("tnt", "cy");
         t.mobClasses.put("giant", "aa");
         t.mobClasses.put("mob", "gl");
+
+        return t;
+    }
+
+    /**
+     * a1.1.2_01 表（Alpha 1.1.2_01，G3-alpha 首例——扁平混淆但主类未混淆
+     * net.minecraft.client.Minecraft 自带 main）。值源=本会话 javap 原始 jar 复核
+     * （解包 %TEMP%\mcaut\a1121\，SHA1 daa4b9f1… 对索引 L317）+ 详表
+     * docs/compatibility/verscan/a1.1.2_01.md（九面钉死+档位表 §9）。
+     * 三档建模照 0629 惯例：档位二=saveWorld a(Z)**Z**（返回值差）、runTick public、
+     * HUD 钩换形 a(FZII)V、spawnEntity 返 Z、setEntityDead **实例** d(kh)V；
+     * 档位三=玩家面（World 无 dm 字段！playerListF=k + entityClassG=kh 回退，
+     * WorldOps.worldPlayer 消费）；档位一=未钉面 null。
+     * 字母漂移族规（详表 §10）：pos=ak..am、mot=an..ap、yaw/pitch=aq/ar、health=E、
+     * iframes=aW、invCur=d、Item 注册表=c——inventory b + ItemStack a/c/d 全同形。
+     * 冬天模式：World.d=snowCovered（level.dat 键集冒烟判据，a1.2.0 移除=与生物群系同版）。
+     */
+    private static VersionTable build1121() {
+        VersionTable t = new VersionTable();
+        t.versionId = "a1.1.2_01";
+        t.family = "G3"; // 扁平散件+未混淆主类（G3 家族 alpha 变体）
+        t.jarSha1 = "daa4b9f192d2c260837d3b98c39432324da28e86"; // 索引 L317 对榫（897164B）
+
+        // World 写读面（cn；详表 §2，javap 访问位全 public 实锤）
+        t.setBlockM = "d";        // d(IIII)Z 候选=setBlockWithNotify（⚠️a(IIII)Z=tiny 裸 setBlock——活体 diff 定夺）
+        t.getBlockM = "a";        // a(III)I 同 0327 形
+        t.getMetaM = "e";         // e(III)I getBlockData（tiny 对榫）
+        t.saveWorldM = "a";       // a(Lnu)V public 包装（el1121-1 活体翻案，0629 同型：a(Z)Z 体首串
+        // "TickNextTick list out of synch"=tick 本体非 saveWorld，g() 每 tick 直调=钩错则刷屏；
+        // 真链=a(Lnu)V→a(true,nu)→a(ZLnu)V 本体（H 守卫+nu null 守卫+m() 写 level.dat+aw.a 存 chunk）；
+        // changeWorld 两处调用传实参 q:Lgr，本体 null 守卫齐全→ops 传 null 语义正当）
+        t.saveWorldDesc = "(Lnu;)V";
+        t.worldTimeF = "c";       // public long c（NBT "Time" 写读配对）
+        t.randSeedF = "u";        // public long u（NBT "RandomSeed"）
+        t.spawnXF = "o";          // o/p/q=SpawnX/Y/Z（o=spawnX 候选——tiny 只钉 p/q）
+        t.spawnYF = "p";
+        t.spawnZF = "q";
+        t.teGetM = "b";           // b(III)Lic;（TE 基类=ic）
+
+        // 玩家/实体定位面（Entity=kh；档位三：World 无玩家直字段）
+        t.playerF = null;         // javap 实锤 cn 无 dm 字段（详表 §7）
+        t.playerListF = "k";      // public List k=playerEntities（worldPlayer get(0) 回退）
+        t.entityClassG = "kh";
+        t.setPosRotM = "b";       // b(DDDFF)V public 同 0327 字母同形（直写 ak..am+aq/ar=NBT 载入配方）
+        t.setPosRotDesc = "(DDDFF)V";
+        t.posXF = "ak";           // ⚠️非 0327 g/h/i、非 0618 h/i/j、非 0629 j/k/l——逐版取证铁律
+        t.posYF = "al";
+        t.posZF = "am";
+        t.motXF = "an";
+        t.motYF = "ao";
+        t.motZF = "ap";
+        t.yawF = "aq";
+        t.pitchF = "ar";
+        t.healthF = "E";          // EntityLiving(ge).E（NBT "Health" 双向+保底 10，同 0327 W/0618 Z/0629 ab 语义）
+        t.iframesF = "aW";        // Entity.aW=heartsLife（0327 K 同语义，瞬态不进 NBT）
+
+        // 物品栏面（EntityPlayer=dm.b→eu；ItemStack=ev a/c/d 全同形）
+        t.invF = "b";             // dm.b=InventoryPlayer（0327/0618/0629 同字母！）
+        t.invMainF = "a";         // ev[37]（⚠️readFromNBT 重建 ev[36]——give 循环按 arraylength 自适应无险）
+        t.invArmorF = "b";        // ev[4]
+        t.invCurF = "d";          // ⚠️非 0327 c
+        t.isCountF = "a";
+        t.isIdF = "c";
+        t.isDmgF = "d";
+        t.addStackM = "a";        // eu.a(ev)Z addItemStackToInventory（give 主入口）
+        t.itemClassG = "di";
+        t.itemsF = "c";           // ⚠️public static di[] c（0327=b 字母漂移）
+        t.itemEntityG = "dx";     // EntityItem (cn,DDD,ev)V ✓同 0327 配方
+
+        // 实体/世界事件面（详表 §2/§9；档位二两处=spawnEntity 返 Z、setEntityDead 实例）
+        t.explodeM = "a";         // a(Lkh;DDDF)V 同 0327 形
+        t.spawnEntityM = "a";     // a(Lkh;)Z（⚠️0327/0629 void——getMethod 返回值无关，档位二显式）
+        t.setEntityDeadM = "d";   // d(Lkh;)V **实例** public（⚠️0327/0629 static——clear 收 world 调用，档位二）
+        t.entityListM = "i";      // i()List getLoadedEntityList
+        t.entityTypeM = null;     // per-instance 命名面未钉（0629 判决同族），主面=EntityList 查表
+        t.entityListClassG = "ew";
+        t.entityListLookupM = "b"; // public static b(kh)String（Map 查表；注册面详表 §4 含 Giant=hl 53）
+        t.playSoundM = "a";       // a(DDD,String,F,F)V 同 0327 形
+
+        // getinfo 面（difficultyF 已钉——0618/0629 欠账本版有）
+        t.difficultyF = "l";      // public int l=difficultySetting
+
+        // 档位一 null 槽（未钉面，op 入口 require 响亮）：setMetaSilentM 已钉 b(IIII)V ✓tiny，
+        // 但 notify 段 light6M/observersF 未钉⇒setmeta/grow 仍 UNSUPPORTED（require 连坐）；
+        // getLightM=j ✓tiny 已钉（getlight OK）；scatterClassG（genscatter）、
+        // invSizeM/invGetM/invSetM/teBurnF/teCookF（chest/furnace 内部面）、
+        // idCrops/idSapling/cropsRipeMeta（农业 id 本批未取证——宁缺毋滥）留 null。
+        t.setMetaSilentM = "b";   // (IIII)V ✓tiny setBlockMetadataWithNotify 静默写
+        t.getLightM = "j";        // (III)I ✓tiny getBrightness
+
+        // spawn 白名单（mob 构造器 (cn)V 注册表在案=候选，无头逐个验；
+        // tnt=jd(cn,FFF)V fuse 内置同 0327 配方；giant=hl 构造健在候选——0327 死桩复活面
+        // 在 alpha 无需要（详表 §3：hl 仍在生物树）；mob=ek=EntityCreature（0327 同语义层，
+        // 非 0629 EntityMonster 漂移）；cow=am/chicken=mz 在注册表但 op 白名单键沿用既有面）
+        t.mobClasses.put("pig", "mv");
+        t.mobClasses.put("sheep", "bo");
+        t.mobClasses.put("creeper", "dd");
+        t.mobClasses.put("skeleton", "cw");
+        t.mobClasses.put("zombie", "mb");
+        t.mobClasses.put("spider", "ax");
+        t.mobClasses.put("tnt", "jd");
+        t.mobClasses.put("giant", "hl");
+        t.mobClasses.put("mob", "ek");
 
         return t;
     }
