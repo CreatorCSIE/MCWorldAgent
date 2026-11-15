@@ -1,7 +1,8 @@
 {
   "versionId": "a1.2.0",
   "jarSha1": "8632ea716fd083c2975f16d612306fd80bee46db",
-  "jarState": "official-manifest-duplicate: 内嵌 stamp=Minecraft Alpha v1.2.0_02（详表 §0）",
+  "jarSha1Alt": "43ffc4de410512c3ca10dd5cd9812ea5df5dc0ed",
+  "jarState": "official-manifest-duplicate: 内嵌 stamp=Minecraft Alpha v1.2.0_02（详表 §0）；jarSha1Alt=betacraft 原始 2057 候选件，BY_SHA1 别名同表 T_120，el1257 活体旁证零偏移（详表 §11）",
   "family": "G3",
   "targets": {
     "worldClass": { "class": "cu", "name": null, "descriptor": null },

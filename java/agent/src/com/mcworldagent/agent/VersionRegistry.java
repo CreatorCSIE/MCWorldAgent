@@ -43,6 +43,10 @@ public final class VersionRegistry {
             BY_ID.put(t.versionId, t);
             BY_SHA1.put(t.jarSha1, t);
         }
+        // a1.2.0 duplicate 陷阱（详表 a1.2.0_02.md §0）：原始 2057 候选件（betacraft
+        // 43ffc4de，内嵌 stamp=v1.2.0）与 manifest 件（8632ea71=_02）7 class 签名级
+        // diff 零——BY_SHA1 别名让两件自动同表；活体旁证批 el1257-* 验证映射无偏移。
+        BY_SHA1.put("43ffc4de410512c3ca10dd5cd9812ea5df5dc0ed", T_120);
     }
 
     /** 激活表（premain 前默认 0327=现行为零变化；VersionResolver 命中后切换）。 */

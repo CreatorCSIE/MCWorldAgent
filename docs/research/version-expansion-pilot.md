@@ -185,6 +185,7 @@
 **判决**（详表 §11 为准，此处索引）：
 - **官方 duplicate 陷阱（用户指正+实锤）**：Mojang manifest id "a1.2.0" 分发件（8632ea71）内嵌 stamp=`Minecraft Alpha v1.2.0_02`——本批取证+活体实为 _02 构建；betacraft 件（43ffc4de，内嵌 `v1.2.0` 无后缀）=原始 2057 候选件，**前判"干扰件排除"翻案**。两件逐文件 diff=仅 7 class+3 签名，**7 class 签名级 diff 全零**→锚面结论 100% 迁移 2057 件，行为判决归属 _02（详表 §0）。**戒律 14 升级：SHA1 对榫只证"件=manifest 分发物"，不证构建身份——身份须内嵌版本串定夺**（a1.2.x/未来 duplicate 版同理）。
 - 五钩 HOOKED 全中（saveWorld 包装=`a(Lph;)V` 档位二兑现，无 a1.1.2_01 式 tick 陷阱——初钉即对，配方已吸收）。
+- **2057 件活体旁证批（el1257-1/2，用户指令"看看有没有映射偏移"）——判决=零偏移**：VersionRegistry BY_SHA1 别名（43ffc4de→T_120）+ sidecar `checkIntegrity=false` 实跑 2057 件：五钩全中、ops q/a/c/d 与 el120-3 逐条同相、biome 48 坐标 47 可比条零偏移、跨构建磁盘格式双向通（2057 读回 _02 marker id=4；2057 写 marker→离线 chunk `1a\o\c.-i.o.dat` 验 id=4；level.dat Spawn=-271/68/401/无 SnowCovered/Dimension 同相）。**取证翻案：chunk 文件名坐标亦 base36**（`c.-i.o.dat`=chunk(-18,24)，前例 `-2.0` 系巧合）。崩溃观察一件未复现（el1257-1 三连换世界 exit 0xCF00001F，候选=差异 7 class 方法体面，详表 §11 留档不判）。
 - ops 批 a01–a42 全绿；**字母漂移三翻案实锤**：health=**J**（E 猜测翻案）、spawnX/Y/Z=**n/o/p**（左移）、Giant=**ig:53 存活**（"疑移除"翻案）；iframes aW/settime e:J/setlook av/aw/saveWorld 包装均读回命中。
 - **§5.1 生物群系带三判据全兑现**：biome 读回 178 列 0 错（`cu.a()Lpb;`→`a(II)Lfy;`→`fy.m` 链闭环，10 群系命中）；level.dat 键集 diff=**无 SnowCovered**（对 World4 有=1，主判据命中）；群系↔方块对拍**翻案：snow(78) 不落地、ice(79) 落地**（Tundra 水面冰 31 块，与 snowCovered 移除互证）。
 - **维度新面活体命中**：World5 Player 复合含 **Dimension** 键（a1.1.2_01 无）=下界存盘铺垫。
