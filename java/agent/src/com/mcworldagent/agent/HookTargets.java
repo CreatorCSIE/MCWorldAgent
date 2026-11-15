@@ -204,6 +204,35 @@ public final class HookTargets {
                 0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
     };
 
+    /**
+     * a1.2.0 钩组（G3-alpha 第二版，生物群系带接入批）。详表 verscan/a1.2.0_02.md §1-§9。
+     * 五钩字母全漂移于 a1.1.2_01（cn→cu/lu→mz/nu→ph/bi→bo），钩形逐面同构：
+     * SAVE_WORLD：cu.a(Lph)V public 包装（javap -c 对榫=与 a1.1.2_01 翻案后同链：
+     * 包装→iconst_1→a(ZLph)V 本体，本体 L980 起 "Saving level"→o()V 写 level.dat
+     * +"Saving chunks"→bb.a(ZLph)Z；本体 ph null 守卫 ifnull 齐全→ops 传 null 直调包装，
+     * 0629/a1.1.2_01 配方三连用。⚠️cu.a(Z)Z=TickUpdates 禁钩（el1121-1 同款陷阱）。
+     * WORLD_CTOR：cu(File,String) public（构造族四重载之基础形，同 0327/a1.1.2_01 判决）。
+     * LOAD_WORLD：Minecraft.a(cu,String) public（sig 复核 0x0001；另有 (cu,String,dv) 三维参
+     * 重载=下界传送门新面，本批不钩）。
+     * RUN_TICK：Minecraft.i()V public（run() tick 循环 invokevirtual i()+try/catch 置 e=null
+     * 调 a(Lcu;)V 对榫——a1.1.2_01 同字母同形）。
+     * HUD_RENDER：mz.a(FZII)V public EXIT（tiny 直钉 renderGameOverlay+jq.b(F)V L1225
+     * invokevirtual 调用点双实锤）。onHud 反射链字母本版未钉→HUD_HOOK_DISABLED 优雅降级
+     * =钩已触发证据（a1.1.2_01/0629 同族判决）。
+     */
+    public static final Target[] TARGETS_120 = {
+        new Target("cu", "a", "(Lph;)V",
+                0x0001, 1, ENTRY, SAVE_WORLD, "World.saveWorld(progress) public wrapper"),
+        new Target("cu", "<init>", "(Ljava/io/File;Ljava/lang/String;)V",
+                0x0001, 1, ENTRY, WORLD_CTOR, "World.<init>(File,String)"),
+        new Target("net/minecraft/client/Minecraft", "a", "(Lcu;Ljava/lang/String;)V",
+                0x0001, 1, ENTRY, LOAD_WORLD, "Minecraft.loadWorld(World,String)"),
+        new Target("net/minecraft/client/Minecraft", "i", "()V",
+                0x0001, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
+        new Target("mz", "a", "(FZII)V",
+                0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
+    };
+
     private static final Map<String, Target[]> GROUPS = new HashMap<String, Target[]>();
 
     static {
@@ -211,6 +240,7 @@ public final class HookTargets {
         GROUPS.put("inf-20100618", TARGETS_0618);
         GROUPS.put("inf-20100629", TARGETS_0629);
         GROUPS.put("a1.1.2_01", TARGETS_1121);
+        GROUPS.put("a1.2.0", TARGETS_120);
     }
 
     private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);

@@ -1,6 +1,6 @@
 # 案卷 — 版本扩展跨阶段试点调研（version-expansion-pilot，2026-11-14）
 
-状态：**调研毕**（9 代表版本 × 接口+指纹全钉，详表=`docs/compatibility/verscan/*.md` 8 份；实跑零——纯离线 javap 调研，实跑属后续逐版接入批）｜ 触发：用户判决"版本扩展=跨阶段代表版本，0227/0313 次优先"并指定选版：Classic 0.30-c / Indev 0223 / Infdev 0618+0629 / Alpha 1.1.2_01+1.2.6 / Beta 1.7.3+1.8.1（0327=既有基线）
+状态：**调研毕**（9 代表版本 × 接口+指纹全钉，详表=`docs/compatibility/verscan/*.md` 9 份；活体=a1.1.2_01+a1.2.0 两接入批已跑毕（§9/§10），余版逐版待跑）｜ 触发：用户判决"版本扩展=跨阶段代表版本，0227/0313 次优先"并指定选版：Classic 0.30-c / Indev 0223 / Infdev 0618+0629 / Alpha 1.1.2_01+1.2.6 / Beta 1.7.3+1.8.1（0327=既有基线）
 
 ## 0. 弹药与身份（jar 闸门）
 
@@ -175,3 +175,20 @@
 - **§5.1 生物群系带冒烟判据兑现**：数据面读回（level.dat 键集 diff）=防"字母对、语义错"机制首次全链执行。
 
 **证据**：`integrations/attic/out/el1121-1/`+`el1121-2/`（transform/hooks/game-stream 三 log+mca 全队列）。**repo 面**：M=VersionTable/VersionRegistry/HookTargets/WorldOps/锚 JSON/详表/本卷（未 commit，待指令）；测试件不入库（%TEMP%\mcaut）。
+
+---
+
+## 10. a1.2.0 接入批活体记录（2026-11-15，el120-3/4；生物群系带试点；实跑件=a1.2.0_02）
+
+**链路**：verscan 详表（[a1.2.0_02.md](../compatibility/verscan/a1.2.0_02.md)，含 §11 活体判决；文件名=实测构建，操作键=manifest id a1.2.0）→ 原生 tiny 直钉（不再借映射）→ 锚 JSON `java/agent/registry/fingerprints/a1.2.0.json`（SHA1 8632ea71…，versionId 保留 a1.2.0）→ VersionRegistry.build120+HookTargets.TARGETS_120+WorldOps → 假类复刻无头全绿 → Attic 启动器活体 World5（-Xbootclasspath asm-9.7）。
+
+**判决**（详表 §11 为准，此处索引）：
+- **官方 duplicate 陷阱（用户指正+实锤）**：Mojang manifest id "a1.2.0" 分发件（8632ea71）内嵌 stamp=`Minecraft Alpha v1.2.0_02`——本批取证+活体实为 _02 构建；betacraft 件（43ffc4de，内嵌 `v1.2.0` 无后缀）=原始 2057 候选件，**前判"干扰件排除"翻案**。两件逐文件 diff=仅 7 class+3 签名，**7 class 签名级 diff 全零**→锚面结论 100% 迁移 2057 件，行为判决归属 _02（详表 §0）。**戒律 14 升级：SHA1 对榫只证"件=manifest 分发物"，不证构建身份——身份须内嵌版本串定夺**（a1.2.x/未来 duplicate 版同理）。
+- 五钩 HOOKED 全中（saveWorld 包装=`a(Lph;)V` 档位二兑现，无 a1.1.2_01 式 tick 陷阱——初钉即对，配方已吸收）。
+- ops 批 a01–a42 全绿；**字母漂移三翻案实锤**：health=**J**（E 猜测翻案）、spawnX/Y/Z=**n/o/p**（左移）、Giant=**ig:53 存活**（"疑移除"翻案）；iframes aW/settime e:J/setlook av/aw/saveWorld 包装均读回命中。
+- **§5.1 生物群系带三判据全兑现**：biome 读回 178 列 0 错（`cu.a()Lpb;`→`a(II)Lfy;`→`fy.m` 链闭环，10 群系命中）；level.dat 键集 diff=**无 SnowCovered**（对 World4 有=1，主判据命中）；群系↔方块对拍**翻案：snow(78) 不落地、ice(79) 落地**（Tundra 水面冰 31 块，与 snowCovered 移除互证）。
+- **维度新面活体命中**：World5 Player 复合含 **Dimension** 键（a1.1.2_01 无）=下界存盘铺垫。
+- **marker 磁盘级定夺**（el120-4 离线读 chunk NBT）：`c.-2.0.dat` 本地(9,80,6)=**id=4** → 主写面 **d(IIII)Z 持久化实锤**；顺带**存储面新钉：a1.2.0 chunk=16×16×128、索引 `x<<11|z<<7|y`、目录=coord&63 base36、文件 `c.<x>.<z>.dat`**（§2 存储断代"仍散件"细化实锤）；drop Item 跨存档存活（fi↔ih 链闭环）。
+- 缺口：5 项 UNSUPPORTED 次级槽未钉（setmeta/setchest/getchest/getfurnace/genscatter/grow）；对照漂移记档（World4 现无 SnowCovered=跨版本开档剥离，结论不变）。
+
+**证据**：`integrations/attic/out/el120-3/`（hooks/transform+biome-scan/fine/wide/ray+ops-batchA/C/D）+`el120-4/`（hooks/transform+marker-readback+level-dat-final）。**repo 面**：M=VersionTable/VersionRegistry/HookTargets/WorldOps/锚 JSON 等 5 件+?? a1.2.0_02.md/a1.2.0.json+归档件（未 commit，待指令）；测试件不入库（%TEMP%\mcaut）。

@@ -78,6 +78,14 @@ public final class VersionTable {
     public String difficultyF;      // difficultySetting int
     public String scatterClassG;    // 椭球矿石散布器类
 
+    // 生物群系面（a1.2.0 首版，verscan/a1.2.0_02.md §8 读回链三锚：World.getWcm()LWcm;
+    // →Wcm.biomeAt(II)LBiome;→Biome.name public String；beta 前版本（0327/0618/0629/
+    // a1.1.2_01）=null——getbiome 入口 require 响亮 UNSUPPORTED：这些版本无 biome 面，
+    // 非指纹欠账）
+    public String biomeWcmM;        // World.getWorldChunkManager 名（无参唯一）
+    public String biomeAtM;         // WCM 坐标→biome 名（(II) 双 int 参唯一重载）
+    public String biomeNameF;       // Biome 名 public String 字段（子类继承可达）
+
     // tileentity 面
     public String teGetM;           // getBlockTileEntity (III)ITE
     public String invSizeM, invGetM, invSetM; // IInventory 三方法

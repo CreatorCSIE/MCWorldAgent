@@ -49,7 +49,7 @@ public final class CommandChannel {
                     "explode", "spawn", "drop", "invulnerable",
                     "getchest", "setchest", "getfurnace",
                     "entitylist", "playsound", "setarmor", "clearinv", "replace",
-                    "grow", "clear"));
+                    "grow", "clear", "getbiome"));
 
     /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。 */
     private static final String LISTOPS =
@@ -74,7 +74,8 @@ public final class CommandChannel {
           + "clearinv w[不可逆];"
           + "replace(x1,y1,z1,x2,y2,z2,oldId,newId)w[cap4096];"
           + "grow(x,y,z)w[crops59-only;sapling=UNSUPPORTED-Beta1.2];"
-          + "clear([x,y,z,r0..64])t[EntityItem-only]";
+          + "clear([x,y,z,r0..64])t[EntityItem-only];"
+          + "getbiome(x,z)r[a1.2.0+;beta 前版本 UNSUPPORTED]";
 
     private static String cmdDirArg;
     private static File baseDir; // 解析后的 mca/ 根
@@ -529,6 +530,13 @@ public final class CommandChannel {
             int z = intArg(a, "z");
             int meta = intArg(a, "meta");
             return WorldOps.setMeta(world, x, y, z, meta) + saveSuffix(world, c);
+        }
+        if ("getbiome".equals(c.op)) {
+            // biome=列面函数（x,z），y 无意义不取——validateCoords 不适用；
+            // WCM 纯数学现算不触 chunk（WorldOps.biomeAt 注释），beta 前版本槽 null=require 响亮
+            int x = intArg(a, "x");
+            int z = intArg(a, "z");
+            return "x=" + x + " z=" + z + " biome=" + WorldOps.biomeAt(world, x, z);
         }
         if ("genscatter".equals(c.op)) {
             int x = intArg(a, "x");

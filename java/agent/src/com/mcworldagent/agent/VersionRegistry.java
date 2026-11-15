@@ -32,12 +32,13 @@ public final class VersionRegistry {
     private static final VersionTable T_0618 = build0618();
     private static final VersionTable T_0629 = build0629();
     private static final VersionTable T_1121 = build1121();
+    private static final VersionTable T_120 = build120();
 
     private static final Map<String, VersionTable> BY_ID = new HashMap<String, VersionTable>();
     private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
 
     static {
-        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121 };
+        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120 };
         for (VersionTable t : tables) {
             BY_ID.put(t.versionId, t);
             BY_SHA1.put(t.jarSha1, t);
@@ -453,6 +454,112 @@ public final class VersionRegistry {
         t.mobClasses.put("tnt", "jd");
         t.mobClasses.put("giant", "hl");
         t.mobClasses.put("mob", "ek");
+
+        return t;
+    }
+
+    /**
+     * a1.2.0 表（G3-alpha 第二版，生物群系带接入批；verscan/a1.2.0_02.md 全量取证）。
+     * 原生 tiny 直钉（不再借最近版本映射）——字母大漂移于 a1.1.2_01：
+     * World cn→cu、Entity kh→lk、EntityLiving ge→gx（health **E→J**，NBT "Health"
+     * 写读配对翻案 E 猜测）、EntityPlayer dm→dv（invF **b→e** 漂移⚠️）、
+     * InventoryPlayer eu→fh、ItemStack ev→fi、Item di→dr、EntityList ew→fj、
+     * TE ic→iz、NBT hm→ih、IProgressUpdate nu→ph、GuiIngame lu→mz。
+     * 同形面（描述符骨架与字母全同）：getBlock a(III)I、setBlockWithNotify d(IIII)Z、
+     * getMeta e(III)I、setMetaSilent b(IIII)V、getLight j(III)I、setPosRot b(DDDFF)V、
+     * ItemStack a/c/d、inv a/b/d、addStack a、Item 注册表 c[]、explode/spawnEntity/
+     * setEntityDead/playSound、theWorld=e、thePlayer=g、ingameGUI=u、runTick=i、
+     * iframes=aW（notch=field_9311_be 跨版稳定）。
+     * 冬天模式：snowCovered 字段移除实锤（§0 串面 diff+§2 javap 无字段）=null；
+     * 本批键集冒烟判据（World5 Data 无 SnowCovered vs a1.1.2_01 World4 有=1）。
+     * biome 面（本批核心增量）：cu.a()Lpb;→pb.a(II)Lfy;→fy.m:String 三锚全 public、
+     * tiny 直钉+字节码体对榫（§8）——12 群系无数字 id（beta 序号表未生），读回=名串。
+     * 档位一 null 槽：light6M/observersF（setmeta 连坐）、scatterClassG（genscatter）、
+     * invSizeM/invGetM/invSetM/teBurnF/teCookF（chest/furnace 内部面）、
+     * idCrops/idSapling/cropsRipeMeta（农业 id 未取证）——a1.1.2_01 同档。
+     */
+    private static VersionTable build120() {
+        VersionTable t = new VersionTable();
+        t.versionId = "a1.2.0";
+        t.family = "G3"; // 扁平散件+未混淆主类（G3-alpha，a1.1.2_01 同族）
+        t.jarSha1 = "8632ea716fd083c2975f16d612306fd80bee46db"; // 官方 manifest a1.2.0 分发件=内嵌 stamp v1.2.0_02（duplicate 陷阱，详表 §0；原始 2057 候选件签名级零 diff，本表两件通用）
+
+        // World 写读面（cu；详表 §2，字母与 a1.1.2_01 全同、类字母漂移）
+        t.setBlockM = "d";        // d(IIII)Z=setBlockWithNotify（tiny 直钉；裸 setBlock a(IIII)Z 留档）
+        t.getBlockM = "a";        // a(III)I
+        t.getMetaM = "e";         // e(III)I getBlockData
+        t.saveWorldM = "a";       // a(Lph)V public 包装（javap -c：包装→iconst_1→a(ZLph)V 本体
+        t.saveWorldDesc = "(Lph;)V"; //  "Saving level"→o()V+"Saving chunks"→bb.a；null 守卫齐全=0629 配方）
+        t.worldTimeF = "e";       // public long e=worldTime
+        t.randSeedF = "v";        // public long v=randomSeed
+        t.spawnXF = "n";          // n/o/p=SpawnX/Y/Z（⚠️a1.1.2_01=o/p/q 整体左移一位）
+        t.spawnYF = "o";
+        t.spawnZF = "p";
+        t.teGetM = "b";           // b(III)Liz;（TE 基类 ic→iz 漂移）
+
+        // 玩家/实体定位面（Entity=lk；档位三同 a1.1.2_01：World 无玩家直字段）
+        t.playerF = null;
+        t.playerListF = "d";      // public List d=playerEntities（⚠️a1.1.2_01=k）
+        t.entityClassG = "lk";
+        t.setPosRotM = "b";       // b(DDDFF)V 同字母同形
+        t.setPosRotDesc = "(DDDFF)V";
+        t.posXF = "ap";           // ⚠️a1.1.2_01=ak..am 整体右移（NBT "Pos" 写读配对）
+        t.posYF = "aq";
+        t.posZF = "ar";
+        t.motXF = "as";           // NBT "Motion" 配对
+        t.motYF = "at";
+        t.motZF = "au";
+        t.yawF = "av";            // NBT "Rotation" 配对
+        t.pitchF = "aw";
+        t.healthF = "J";          // EntityLiving(gx).J（NBT "Health" 写读配对+保底 10——**E 猜测翻案**）
+        t.iframesF = "aW";        // Entity.aW（notch=field_9311_be 与 a1.1.2_01 稳定，同字母同语义）
+
+        // 物品栏面（EntityPlayer=dv.e→fh；⚠️invF b→e 字母漂移）
+        t.invF = "e";
+        t.invMainF = "a";         // fh.a=mainInventory
+        t.invArmorF = "b";
+        t.invCurF = "d";          // ✓同 a1.1.2_01
+        t.isCountF = "a";         // fi a/c/d ✓全同形
+        t.isIdF = "c";
+        t.isDmgF = "d";
+        t.addStackM = "a";        // fh.a(fi)Z addItemStackToInventory
+        t.itemClassG = "dr";
+        t.itemsF = "c";           // public static dr[] c ✓同字母
+        t.itemEntityG = "ei";     // EntityItem (cu,DDD,fi)V ✓javap 实锤同配方
+
+        // 实体/世界事件面（详表 §2/§3/§4）
+        t.explodeM = "a";         // a(Llk;DDDF)V
+        t.spawnEntityM = "a";     // a(Llk;)Z
+        t.setEntityDeadM = "d";   // d(Llk;)V 实例 public
+        t.entityListM = "k";      // k()List getLoadedEntityList（⚠️a1.1.2_01=i）
+        t.entityTypeM = null;     // per-instance 命名面未钉（同族判决）
+        t.entityListClassG = "fj";
+        t.entityListLookupM = "b"; // b(lk)String ✓同字母（static{} 全表详表 §4：Giant=ig:53 存活）
+        t.playSoundM = "a";       // a(DDD,String,F,F)V
+
+        // getinfo 面
+        t.difficultyF = "k";      // public int k=difficultySetting（⚠️a1.1.2_01=l）
+
+        // 未钉面（档位一 null，op 入口 require 响亮）——a1.1.2_01 同档
+        t.setMetaSilentM = "b";   // (IIII)V ✓tiny；notify 段 light6M/observersF 未钉⇒setmeta 仍 UNSUPPORTED
+        t.getLightM = "j";        // (III)I ✓tiny getBrightness
+
+        // spawn 白名单（fj 注册表+javap 构造器 (cu)V 逐个实锤；tnt=kg(cn,FFF)V fuse 内置；
+        // giant=ig=EntityZombieSimple 存活（注册 53，"疑移除"翻案）；mob=ex=EntityCreature）
+        t.mobClasses.put("pig", "oc");
+        t.mobClasses.put("sheep", "bu");
+        t.mobClasses.put("creeper", "dl");
+        t.mobClasses.put("skeleton", "dd");
+        t.mobClasses.put("zombie", "nh");
+        t.mobClasses.put("spider", "bc");
+        t.mobClasses.put("tnt", "kg");
+        t.mobClasses.put("giant", "ig");
+        t.mobClasses.put("mob", "ex");
+
+        // biome 面（本批核心增量，详表 §8 三锚链全 public 直钉）
+        t.biomeWcmM = "a";        // cu.a()Lpb; getWorldChunkManager（cu 唯一无参 a——getMethod 安全）
+        t.biomeAtM = "a";         // pb.a(II)Lfy; func_4073_a（pb 的 a 重载中 (II) 唯一）
+        t.biomeNameF = "m";       // fy.m=biomeName public String（子类 de/lz/i 继承 getField 可达）
 
         return t;
     }

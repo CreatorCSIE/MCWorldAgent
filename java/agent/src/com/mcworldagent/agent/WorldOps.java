@@ -133,6 +133,13 @@ public final class WorldOps {
     private static final String F_DIFFICULTY = T.difficultyF;
     private static final String G_SCATTER_CLASS = T.scatterClassG;
 
+    // biome 面（a1.2.0 首版；读回链三锚 verscan/a1.2.0_02.md §8：World.a()Lpb;→pb.a(II)Lfy;
+    // →fy.m:String 全 public；WCM 大方法纯读（噪声器现算 temp/hum→4096 查找表），零副作用
+    // 零 chunk 加载依赖——未加载坐标亦返回。beta 前版本槽 null=require 响亮 UNSUPPORTED）
+    private static final String M_BIOME_WCM = T.biomeWcmM;
+    private static final String M_BIOME_AT = T.biomeAtM;
+    private static final String F_BIOME_NAME = T.biomeNameF;
+
     // 区域批量写读上限（fill/getblocks 共用）：16³=4096。
     // 取证：v1 fill=循环 c(IIII)Z（place/dig 同路径）；Chunk.setTile 内部已含 heightmap 重算
     // （g→f→world.d 观察者区间通知）+tile 移除+onPlace+isModified 脏位，快路径（a(IIII)Z）省不出数量级。
@@ -187,6 +194,7 @@ public final class WorldOps {
     private static volatile Method getLight;
     private static volatile Field observers;  // World.u private List
     private static volatile Field difficulty; // World.d public int
+    private static volatile Method biomeWcm;  // World.a()Lpb;（resolve 期钉，槽 null=跳过）
     /** A2 档位一：resolve 逐槽跳 null 后，缓存判据不能再用单槽非空（用完成标志）。 */
     private static volatile boolean resolved;
 
@@ -287,6 +295,9 @@ public final class WorldOps {
             if (F_DIFFICULTY != null) {
                 difficulty = wc.getField(F_DIFFICULTY);
             }
+            if (M_BIOME_WCM != null) {
+                biomeWcm = wc.getMethod(M_BIOME_WCM);
+            }
             resolved = true;
         } catch (NoSuchMethodException e) {
             throw new UnsupportedOp("world signatures: " + e);
@@ -357,6 +368,21 @@ public final class WorldOps {
         spawnX.setInt(world, x);
         spawnY.setInt(world, y);
         spawnZ.setInt(world, z);
+    }
+
+    /**
+     * 读列生物群系名（op=getbiome，只读；a1.2.0 起，verscan §8 三锚链）：
+     * World.a()Lpb;→pb.a(II)Lfy;→fy.m:String。WCM/biome 方法按**实例类**解析
+     * （pb 的 (II) 重载唯一；biome 子类 de/lz/i 继承 public m——getField 达继承公共成员），
+     * 零表外类名硬编码。纯数学现算（噪声器 temp/hum→4096 查找表），不触 chunk——
+     * 未加载坐标亦返回，无 tick 时序依赖。
+     */
+    public static String biomeAt(Object world, int x, int z) throws Exception {
+        require("biomeWcmM", M_BIOME_WCM);
+        Object wcm = biomeWcm.invoke(world);
+        Method at = wcm.getClass().getMethod(M_BIOME_AT, int.class, int.class);
+        Object biome = at.invoke(wcm, Integer.valueOf(x), Integer.valueOf(z));
+        return (String) biome.getClass().getField(F_BIOME_NAME).get(biome);
     }
 
     /**
