@@ -260,6 +260,33 @@ public final class HookTargets {
                 0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
     };
 
+    /**
+     * b1.7.3 钩组（Beta 1.7.3，McRegion 世代首例——存储断代批）。
+     * 详表 verscan/b1.7.3.md §9（javap 全量实锤，件 SHA1 43db9b49… 纯独立件 stamp 自证）。
+     * SAVE_WORLD：fd.a(Lyb;)V public 包装（IProgressUpdate ru→yb 断代；本体 a(ZLyb)V
+     * null 守卫=0629/a1.2.0/b1.2_02 配方四连用；a(Z)Z=TickUpdates 禁钩同字母预避）。
+     * LOAD_WORLD：Minecraft.a(fd,String) public 0x0001（钩形不变=仅类字母断代；
+     * (fd,String,gs) 维度过载=下界传送门新面不钩）。
+     * RUN_TICK：Minecraft.k()V **public**（⚠️ 字母断代 i→k——b1.2_02=i()V 惯例破裂，
+     * 详表 §7 run() 调用点 invokespecial k()V 实锤；五项全中按实访问位）。
+     * HUD_RENDER：uq.a(FZII)V public EXIT（钩形与 a1.1.2_01..b1.2_02 全同构）。
+     * onHud 反射链字母本版未钉（theWorld=f/thePlayer=h/ingameGUI=v/gameSettings=z=kv）
+     * →HUD_HOOK_DISABLED 优雅降级=钩已触发证据（同族判决）。
+     * 省略：WORLD_CTOR（fd(File,String) 已消失——构造器族=fd(wt,String,J)/
+     * (wt,String,xa,J)/(fd,xa)，dir 面走 cmd=，0618/0629 先例）、
+     * LOAD_CHUNK/GEN_HEIGHT/GIANT_CTOR（同族判决，nt 构造健在）。
+     */
+    public static final Target[] TARGETS_173 = {
+        new Target("fd", "a", "(Lyb;)V",
+                0x0001, 1, ENTRY, SAVE_WORLD, "World.saveWorld(progress) public wrapper"),
+        new Target("net/minecraft/client/Minecraft", "a", "(Lfd;Ljava/lang/String;)V",
+                0x0001, 1, ENTRY, LOAD_WORLD, "Minecraft.loadWorld(World,String)"),
+        new Target("net/minecraft/client/Minecraft", "k", "()V",
+                0x0001, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
+        new Target("uq", "a", "(FZII)V",
+                0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
+    };
+
     private static final Map<String, Target[]> GROUPS = new HashMap<String, Target[]>();
 
     static {
@@ -269,6 +296,7 @@ public final class HookTargets {
         GROUPS.put("a1.1.2_01", TARGETS_1121);
         GROUPS.put("a1.2.0", TARGETS_120);
         GROUPS.put("b1.2_02", TARGETS_1202);
+        GROUPS.put("b1.7.3", TARGETS_173);
     }
 
     private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);

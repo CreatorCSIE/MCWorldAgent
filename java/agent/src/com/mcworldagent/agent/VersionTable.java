@@ -32,6 +32,12 @@ public final class VersionTable {
     public String spawnXF;
     public String spawnYF;
     public String spawnZF;
+    /** b1.7.3 结构断代（verscan/b1.7.3.md §2）：World(fd) 不再持 time/seed/spawn 字段——
+     *  本槽=WorldInfo 取用器方法名（fd.x()Lei public，零参）。非 null 时上五槽
+     *  （worldTimeF/randSeedF/spawnXF/Y/Z）在 x() 返回类型上解析（ei 字段面全 private
+     *  javap 实锤——getDeclaredField+setAccessible，WorldOps resolve WorldInfo 分支）；
+     *  null=字段在 World 本体（0327..b1.2_02 现形态，零行为变化）。 */
+    public String getWorldInfoM;
 
     // 玩家/实体定位面（Entity 基类）
     public String playerF;          // World.c=活体玩家

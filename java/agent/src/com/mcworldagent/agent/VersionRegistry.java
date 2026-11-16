@@ -34,12 +34,13 @@ public final class VersionRegistry {
     private static final VersionTable T_1121 = build1121();
     private static final VersionTable T_120 = build120();
     private static final VersionTable T_1202 = build1202();
+    private static final VersionTable T_173 = build173();
 
     private static final Map<String, VersionTable> BY_ID = new HashMap<String, VersionTable>();
     private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
 
     static {
-        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202 };
+        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202, T_173 };
         for (VersionTable t : tables) {
             BY_ID.put(t.versionId, t);
             BY_SHA1.put(t.jarSha1, t);
@@ -677,6 +678,116 @@ public final class VersionRegistry {
         t.biomeWcmM = "a";        // dn.a()Lro; getWorldChunkManager（dn 唯一无参 a ✓）
         t.biomeAtM = "a";         // ro.a(II)Lhf; func_4073_a ✓（ro 的 a 重载中 (II) 唯一）
         t.biomeNameF = "m";       // hf.m=biomeName public String ✓（12 系 a..l 旧表保留）
+
+        return t;
+    }
+
+    /**
+     * b1.7.3 表（Beta 1.7.3，McRegion 世代首例——存储断代批）。值源=锚库
+     * java/agent/registry/fingerprints/b1.7.3.json；取证=
+     * docs/compatibility/verscan/b1.7.3.md（借 retromcp b1.7 client.tiny 直钉+
+     * 原始 jar javap 全量逐验，件 SHA1 43db9b49… 纯独立件 stamp 自证）。
+     * 本批三大结构断代（详表 §2/§9/§10）：
+     * ① World 不再持 time/seed/spawn 字段——WorldInfo=ei 承载（fd.x()Lei 取用器，
+     *    ei 字段面全 private javap 实锤：a=randomSeed/e=worldTime/b-d=spawnXYZ；
+     *    WorldOps resolve WorldInfo 分支消费，getDeclaredField+setAccessible）；
+     * ② 存储=McRegion .mcr（region/r.<x>>5>.<z>>5>.mcr，下界 DIM-1/region）——
+     *    数据侧 RegionStore 只读 adapter（java/storage），活体散件时代判据作废；
+     * ③ 下界回归（传送门面+维度构造+DIM-1 目录），天气键持久化复活（ei l-o）。
+     * 字母断代陷阱预避（详表 §9 对榫表）：runTick i→**k**、spawnEntity a→**b**、
+     * setEntityDead d→**e**、entityList l→**o**、setBlockWithNotify e→**f**、
+     * getMeta **e 不变**（el173-1 活体翻案：g(III)Z=notifyBlockChange 非元数据读，
+     * e(III)I=bounds→c(II)→lm.b(III)I nibble 读，与 b1.2_02 同字母）、setMetaSilent c→**d**、getLight l→**n**、biomeName m→**n**；
+     * iframesF=**by** 复活（b1.2_02 档位一欠账清偿——sn.by=heartsLife public 实锤，
+     * 非 aW=isDead 撞车位）。
+     * 档位一 null 槽：light6M/observersF（setmeta 连坐）、scatterClassG（genscatter）、
+     * invSizeM/invGetM/invSetM/teBurnF/teCookF（chest/furnace 内部面）、
+     * idCrops/idSapling/cropsRipeMeta（农业 id 未取证）——b1.2_02 同档。
+     */
+    private static VersionTable build173() {
+        VersionTable t = new VersionTable();
+        t.versionId = "b1.7.3";
+        t.family = "G3"; // 扁平散件+未混淆主类（G3-beta，b1.2_02 同族）
+        t.jarSha1 = "43db9b498cb67058d2e12d394e6507722e71bb45"; // 纯独立件（内嵌 stamp=Minecraft Beta 1.7.3，详表 §0）
+
+        // World 写读面（fd；详表 §2 javap 全量实锤）
+        t.setBlockM = "f";        // f(IIII)Z=setBlockWithNotify（⚠️ 裸 setBlock=c(IIII)Z、setBlockAndMetadata=a(IIIII)Z 同形陷阱群）
+        t.getBlockM = "a";        // a(III)I ✓历代同字母
+        t.getMetaM = "e";         // e(III)I getBlockMetadata（el173-1 活体翻案：bounds→c(II)Llm;→lm.b(III)I nibble 读；g(III)Z 是别物非元数据，详表 §2 原判作废）
+        t.setMetaSilentM = "d";   // d(IIII)V setBlockMetadataWithNotify（⚠️b1.2_02=c）
+        t.getLightM = "n";        // n(III)I getBrightness（⚠️b1.2_02=l）
+        t.saveWorldM = "a";       // a(Lyb;)V public 包装（IProgressUpdate ru→yb 断代；
+        t.saveWorldDesc = "(Lyb;)V"; // 本体 a(ZLyb)V null 守卫=0629/a1.2.0/b1.2_02 配方四连用；a(Z)Z=TickUpdates 禁钩）
+        t.teGetM = "b";           // b(III)Low;（TE 基类 kp→ow 漂移）
+        // WorldInfo 断代五槽（详表 §2 结构断代①）：字段在 ei 非 fd——
+        // getWorldInfoM 非 null 时 WorldOps 在 x() 返回类型上 getDeclaredField+setAccessible
+        t.getWorldInfoM = "x";    // fd.x()Lei public 零参（getWorldInfo）
+        t.worldTimeF = "e";       // ei.e:J=worldTime（NBT "Time" 构造器读写配对）
+        t.randSeedF = "a";        // ei.a:J=randomSeed（NBT "RandomSeed"）
+        t.spawnXF = "b";          // ei.b/c/d:I=SpawnX/Y/Z（NBT 键构造器配对）
+        t.spawnYF = "c";
+        t.spawnZF = "d";
+
+        // 玩家/实体定位面（Entity=sn；档位三同族：World 无玩家直字段）
+        t.playerF = null;
+        t.playerListF = "d";      // fd public List d=playerEntities（⚠️ 五 List 字段 b/c/d/e 中 javap 调用点定 d）
+        t.entityClassG = "sn";
+        t.setPosRotM = "b";       // b(DDDFF)V ✓历代同字母同形
+        t.setPosRotDesc = "(DDDFF)V";
+        t.posXF = "aM";           // ⚠️b1.2_02=aF..aH 整体断代（NBT "Pos" 写读配对）
+        t.posYF = "aN";
+        t.posZF = "aO";
+        t.motXF = "aP";           // NBT "Motion" 配对
+        t.motYF = "aQ";
+        t.motZF = "aR";
+        t.yawF = "aS";            // NBT "Rotation" 配对
+        t.pitchF = "aT";
+        t.healthF = "Y";          // EntityLiving(ls).Y public int（NBT "Health" 写读配对+保底 10；⚠️b1.2_02=S）
+        t.iframesF = "by";        // sn.by public int=heartsLife（b1.2_02 档位一欠账清偿——invulnerable 复活；⚠️ be=isDead 撞车位勿混）
+
+        // 物品栏面（EntityPlayer=gs.c→ix；⚠️ invF f→c 回漂、invCur c ✓同 b1.2_02）
+        t.invF = "c";
+        t.invMainF = "a";         // ix.a=mainInventory[iz]
+        t.invArmorF = "b";
+        t.invCurF = "c";          // ⚠️ ix.d=player/ix.e=inventoryChanged 互换陷阱——c 才是 currentItem
+        t.isCountF = "a";         // iz a=stackSize/c=itemID/d=itemDamage（NBT 配对）
+        t.isIdF = "c";
+        t.isDmgF = "d";
+        t.addStackM = "a";        // ix.a(iz)Z addItemStackToInventory ✓
+        t.itemClassG = "gm";
+        t.itemsF = "c";           // public static gm[] c ✓同字母
+        t.itemEntityG = "hl";     // EntityItem (fd,DDD,iz)V ✓（iz 无 (II)V 构造——newStack 走 (III)V）
+
+        // 实体/世界事件面（详表 §2/§4；⚠️ spawnEntity a→b、setEntityDead d→e、entityList l→o 断代）
+        t.explodeM = "a";         // a(Lsn;DDDF)Lqx;（返回值 V→Explosion 断代留档——getMethod 返回值无关，invoke 面不消费返回值）
+        t.spawnEntityM = "b";     // b(Lsn;)Z entityJoinedWorld（⚠️历代 a）
+        t.setEntityDeadM = "e";   // e(Lsn;)V（⚠️历代 d）
+        t.entityListM = "o";      // o()List getLoadedEntityList（⚠️b1.2_02=l）
+        t.entityTypeM = null;     // per-instance 命名面未钉（同族判决）
+        t.entityListClassG = "jc";
+        t.entityListLookupM = "b"; // b(sn)String ✓同字母（static{} 26 项详表 §4：Giant=nt:53 存活、XPOrb 未生）
+        t.playSoundM = "a";       // a(DDD,String,F,F)V ✓
+
+        // getinfo 面
+        t.difficultyF = "q";      // fd public int q=difficultySetting（⚠️b1.2_02=k）
+
+        // spawn 白名单（jc 注册表+javap 构造器 (fd)V 逐个实锤；tnt=qw
+        // (fd,DDD)V DDD 断代延续 b1.2_02——WorldOps fallback；giant=nt 构造健在；
+        // mob=ii=EntityCreature（⚠️b1.2_02=fz））
+        t.mobClasses.put("pig", "wh");
+        t.mobClasses.put("sheep", "dl");
+        t.mobClasses.put("creeper", "gb");
+        t.mobClasses.put("skeleton", "fr");
+        t.mobClasses.put("zombie", "uz");
+        t.mobClasses.put("spider", "cn");
+        t.mobClasses.put("tnt", "qw");
+        t.mobClasses.put("giant", "nt");
+        t.mobClasses.put("mob", "ii");
+
+        // biome 面（详表 §8；⚠️ biomeName m→n 断代——kd 16 系新表含 hell 复活）
+        t.biomeWcmM = "a";        // fd.a()Lxv; getWorldChunkManager（fd 唯一无参 a ✓）
+        t.biomeAtM = "a";         // xv.a(II)Lkd; getBiomeGenAt ✓
+        t.biomeNameF = "n";       // kd.n=biomeName public String（⚠️b1.2_02=m 字母漂移）
 
         return t;
     }

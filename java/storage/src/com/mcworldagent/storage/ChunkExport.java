@@ -80,17 +80,24 @@ public final class ChunkExport {
         return out;
     }
 
-    /** 主导出：world 目录+chunk 坐标 → JSON 字符串（present=false 也出合法 JSON）。 */
+    /** 主导出：world 目录+chunk 坐标 → JSON 字符串（present=false 也出合法 JSON）。
+     *  b1.7.3 存储断代：散件 .dat 未命中 → McRegion 区域文件命中（只读自动分派，
+     *  present 语义不变；下界传 DIM-1 目录作 worldDir 即自然命中 region/）。 */
     public static String export(File worldDir, int x, int z) throws IOException {
         File f = chunkFile(worldDir, x, z);
         StringBuilder sb = new StringBuilder();
         sb.append("{\"x\":").append(x).append(",\"z\":").append(z);
-        if (!f.isFile()) {
-            sb.append(",\"present\":false}");
-            return sb.toString();
+        Map<String, Object> root;
+        if (f.isFile()) {
+            byte[] gz = Files.readAllBytes(f.toPath());
+            root = NbtReader.readGz(gz);
+        } else {
+            root = RegionStore.readChunk(worldDir, x, z);
+            if (root == null) {
+                sb.append(",\"present\":false}");
+                return sb.toString();
+            }
         }
-        byte[] gz = Files.readAllBytes(f.toPath());
-        Map<String, Object> root = NbtReader.readGz(gz);
         @SuppressWarnings("unchecked")
         Map<String, Object> level = (Map<String, Object>) root.get("Level");
         if (level == null) {

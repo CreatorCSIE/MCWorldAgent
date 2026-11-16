@@ -29,8 +29,12 @@ public final class NbtReader {
 
     /** gzip .dat 字节 → root compound（root 名不消费出树；全消费校验内置）。 */
     public static Map<String, Object> readGz(byte[] gzipped) throws IOException {
-        byte[] raw = gunzip(gzipped);
-        NbtReader r = new NbtReader(raw);
+        return readRaw(gunzip(gzipped));
+    }
+
+    /** 未压缩 NBT 字节 → root compound（McRegion 版本=2 zlib 解后形态，b1.7.3 批）。 */
+    public static Map<String, Object> readRaw(byte[] uncompressed) throws IOException {
+        NbtReader r = new NbtReader(uncompressed);
         int t = r.u8();
         r.str(); // root name（0327 chunk .dat 实盘=""）
         if (t != 10) {

@@ -209,3 +209,17 @@
 - 运维戒律再证：agent jar 不含 ASM，活体必须 `-Xbootclasspath/a:asm-9.7.jar`（裸挂 premain 崩=已录）；envelope 须带 `protocolVersion:1`。
 
 **证据**：`integrations/attic/out/el1202-1/`（lw-jar-forensics+ops-batch0/A/B/C+agent-hooks/transform+sidecar-stdout）。**repo 面**：M=VersionRegistry/HookTargets/WorldOps+?? b1.2_02.md/b1.2_02.json/el1202-1 归档（未 commit，待指令）；测试件不入库（%TEMP%\mcaut）。
+
+## 12. b1.7.3 接入批落码记录（2026-11-16，落码+无头批；活体待 el173-*）
+
+**链路**：verscan 详表（[b1.7.3.md](../compatibility/verscan/b1.7.3.md)，§11 待活体回填）→ 借 retromcp b1.7 client.tiny 直钉+原始 jar javap 全量逐验（件 SHA1 `43db9b498cb67058d2e12d394e6507722e71bb45` 纯独立件 stamp 自证）→ 锚 JSON `java/agent/registry/fingerprints/b1.7.3.json` → VersionRegistry.build173+HookTargets.TARGETS_173+VersionTable 新槽 getWorldInfoM+WorldOps WorldInfo 分支 → 存储侧 **McRegion 新立型**（RegionStore.java 只读 .mcr 解析+NbtReader.readRaw+ChunkExport 自动分派）→ 假类复刻无头套件（run-headless173，全旧回归+173 三件）。
+
+**本批三大结构断代**（详表 §2/§9/§10 为准）：
+- **WorldInfo 承载断代**：World(fd) 不再持 time/seed/spawn 字段——`fd.x()Lei` 取用器+ei 字段全 private（getDeclaredField+setAccessible 分支，getWorldInfoM null=现形态零行为变化）；VersionTable 唯一新槽。
+- **存储断代**：region/`r.<x>>5>.<z>>5>.mcr`（4KB 定位表 BE=**分配单位号<<8|1，数据偏移=单位×4096 绝对定位**——el173-1 真盘判决修正原判"扇区号<<8|扇区数+512B 紧排"；chunk 头=4B 长度+1B 版本 1=gzip/2=zlib）；下界=DIM-1/region（传 DIM-1 目录作 worldDir 自然命中，零特判）；只读红线沿用。**活体冒烟必须新建世界**（hi=SaveConverterMcRegion 打开旧散件档自动迁移=红线）。
+- **字母断代陷阱群**：runTick i→**k**、spawnEntity a→**b**、setEntityDead d→**e**、entityList l→**o**、setBlockWithNotify e→**f**、difficulty k→**q**、biomeName m→**n**、pos aF-aH→**aM-aO**、health S→**Y**、invF f→**c** 回漂；**iframesF=by 复活**（b1.2_02 档位一欠账清偿——sn.by=heartsLife public 实锤）。
+- **详表复核修正（落码后 javap 再核）**：ei `k()I`/`d(I)V` 实=get/set**Version**（非 Dimension——旧稿两处误标）；getDimension=`i()I` **无 setter**（i 仅构造器族写，全 jar 唯一调用者=fd 内部委托）；天气 getter 组实=`o/p/m/n`（旧稿 m/n/o/p 错位）；下界持久化判决不变且更强（单主读档路径不读 Dimension 键）。
+
+**repo 面**：M=VersionTable/HookTargets/VersionRegistry/WorldOps/ChunkExport/NbtReader/b1.7.3.md/b1.7.3.json（+审计线 a1.2.0_02.md/a1.2.6.md/b1.2_02.md）+?? RegionStore.java（均未 commit，待指令）。**无头批自跑复核**：run-headless173.ps1 全量 19 旧回归+173 三件（259+60+34 断言）ALL GREEN，RUNNER_EXIT=0；主代码零改动、测试未暴露 bug。
+
+**el173-1 活体冒烟判决（2026-11-16 夜，attic-cli 实机+新建世界 W173，证据=integrations/attic/out/el173-1/ops-verdict.md）**：判据全兑现——钩四项全中（含 HUD_HOOK_DISABLED 优雅降级证据+SAVE_WORLD #1–#16 实触发）、WorldInfo 链首验（getinfo/settime/setspawn 读回闭环）、invulnerable by 复活首验、giant nt:53 复活首验、explode V→Explosion 签名断代适配首验、字母断代面全兑现、UNSUPPORTED 五槽对榫、**region 落盘判据成立**（r.*.mcr+散件零+ChunkExport 读回 marker/replace 双命中）、天气四键+**Data 层无 Dimension**（下界不持久化活体兑现）、旧散件档红线未触碰。**活体翻案 2 件（均已修+无头 ALL GREEN+真盘验证）**：①getMetaM g→e（fd.g(III)Z 非元数据读，真值 e(III)I 与 b1.2_02 同字母——详表 §2/锚 JSON/VersionRegistry 三处改）；②RegionStore 定位语义=单位×4096 绝对（详表 §8/主卷上段已改）。**教训入册：假类无头套件必须复刻真字节码全方法面（含同参数位 decoy 重载），仅按锚表引用面造假类=错表自洽盲区**（本批 getmeta 无头绿而活体炸即此根因）。遗留：getmeta 活体复验→el173-2（重开 W173=region 原生档，安全）；DIM-1 传送门实走形态=欠账。**el173-2 复验闭环（同夜）**：getmeta e(III)I 实反射 OK+marker id4 经 region 落盘→重开读回+spawn/time 读档持久=WorldInfo 全链路端到端；**b1.7.3 批活体冒烟终判通过**（证据=out/el173-2/reverify-verdict.md）。

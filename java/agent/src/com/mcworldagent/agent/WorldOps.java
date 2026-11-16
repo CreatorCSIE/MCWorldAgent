@@ -57,6 +57,9 @@ public final class WorldOps {
     private static final String F_SPAWN_X = T.spawnXF;
     private static final String F_SPAWN_Y = T.spawnYF;
     private static final String F_SPAWN_Z = T.spawnZF;
+    // b1.7.3 断代（详表 §2 结构断代①）：World 不再持 time/seed/spawn 字段——
+    // WorldInfo 取用器名（fd.x()Lei）；null=字段在 World 本体（0327..b1.2_02 现形态）
+    private static final String M_GET_WORLD_INFO = T.getWorldInfoM;
 
     // tp/getplayer 面（表值；取证见 VersionRegistry。注意 W 在子类——execute 期按实例类
     // 惰性解析，失败→UnsupportedOp 不静默）
@@ -149,6 +152,7 @@ public final class WorldOps {
     private static volatile Method setBlock;
     private static volatile Method getBlock;
     private static volatile Method saveWorld;
+    private static volatile Method worldInfoM; // b1.7.3：fd.x()Lei（time/seed/spawn 承载体取用器）
     private static volatile Field randSeed; // 仅缓存 setAccessible 结果
     private static volatile Field worldTime;
     private static volatile Field spawnX;
@@ -224,21 +228,49 @@ public final class WorldOps {
                         : wc.getDeclaredMethod(M_SAVE_WORLD);
                 saveWorld.setAccessible(true);
             }
-            if (F_WORLD_TIME != null) {
-                worldTime = wc.getField(F_WORLD_TIME);
-            }
-            if (F_RAND_SEED != null) {
-                randSeed = wc.getDeclaredField(F_RAND_SEED);
-                randSeed.setAccessible(true);
-            }
-            if (F_SPAWN_X != null) {
-                spawnX = wc.getField(F_SPAWN_X);
-            }
-            if (F_SPAWN_Y != null) {
-                spawnY = wc.getField(F_SPAWN_Y);
-            }
-            if (F_SPAWN_Z != null) {
-                spawnZ = wc.getField(F_SPAWN_Z);
+            // time/seed/spawn 五槽（b1.7.3 断代分支）：getWorldInfoM 非 null=字段在
+            // WorldInfo 返回类型上（ei 字段面全 private javap 实锤——五槽一律
+            // getDeclaredField+setAccessible）；null=World 本体现形态（零行为变化）。
+            if (M_GET_WORLD_INFO != null) {
+                worldInfoM = wc.getMethod(M_GET_WORLD_INFO);
+                Class<?> wi = worldInfoM.getReturnType();
+                if (F_WORLD_TIME != null) {
+                    worldTime = wi.getDeclaredField(F_WORLD_TIME);
+                    worldTime.setAccessible(true);
+                }
+                if (F_RAND_SEED != null) {
+                    randSeed = wi.getDeclaredField(F_RAND_SEED);
+                    randSeed.setAccessible(true);
+                }
+                if (F_SPAWN_X != null) {
+                    spawnX = wi.getDeclaredField(F_SPAWN_X);
+                    spawnX.setAccessible(true);
+                }
+                if (F_SPAWN_Y != null) {
+                    spawnY = wi.getDeclaredField(F_SPAWN_Y);
+                    spawnY.setAccessible(true);
+                }
+                if (F_SPAWN_Z != null) {
+                    spawnZ = wi.getDeclaredField(F_SPAWN_Z);
+                    spawnZ.setAccessible(true);
+                }
+            } else {
+                if (F_WORLD_TIME != null) {
+                    worldTime = wc.getField(F_WORLD_TIME);
+                }
+                if (F_RAND_SEED != null) {
+                    randSeed = wc.getDeclaredField(F_RAND_SEED);
+                    randSeed.setAccessible(true);
+                }
+                if (F_SPAWN_X != null) {
+                    spawnX = wc.getField(F_SPAWN_X);
+                }
+                if (F_SPAWN_Y != null) {
+                    spawnY = wc.getField(F_SPAWN_Y);
+                }
+                if (F_SPAWN_Z != null) {
+                    spawnZ = wc.getField(F_SPAWN_Z);
+                }
             }
             // tp 面：World.c 的类型即 Entity 基类，公开成员 getField/getMethod 直取。
             // 档位三（a1.1.2_01）：World 无玩家直字段——playerEntities 列表回退，
@@ -343,14 +375,21 @@ public final class WorldOps {
         }
     }
 
+    /** b1.7.3 断代：time/seed/spawn 五字段承载体=WorldInfo（fd.x()Lei）；
+     *  worldInfoM null=World 本体（0327..b1.2_02 现形态，零行为变化）。 */
+    private static Object timeHolder(Object world) throws Exception {
+        return worldInfoM == null ? world : worldInfoM.invoke(world);
+    }
+
     /** 世界信息快照（op=getinfo，只读）：tick 边界执行=一致读。 */
     public static String getInfo(Object world) throws Exception {
         require("difficultyF", F_DIFFICULTY); // 0618 未钉→UNSUPPORTED（spec §3）
-        long time = worldTime.getLong(world);
-        long seed = randSeed.getLong(world);
-        int sx = spawnX.getInt(world);
-        int sy = spawnY.getInt(world);
-        int sz = spawnZ.getInt(world);
+        Object wi = timeHolder(world);
+        long time = worldTime.getLong(wi);
+        long seed = randSeed.getLong(wi);
+        int sx = spawnX.getInt(wi);
+        int sy = spawnY.getInt(wi);
+        int sz = spawnZ.getInt(wi);
         int diff = difficulty.getInt(world);
         return "time=" + time + " spawnX=" + sx + " spawnY=" + sy + " spawnZ=" + sz
                 + " seed=" + seed + " difficulty=" + diff;
@@ -358,16 +397,18 @@ public final class WorldOps {
 
     /** 设置 worldTime（op=settime）。渲染每帧经 b(F) 实时读，无通知面；返回旧值供回滚。 */
     public static long setTime(Object world, long time) throws Exception {
-        long old = worldTime.getLong(world);
-        worldTime.setLong(world, time);
+        Object wi = timeHolder(world);
+        long old = worldTime.getLong(wi);
+        worldTime.setLong(wi, time);
         return old;
     }
 
     /** 设置出生点（op=setspawn）。唯一消费方=EntityPlayer 构造器，下次进世界生效。 */
     public static void setSpawn(Object world, int x, int y, int z) throws Exception {
-        spawnX.setInt(world, x);
-        spawnY.setInt(world, y);
-        spawnZ.setInt(world, z);
+        Object wi = timeHolder(world);
+        spawnX.setInt(wi, x);
+        spawnY.setInt(wi, y);
+        spawnZ.setInt(wi, z);
     }
 
     /**
