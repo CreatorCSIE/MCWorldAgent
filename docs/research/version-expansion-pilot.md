@@ -220,6 +220,17 @@
 - **字母断代陷阱群**：runTick i→**k**、spawnEntity a→**b**、setEntityDead d→**e**、entityList l→**o**、setBlockWithNotify e→**f**、difficulty k→**q**、biomeName m→**n**、pos aF-aH→**aM-aO**、health S→**Y**、invF f→**c** 回漂；**iframesF=by 复活**（b1.2_02 档位一欠账清偿——sn.by=heartsLife public 实锤）。
 - **详表复核修正（落码后 javap 再核）**：ei `k()I`/`d(I)V` 实=get/set**Version**（非 Dimension——旧稿两处误标）；getDimension=`i()I` **无 setter**（i 仅构造器族写，全 jar 唯一调用者=fd 内部委托）；天气 getter 组实=`o/p/m/n`（旧稿 m/n/o/p 错位）；下界持久化判决不变且更强（单主读档路径不读 Dimension 键）。
 
-**repo 面**：M=VersionTable/HookTargets/VersionRegistry/WorldOps/ChunkExport/NbtReader/b1.7.3.md/b1.7.3.json（+审计线 a1.2.0_02.md/a1.2.6.md/b1.2_02.md）+?? RegionStore.java（均未 commit，待指令）。**无头批自跑复核**：run-headless173.ps1 全量 19 旧回归+173 三件（259+60+34 断言）ALL GREEN，RUNNER_EXIT=0；主代码零改动、测试未暴露 bug。
+**repo 面**：M=VersionTable/HookTargets/VersionRegistry/WorldOps/ChunkExport/NbtReader/b1.7.3.md/b1.7.3.json（+审计线 a1.2.0_02.md/a1.2.6.md/b1.2_02.md）+?? RegionStore.java——**已 commit**（adb1852 审计批 + ba4883d b1.7.3 接入批，author=CreatorCSIE）。**无头批自跑复核**：run-headless173.ps1 全量 19 旧回归+173 三件（259+60+34 断言）ALL GREEN，RUNNER_EXIT=0；主代码零改动、测试未暴露 bug。
 
 **el173-1 活体冒烟判决（2026-11-16 夜，attic-cli 实机+新建世界 W173，证据=integrations/attic/out/el173-1/ops-verdict.md）**：判据全兑现——钩四项全中（含 HUD_HOOK_DISABLED 优雅降级证据+SAVE_WORLD #1–#16 实触发）、WorldInfo 链首验（getinfo/settime/setspawn 读回闭环）、invulnerable by 复活首验、giant nt:53 复活首验、explode V→Explosion 签名断代适配首验、字母断代面全兑现、UNSUPPORTED 五槽对榫、**region 落盘判据成立**（r.*.mcr+散件零+ChunkExport 读回 marker/replace 双命中）、天气四键+**Data 层无 Dimension**（下界不持久化活体兑现）、旧散件档红线未触碰。**活体翻案 2 件（均已修+无头 ALL GREEN+真盘验证）**：①getMetaM g→e（fd.g(III)Z 非元数据读，真值 e(III)I 与 b1.2_02 同字母——详表 §2/锚 JSON/VersionRegistry 三处改）；②RegionStore 定位语义=单位×4096 绝对（详表 §8/主卷上段已改）。**教训入册：假类无头套件必须复刻真字节码全方法面（含同参数位 decoy 重载），仅按锚表引用面造假类=错表自洽盲区**（本批 getmeta 无头绿而活体炸即此根因）。遗留：getmeta 活体复验→el173-2（重开 W173=region 原生档，安全）；DIM-1 传送门实走形态=欠账。**el173-2 复验闭环（同夜）**：getmeta e(III)I 实反射 OK+marker id4 经 region 落盘→重开读回+spawn/time 读档持久=WorldInfo 全链路端到端；**b1.7.3 批活体冒烟终判通过**（证据=out/el173-2/reverify-verdict.md）。
+
+## 13. b1.8 旁证批（2026-11-16；判决=**同世代不同表，锚表不可沿用**）
+
+**动因**：todo b18-check——验证"b1.8 与 b1.7.3 同形可沿用"假设。**件闸门**：`%APPDATA%\.minecraft\versions\b1.8\b1.8.jar` SHA1=`3139e9c2…`（1994742B，.betacraft 同件双位一致）+stamp=`Minecraft Beta 1.8` 自证+class 条目 881（+134，**三位字母出现**）。**取证方式**：retromcp **b1.8.zip 原生 client.tiny**（186775B，非借表）直钉 70 类+成员面（`%TEMP%\mcaut\b18\`，tinymap_b18/members18/mcfields18 三解析器）。
+
+**判决要点**（全量见 [b1.8.md](../compatibility/verscan/b1.8.md)）：
+- **主类 Minecraft 逐字一致**（theWorld=f/thePlayer=h/ingameGUI=v/gameSettings=z/mcDataDir=Z/runTick=k）——钩架构可复用；**但 World=rv（≠fd）、Entity=kj、GuiIngame=abj、存储链全变**（RegionFile=jc/WorldInfo=rl/SaveHandler=dd）；ops 面**部分同字母**（a/e/n/b/x/saveWorld a(Lny)V 同形/createExplosion 同字母）**部分漂移**（setBlockWithNotify f→g、setBlock c→d、setMetaSilent d→f、setEntityDead e→b、entityList o→p、tick l→c）；Entity 字段面**全面重写**（pos aM-aO→o/p/q、iframes by→aa、health Y→bz、inventory c→as）。
+- **⚠️ 撞车位**：b1.7.3 `jc`=EntityList ↔ b1.8 `jc`=RegionFile；`wd` 两版身份互换（WorldProviderHell↔EntityLiving）——跨版本按字母推类=必炸陷阱，**严禁互抄表**。
+- **b1.8 新面**：饥饿 `kc`=EntityFood（foodLevel/foodExhaustionLevel/foodSaturationLevel/foodTickTimer NBT 四键）+ **GameType int 键**（rl 无枚举类）+ MapFeatures 键 + **WorldSettings(dx) 构造参新增**（seed 从构造 long 迁 dx 承载）。
+- **WorldInfo=漂移最低关键类**：rl 字段表=ei 复刻（a/e/b/c/d/i/l/m/n/o 全同字母）+扩展——WorldInfo 链架构（b1.7.3 落码的 resolve 分支）对 b1.8 天然适配，仅类字母换。
+- **结论**：b1.8 若接入=独立全量批（取证深度同 b1.7.3：javap -c 调用者判定+注册表+下界/天气/GameType 活体+假类全方法面含 decoy+活体新建世界）；钩四项 desc 面全存活=TARGETS 新表工作量可控。本批**不改主代码、无活体冒烟**（旁证性质）。
