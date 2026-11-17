@@ -35,12 +35,13 @@ public final class VersionRegistry {
     private static final VersionTable T_120 = build120();
     private static final VersionTable T_1202 = build1202();
     private static final VersionTable T_173 = build173();
+    private static final VersionTable T_181 = build181();
 
     private static final Map<String, VersionTable> BY_ID = new HashMap<String, VersionTable>();
     private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
 
     static {
-        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202, T_173 };
+        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202, T_173, T_181 };
         for (VersionTable t : tables) {
             BY_ID.put(t.versionId, t);
             BY_SHA1.put(t.jarSha1, t);
@@ -788,6 +789,120 @@ public final class VersionRegistry {
         t.biomeWcmM = "a";        // fd.a()Lxv; getWorldChunkManager（fd 唯一无参 a ✓）
         t.biomeAtM = "a";         // xv.a(II)Lkd; getBiomeGenAt ✓
         t.biomeNameF = "n";       // kd.n=biomeName public String（⚠️b1.2_02=m 字母漂移）
+
+        return t;
+    }
+
+    /**
+     * b1.8.1 表（Beta 1.8.1，9 代表版线线尾件——旁证直转批）。值源=锚库
+     * java/agent/registry/fingerprints/b1.8.1.json；取证=
+     * docs/compatibility/verscan/b1.8.1.md（借 retromcp b1.8 原生 tiny+实件逐锚
+     * 复核；件 SHA1 6b562463… 对榫主卷 §0，stamp 自证）。
+     * **锚面零漂移判决**（详表 §1）：117 类 javap dump 逐类 hash 对照 b1.8=
+     * 116/117 字节级全同，唯一漂移 cf(Container) a(Lul;IIZ) 返回值 V→boolean
+     * （b1.8.1 热修复点，不在 ops 消费链）——b1.8 旁证批（verscan/b1.8.md）表
+     * 整体平移成立。
+     * vs b1.7.3 类身份断代（详表 §2）：World fd→rv、Entity sn→kj、EntityLiving
+     * ls→wd、EntityPlayer gs→sz、InventoryPlayer ix→ui、ItemStack iz→ul、Item
+     * gm→sv、EntityList jc→um、GuiIngame uq→abj、WorldInfo ei→rl、IProgressUpdate
+     * yb→ny、BiomeGenBase kd→vh。⚠️ 跨版本撞车位：sn=EntityCreeper（≠b1.7.3
+     * Entity）、jc=RegionFile（≠b1.7.3 EntityList）、wd=EntityLiving（≠b1.7.3
+     * WorldProviderHell）——严禁互抄表。
+     * ops 漂移项：setBlockM f→g、setMetaSilentM d→f、playerListF d→i、pos
+     * aM-aO→o/p/q、mot→r/s/t、look→u/v、healthF Y→bz、iframesF by→aa、invF
+     * c→as、itemClassG gm→sv、itemsF c→f、itemEntityG hl→ee、spawnEntityM
+     * b→a（回漂）、setEntityDeadM e→b（回漂）、entityListM o→p、difficultyF
+     * q→v、biomeNameF n→l。同字母保留：getBlockM/getMetaM/getLightM/teGetM/
+     * saveWorldM/getWorldInfoM/setPosRotM/addStackM/explodeM/playSoundM/
+     * entityListLookupM/biomeWcmM/biomeAtM/WorldInfo 字段面全同（rl=ei 复刻）。
+     * 存储=.mcr 世代（RegionStore 直接适用，el173-1 真盘判决语义）；
+     * b1.8.1 新面=饥饿 kc=EntityFood（NBT 四键）+GameType int 键（rl，无枚举类）。
+     */
+    private static VersionTable build181() {
+        VersionTable t = new VersionTable();
+        t.versionId = "b1.8.1";
+        t.family = "G3"; // 扁平散件+未混淆主类（G3-beta，b1.7.3 同族）
+        t.jarSha1 = "6b562463ccc2c7ff12ff350a2b04a67b3adcd37b"; // 纯独立件（stamp=Minecraft Beta 1.8.1，详表 §0）
+
+        // World 写读面（rv；详表 §1 实件终核）
+        t.setBlockM = "g";        // g(IIII)Z=setBlockWithNotify（⚠️b1.7.3=f 漂移；裸 setBlock=d(IIII)Z、setBlockMetadata=e(IIII)Z 同形陷阱群）
+        t.getBlockM = "a";        // a(III)I ✓历代同字母
+        t.getMetaM = "e";         // e(III)I getBlockMetadata ✓同 b1.7.3（el173-1 翻案值沿用）
+        t.setMetaSilentM = "f";   // f(IIII)V setBlockMetadataWithNotify（⚠️b1.7.3=d）
+        t.getLightM = "n";        // n(III)I ✓同字母
+        t.saveWorldM = "a";       // a(Lny;)V public 包装（IProgressUpdate yb→ny 断代；
+        t.saveWorldDesc = "(Lny;)V"; // 本体 a(ZLny)V；a(Z)Z=TickUpdates 禁钩）
+        t.teGetM = "b";           // b(III)Lij;（TileEntity ow→ij 漂移，字母 b ✓）
+        // WorldInfo 面（rl=ei 字段表全同字母复刻——b1.8.1 批判决，详表 §2）
+        t.getWorldInfoM = "x";    // rv.x()Lrl; getWorldInfo ✓同字母
+        t.worldTimeF = "e";       // rl.e:J=worldTime ✓
+        t.randSeedF = "a";        // rl.a:J=randomSeed ✓
+        t.spawnXF = "b";          // rl.b/c/d:I=SpawnX/Y/Z ✓
+        t.spawnYF = "c";
+        t.spawnZF = "d";
+
+        // 玩家/实体定位面（Entity=kj；档位三同族）
+        t.playerF = null;
+        t.playerListF = "i";      // rv public List i=playerEntities（⚠️b1.7.3=d）
+        t.entityClassG = "kj";
+        t.setPosRotM = "b";       // b(DDDFF)V ✓历代同字母同形
+        t.setPosRotDesc = "(DDDFF)V";
+        t.posXF = "o";            // kj.o/p/q=posX/Y/Z（⚠️b1.7.3=aM-aO 全面重写；NBT "Pos" 配对）
+        t.posYF = "p";
+        t.posZF = "q";
+        t.motXF = "r";            // NBT "Motion" 配对
+        t.motYF = "s";
+        t.motZF = "t";
+        t.yawF = "u";             // NBT "Rotation" 配对
+        t.pitchF = "v";
+        t.healthF = "bz";         // wd.bz public int=health（⚠️b1.7.3=Y；NBT "Health" 配对）
+        t.iframesF = "aa";        // kj.aa public int=heartsLife（⚠️b1.7.3=by；invulnerable 沿用）
+
+        // 物品栏面（EntityPlayer=sz.as→ui；⚠️ invF as 断代）
+        t.invF = "as";
+        t.invMainF = "a";         // ui.a=mainInventory[ul] ✓
+        t.invArmorF = "b";
+        t.invCurF = "c";          // ⚠️ ui.d=player/e=inventoryChanged 互换陷阱延续——c 才是 currentItem
+        t.isCountF = "a";         // ul a=stackSize/c=itemID/d=itemDamage ✓全同字母
+        t.isIdF = "c";
+        t.isDmgF = "d";
+        t.addStackM = "a";        // ui.a(ul)Z addItemStackToInventory ✓
+        t.itemClassG = "sv";
+        t.itemsF = "f";           // public static sv[] f（⚠️b1.7.3=gm.c）
+        t.itemEntityG = "ee";     // EntityItem ee（hl→ee 断代）
+
+        // 实体/世界事件面（详表 §2；⚠️ spawnEntity b→a、setEntityDead e→b 双双回漂）
+        t.explodeM = "a";         // a(Lkj;DDDF)Lzf;（V→Explosion 断代延续，返回值不消费）
+        t.spawnEntityM = "a";     // a(Lkj;)Z entityJoinedWorld（⚠️b1.7.3=b 回漂）
+        t.setEntityDeadM = "b";   // b(Lkj;)V（⚠️b1.7.3=e 回漂）
+        t.entityListM = "p";      // p()List getLoadedEntityList（⚠️b1.7.3=o）
+        t.entityTypeM = null;     // per-instance 命名面未钉（同族判决）
+        t.entityListClassG = "um";
+        t.entityListLookupM = "b"; // b(kj)String ✓同字母（um static 面详表 §5；注册表 26 项活体批复核）
+        t.playSoundM = "a";       // a(DDD,String,F,F)V ✓
+
+        // getinfo 面
+        t.difficultyF = "v";      // rv public int v=difficultySetting（⚠️b1.7.3=q）
+
+        // spawn 白名单（mobClasses 全表断代，详表 §2；giant=hv 构造健在预期——活体复验；
+        // creeper=sn ⚠️ 撞车位=字母与 b1.7.3 Entity 相同，跨版本勿混）
+        // ⚠️ mob 槽摘除（el181-1 活体判决）：tz=EntityCreature **abstract**（javap 实锤，
+        // b1.8-pre1-2 起断代——b1.7.3 ii=concrete 可实例化=173 活体 mob OK 不矛盾）；
+        // 中间层 tb=EntityMob/aq=EntityAnimal/pe=EntityWaterMob 全 abstract（tiny 对榫），
+        // b1.8+ 线无泛用可实例化 mob 基类=能力断代非表错。旁证批 b1.8 表同修。
+        t.mobClasses.put("pig", "mx");
+        t.mobClasses.put("sheep", "bx");
+        t.mobClasses.put("creeper", "sn");
+        t.mobClasses.put("skeleton", "se");
+        t.mobClasses.put("zombie", "abq");
+        t.mobClasses.put("spider", "bh");
+        t.mobClasses.put("tnt", "ze");
+        t.mobClasses.put("giant", "hv");
+
+        // biome 面（⚠️ BiomeGenBase kd→vh——b1.8.md 前记 kd 错已修=ModelSpider）
+        t.biomeWcmM = "a";        // rv.a()Lnu; getWorldChunkManager（rv 唯一无参 a 返回 nu ✓）
+        t.biomeAtM = "a";         // nu.a(II)Lvh; getBiomeGenAt ✓
+        t.biomeNameF = "l";       // vh.l=biomeName public String（⚠️b1.7.3=kd.n）
 
         return t;
     }

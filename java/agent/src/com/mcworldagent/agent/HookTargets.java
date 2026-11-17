@@ -287,6 +287,32 @@ public final class HookTargets {
                 0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
     };
 
+    /**
+     * b1.8.1 钩组（Beta 1.8.1，9 代表版线线尾件——旁证直转批）。
+     * 详表 verscan/b1.8.1.md §1（借 retromcp b1.8 原生 tiny+实件逐锚复核；件
+     * SHA1 6b562463… 对榫主卷 §0，stamp=Minecraft Beta 1.8.1 自证）。
+     * **锚面零漂移判决**：117 类 javap dump 逐类 hash 对照 b1.8=116/117 字节级
+     * 全同，唯一漂移 cf(Container) a(Lul;IIZ) 返回值 V→boolean（不在 ops 消费链）。
+     * SAVE_WORLD：rv.a(Lny;)V public 包装（fd→rv、yb→ny 断代；本体 a(ZLny)V；
+     * a(Z)Z=TickUpdates 禁钩同字母预避）。
+     * LOAD_WORLD：Minecraft.a(rv,String) public 0x0001（(rv,String,sz) 维度过载不钩）。
+     * RUN_TICK：Minecraft.k()V public（MC dump 与 b1.8 字节级全同——b1.7.3 断代值 k 保留）。
+     * HUD_RENDER：abj.a(FZII)V public EXIT（uq→abj 仅类字母；onHud 链未钉=
+     * HUD_HOOK_DISABLED 优雅降级）。
+     * 省略：WORLD_CTOR（rv 构造族=(acq,String,dx)/(acq,String,dx,acz)/(rv,acz)——
+     * WorldSettings dx 参=b1.8 系新面，dir 面走 cmd=）、LOAD_CHUNK/GEN_HEIGHT/GIANT_CTOR。
+     */
+    public static final Target[] TARGETS_181 = {
+        new Target("rv", "a", "(Lny;)V",
+                0x0001, 1, ENTRY, SAVE_WORLD, "World.saveWorld(progress) public wrapper"),
+        new Target("net/minecraft/client/Minecraft", "a", "(Lrv;Ljava/lang/String;)V",
+                0x0001, 1, ENTRY, LOAD_WORLD, "Minecraft.loadWorld(World,String)"),
+        new Target("net/minecraft/client/Minecraft", "k", "()V",
+                0x0001, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
+        new Target("abj", "a", "(FZII)V",
+                0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
+    };
+
     private static final Map<String, Target[]> GROUPS = new HashMap<String, Target[]>();
 
     static {
@@ -297,6 +323,7 @@ public final class HookTargets {
         GROUPS.put("a1.2.0", TARGETS_120);
         GROUPS.put("b1.2_02", TARGETS_1202);
         GROUPS.put("b1.7.3", TARGETS_173);
+        GROUPS.put("b1.8.1", TARGETS_181);
     }
 
     private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);

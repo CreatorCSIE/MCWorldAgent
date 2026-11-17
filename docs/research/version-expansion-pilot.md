@@ -234,3 +234,19 @@
 - **b1.8 新面**：饥饿 `kc`=EntityFood（foodLevel/foodExhaustionLevel/foodSaturationLevel/foodTickTimer NBT 四键）+ **GameType int 键**（rl 无枚举类）+ MapFeatures 键 + **WorldSettings(dx) 构造参新增**（seed 从构造 long 迁 dx 承载）。
 - **WorldInfo=漂移最低关键类**：rl 字段表=ei 复刻（a/e/b/c/d/i/l/m/n/o 全同字母）+扩展——WorldInfo 链架构（b1.7.3 落码的 resolve 分支）对 b1.8 天然适配，仅类字母换。
 - **结论**：b1.8 若接入=独立全量批（取证深度同 b1.7.3：javap -c 调用者判定+注册表+下界/天气/GameType 活体+假类全方法面含 decoy+活体新建世界）；钩四项 desc 面全存活=TARGETS 新表工作量可控。本批**不改主代码、无活体冒烟**（旁证性质）。
+
+## 14. b1.8.1 接入批（2026-11-17，el181-1/2；**旁证直转**=b1.8 表平移+实件逐锚复核；9 代表版线线尾件）
+
+**动因**：用户指令"执行 b1.8.1 旁证直转接入"。**件闸门**：`%APPDATA%\.minecraft\versions\b1.8.1\b1.8.1.jar` SHA1=`6b562463…`（1995166B，对榫 §0 钉表）+stamp=`Minecraft Beta 1.8.1` 自证+class 条目 809=与 b1.8 完全同集。**映射源**：retromcp 无 b1.8.1.zip（止于 b1.8/pre1/pre2）——借 b1.8 原生 tiny+**b1.8.1 实件 javap 逐锚复核**（b1.7.3 批借表配方复用）。
+
+**旁证直转判决**（详表 [b1.8.1.md](../compatibility/verscan/b1.8.1.md)）：117 类 dump 逐类 hash 对照=**116/117 字节级全同**；唯一漂移=`cf`(Container) `a(Lul;IIZ)` 返回值 V→boolean（b1.8.1 热修复点实锤，**不在 ops 消费链**）；MC 主类 dump 全同=**锚面零漂移，b1.8 表整体平移成立**。
+
+**落码**：HookTargets.TARGETS_181+GROUPS["b1.8.1"]、VersionRegistry.build181+T_181、锚 JSON `b1.8.1.json`、假类套件 root181+三件测试（A2Table181/FakeOps181/InjectSmoke181）。无头全量 run-headless181 **ALL GREEN**（21 旧回归+181 三件+storage 38/0+agent jar 重建）。
+
+**活体判决=PASS**（el181-1 新建世界 W181+el181-2 重开复验；详档 `integrations/attic/out/el181-2/ops-verdict.md`）：
+- 钩四项全中+实触发（SAVE_WORLD #1–#11/WORLD_CREATED rv@ 两会话/TICK 20TPS/HUD_HOOK_DISABLED 优雅降级）；ops 终审批全绿（rl=WorldInfo 链首验、pos o/p/q、**invulnerable aa 复活首验**、getmeta=e 无炸、getbiome=Taiga、explode Lzf 断代适配、**giant=hv 存活**、fill/replace 18/18、setarmor/drop/clear/playsound、UNSUPPORTED 六件对榫）。
+- **饥饿 kc 新面实锤**：sethealth 10→13 自然回血=foodLevel 回血联动（173 无此现象）。
+- 存储终审：region/r.*.mcr 四件+散件零（重开无 SaveConverter 迁移）+level.dat **GameType/MapFeatures 新键**+天气四键；**ChunkExport chunk(-14,13) marker id4+replace id3 18/18+id5 零残留**=RegionStore 绝对定位语义 b1.8.1 真盘适用。
+- **唯一修正=mob=tz 槽摘除**：真件 tz=EntityCreature **abstract**（javap 实锤，b1.8-pre1-2 起类树断代；tb/aq/pe 中间层全 abstract=无泛用可实例化 mob 基类；**173 ii=concrete 故 173 mob OK 不矛盾**；b1.8.md 同记）。教训扩面：**假类复刻真面须含 class 修饰符（abstract/final）**，不只方法面——173 bug① 同族。
+
+**线尾收束**：9 代表版线指定版接入进度=a1.1.2_01/a1.2.0/b1.2_02/b1.7.3/**b1.8.1** 五批活体毕；余 Classic/Indev/Infdev 0618/0629（形态差异带，§5 次序建议）。
