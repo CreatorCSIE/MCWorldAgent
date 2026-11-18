@@ -746,6 +746,17 @@ public final class VersionRegistry {
         t.healthF = "Y";          // EntityLiving(ls).Y public int（NBT "Health" 写读配对+保底 10；⚠️b1.2_02=S）
         t.iframesF = "by";        // sn.by public int=heartsLife（b1.2_02 档位一欠账清偿——invulnerable 复活；⚠️ be=isDead 撞车位勿混）
 
+        // HUD 次级链（本批清账：主钩 uq.a(FZII)V 注入成功但链字母未钉→优雅降级。
+        // javap 实锤 MC thePlayer=h/fontRenderer=q(Lsj)/gameSettings=z(Lkv)；
+        // 门=kv.B=showDebugInfo（uq 字节码两布尔读点：A@117=pumpkin 门 thirdPersonView、
+        // B@1142=F3 块 glTranslate 32F+版本串，姊妹仓 b1.7.3 树 L169 对榫；P 键独立调试列
+        // b1.5 起并入 F3——0327 showFPS 语义的 Beta 后继））
+        t.hudPlayerF = "h";
+        t.hudFontF = "q";
+        t.hudSettingsF = "z";
+        t.hudDebugGateF = "B";
+        t.hudXyzPaint = Boolean.FALSE; // a1.2.3 边界线（§5.1）：F3 自带坐标=注入免做，链字母留作锚数据
+
         // 物品栏面（EntityPlayer=gs.c→ix；⚠️ invF f→c 回漂、invCur c ✓同 b1.2_02）
         t.invF = "c";
         t.invMainF = "a";         // ix.a=mainInventory[iz]
@@ -857,6 +868,15 @@ public final class VersionRegistry {
         t.pitchF = "v";
         t.healthF = "bz";         // wd.bz public int=health（⚠️b1.7.3=Y；NBT "Health" 配对）
         t.iframesF = "aa";        // kj.aa public int=heartsLife（⚠️b1.7.3=by；invulnerable 沿用）
+
+        // HUD 次级链（本批清账：MC dump 与 b1.8 字节级全同——h/q/z 三字段保留；
+        // 门=fv.E=showDebugInfo（abj 字节码两布尔读点：D@117=thirdPersonView、
+        // E@1656=F3 块，姊妹仓 b1.8.1 树 L259 对榫；⚠️173=B——kv→fv 类断代带字母漂移））
+        t.hudPlayerF = "h";
+        t.hudFontF = "q";
+        t.hudSettingsF = "z";
+        t.hudDebugGateF = "E";
+        t.hudXyzPaint = Boolean.FALSE; // a1.2.3 边界线（§5.1）：F3 自带坐标=注入免做，链字母留作锚数据
 
         // 物品栏面（EntityPlayer=sz.as→ui；⚠️ invF as 断代）
         t.invF = "as";

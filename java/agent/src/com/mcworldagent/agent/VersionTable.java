@@ -54,6 +54,19 @@ public final class VersionTable {
     public String healthF;          // EntityLiving.W=Health
     public String iframesF;         // Entity.K=heartsLife
 
+    // HUD 次级链面（MCAHooks.onHud 反射链字母表化，2026-11-17 清 173/181 欠账；
+    // null=0327 形态 f/m/u/d——0327/0618 门=showFPS P 键调试列；Beta 独立调试列
+    // 已并入 F3（姊妹仓 b1.7.3/b1.8.1 树 GuiIngame 实钉），门=showDebugInfo：
+    // javap 实锤 173 MC h/q/z+kv.B、181 MC h/q/z+fv.E；drawStringWithShadow
+    // a(String,III)V 全代同字母不入表）
+    public String hudPlayerF;       // Minecraft.thePlayer
+    public String hudFontF;         // Minecraft.fontRenderer
+    public String hudSettingsF;     // Minecraft.gameSettings
+    public String hudDebugGateF;    // GameSettings 调试显示布尔门
+    public Boolean hudXyzPaint;     // null=绘制（<a1.2.3：0327/0618 原版无坐标面）；
+                                    // false=注入免做仅观测（§5.1 a1.2.3 边界线：原版自带
+                                    // 坐标显示，Beta 面=F3；链字母仍钉=锚数据非消费面）
+
     // 物品栏面
     public String invF;             // EntityHuman.b（InventoryPlayer）
     public String invMainF;         // ItemStack[36]

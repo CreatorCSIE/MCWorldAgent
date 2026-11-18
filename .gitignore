@@ -6,6 +6,10 @@ node_modules/
 # Downloaded dependencies (fetched by java/agent/build.ps1)
 java/agent/libs/*.jar
 
+# RetroMCP tiny 映射语料（133 zip+索引，第三方下载件可再生；安置=防 %TEMP% 清理，
+# 出处与构成钉 docs/research/version-expansion-pilot.md §7；仓内零二进制惯例沿用）
+tools/retromcp/
+
 # PoC run artifacts
 integrations/attic/out/
 

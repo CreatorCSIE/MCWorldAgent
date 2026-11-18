@@ -89,7 +89,7 @@
 
 | 边界 | 类型 | 代价 | 工程含义 |
 |---|---|---|---|
-| **a1.2.3** | 钩子侧（GuiIngame 免注入 XYZ 分界，用户指定） | **小** | 此后原版自带坐标显示面，HUD 注入从"必须"降为"可选/免做"——单钩开关，不动表、无语义风险。选版对 a1.1.2_01（前）+a1.2.6（后）天然夹住此线，接入即活体验证 |
+| **a1.2.3** | 钩子侧（GuiIngame 免注入 XYZ 分界，用户指定） | **小** | 此后原版自带坐标显示面，HUD 注入从"必须"降为"可选/免做"——单钩开关，不动表、无语义风险。选版对 a1.1.2_01（前）+a1.2.6（后）天然夹住此线，接入即活体验证。**2026-11-18 用户判决落地：173/181=免做**（VersionTable.hudXyzPaint=false 单钩开关，onHud 仅 HUD_RENDER 观测不触绘制链；链字母 javap 补钉 h/q/z+门 B/E 留作锚数据非消费面；0327/0618 默认绘制不回归。**181 侧活体兑现=el181-3**：HUD_RENDER #1–#126800 全程 635 行、零绘制零降级=免做开关活体首验通过） |
 | **0627/0629** | 形态侧（G2→G3 扁平散件起点，用户确认） | 中 | 新表但方法学原样复用——0629 接入批=第一次实弹检验 |
 | **a1.1.2_01~a1.2.0** | 语义侧（生物群系系统带，用户指定） | 大 | 字母可能连续而 id 表/NBT 结构/mob 集/TE 类型全变——**同表≠同能力**；接入此带版本冒烟必须加数据面读回（getblocks+id 表对拍），防"字母对、语义错" |
 | **b1.7.3/b1.8** | 语义侧重做（"维度级别"分界，用户指定，展开从略） | 最大 | javap 逐面对榫可能全绿但语义漂移——静态取证失效，只能活体终审+数据对拍兜底；本卷 §5 结论 2 的"1.8 饥饿/经验"即其可静态观测子集 |
@@ -129,7 +129,7 @@
 
 **数据侧分工**：存储 adapter 按型不按版（6 型封顶：序列化 level.dat/mclevel/散件/zone/mcr/mca），不吃指纹工作量。
 
-**分期（开工时再拍，此处仅序）**：P1=F1 慢路径最小核（3 面：getBlockId/setBlock/saveWorld）+F5 对账 9 版；P2=扩全 op 面+F4 聚类跑索引全量；P3=tiny 全量 QC（133 件逐件覆盖率实测+金标准抽检）+F6 运行时装载。语料现状：`unoriginal/original/pages` 三克隆在 `%TEMP%\mcaut\retromcp\`（133 zip 已在位，临时区——转正式资产需另行安置，待拍）。
+**分期（开工时再拍，此处仅序）**：P1=F1 慢路径最小核（3 面：getBlockId/setBlock/saveWorld）+F5 对账 9 版；P2=扩全 op 面+F4 聚类跑索引全量；P3=tiny 全量 QC（133 件逐件覆盖率实测+金标准抽检）+F6 运行时装载。语料现状（2026-11-17 转正式毕+瘦身）：正式资产=本仓 **`tools/retromcp/pages/versions/`**——仅 tiny 弹药本体=**133 映射 zip + versions.json**（170 键 jar 下载 URL 索引，缺件取回旁路），净 6.26 MB；三克隆网页树/original/unofficial/codie-servers 服务器 jar/网站杂项 jar 全剔（对作业零价值）。`%TEMP%\mcaut\retromcp\` 全量源仍在位可再生，TEMP 件可弃。
 
 **边界与风险**：G1 Classic 半可读世代锚库需独立一族规则（可读名直给但字段短名仍需钉）；0624 zone 类单日异型件聚类应识别为独立型；b1.2_02-20110517 未混淆例外件=零成本直通；高仿件拓扑继承母本→聚类归属前禁并表。
 
@@ -248,5 +248,10 @@
 - **饥饿 kc 新面实锤**：sethealth 10→13 自然回血=foodLevel 回血联动（173 无此现象）。
 - 存储终审：region/r.*.mcr 四件+散件零（重开无 SaveConverter 迁移）+level.dat **GameType/MapFeatures 新键**+天气四键；**ChunkExport chunk(-14,13) marker id4+replace id3 18/18+id5 零残留**=RegionStore 绝对定位语义 b1.8.1 真盘适用。
 - **唯一修正=mob=tz 槽摘除**：真件 tz=EntityCreature **abstract**（javap 实锤，b1.8-pre1-2 起类树断代；tb/aq/pe 中间层全 abstract=无泛用可实例化 mob 基类；**173 ii=concrete 故 173 mob OK 不矛盾**；b1.8.md 同记）。教训扩面：**假类复刻真面须含 class 修饰符（abstract/final）**，不只方法面——173 bug① 同族。
+
+**el181-3 终验批（2026-11-18，W181 重开传送门实走；详档 `integrations/attic/out/el181-3/ops-verdict.md`）**：
+- **DIM-1 欠账销**：懒生成 ✓（进界出四 mcr 初 0 字节）+持久化 ✓（终态非零 749568–1175552B+散件零；落盘时机=换界即存 SAVE#2+save op SAVE#3，**非退出落盘**）+下界实体 PigZombie/Ghast 可读（N=93）。
+- **HUD 免做开关活体首验 ✓**：HUD_RENDER #1–#126800 全程 635 行、零绘制零降级（§5.1 a1.2.3 边界线 181 侧闭环）。
+- **新发现=维度跟随单向（新欠账，修复待拍板；机制 javap 终钉）**：WORLD_SWITCHED gen=2 由**出下界**（回程 changeWorld 存旧下界）触发；传送门双向均 m() 直调 3 参 changeWorld 绕过 2 参 load 钩，SWITCHED 全由 save 路径发出=save 驱动→出下界回主世界不切（新主世界直到退出才首存）→捕获滞留下界=getblocks 读 id87 地狱岩（用户实站主世界同坐标）+save op 存错世界+getplayer REJECTED no-player（下界 i 空而 g 含泄漏 qs=两表脱钩；removeEntity 只 i.remove 不碰 g+存旧世界发生在摘除之后，qs=同一对象 *8 还原残留非 1:1）；getinfo 全程 OK=WorldInfo 跨维度共享；退出路径 gen=3+SAVE#4 终把主世界落盘。**修复候选=ops 执行时惰性读 Minecraft.theWorld 替代缓存捕获**（影响面=滞留期存错世界+主世界游中改动仅退出兜底；复跑需回程双向批）。
 
 **线尾收束**：9 代表版线指定版接入进度=a1.1.2_01/a1.2.0/b1.2_02/b1.7.3/**b1.8.1** 五批活体毕；余 Classic/Indev/Infdev 0618/0629（形态差异带，§5 次序建议）。

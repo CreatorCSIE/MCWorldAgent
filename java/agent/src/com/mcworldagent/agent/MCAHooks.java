@@ -247,6 +247,16 @@ public final class MCAHooks {
             return;
         }
         try {
+            // a1.2.3 边界线单钩开关（主卷 §5.1，用户判决 2026-11-18）：此后原版自带
+            // 坐标显示面（Beta=F3 showDebugInfo），XYZ 注入从"必须"降为"免做"——
+            // 钩保留=渲染循环存活观测（HUD_RENDER），不触字体绘制链。
+            if (Boolean.FALSE.equals(VersionRegistry.current().hudXyzPaint)) {
+                long obs = ++hudPaints;
+                if (obs == 1 || obs % 200 == 0) {
+                    log("HUD_RENDER #" + obs + " (xyz-injection-exempt: vanilla coords built in)");
+                }
+                return;
+            }
             java.lang.reflect.Field mcF = hudMcF;
             if (mcF == null) { // 首帧一次性解析；链=构造器参数类型+Field.getType() 推导，零硬编码 FQCN
                 // GuiIngame 唯一构造 (Minecraft)V → 参数类型即 Minecraft 类；
@@ -259,23 +269,27 @@ public final class MCAHooks {
                 if (mcF == null) {
                     throw new NoSuchFieldException("gui mc field");
                 }
-                java.lang.reflect.Field pf = mcF.getType().getDeclaredField("f"); // thePlayer
+                // 次级链字母表化（2026-11-17 清 173/181 欠账；null=0327 形态 f/m/u/d）：
+                // 0327/0618 门=showFPS P 键调试列；Beta 门=showDebugInfo F3（P 键列 b1.5
+                // 起并入 F3，语义后继；173=kv.B、181=fv.E——javap 布尔读点+姊妹仓树对榫）。
+                VersionTable vt = VersionRegistry.current();
+                java.lang.reflect.Field pf = mcF.getType().getDeclaredField(
+                        vt.hudPlayerF != null ? vt.hudPlayerF : "f"); // thePlayer
                 pf.setAccessible(true);
-                java.lang.reflect.Field ff = mcF.getType().getDeclaredField("m"); // fontRenderer
+                java.lang.reflect.Field ff = mcF.getType().getDeclaredField(
+                        vt.hudFontF != null ? vt.hudFontF : "m"); // fontRenderer
                 ff.setAccessible(true);
                 java.lang.reflect.Method dm = ff.getType().getMethod("a", String.class,
-                        int.class, int.class, int.class); // drawStringWithShadow
-                // showFPS 门（用户判决：与原版调试信息同开关、同列排版）：
-                // mc.u=gameSettings(client.o)、o.d=showFPS（javap 实锤：
-                // renderGameOverlay 字节码唯一 GameSettings 布尔读取点）。
-                java.lang.reflect.Field gf = mcF.getType().getDeclaredField("u");
+                        int.class, int.class, int.class); // drawStringWithShadow（a 全代同字母）
+                java.lang.reflect.Field gf = mcF.getType().getDeclaredField(
+                        vt.hudSettingsF != null ? vt.hudSettingsF : "u");
                 gf.setAccessible(true);
-                java.lang.reflect.Field sf = gf.getType().getDeclaredField("d");
+                java.lang.reflect.Field sf = gf.getType().getDeclaredField(
+                        vt.hudDebugGateF != null ? vt.hudDebugGateF : "d");
                 sf.setAccessible(true);
                 Class<?> pc = pf.getType();
                 // pos 字母走版本表（A3 实跑派生修复：0327 g/h/i vs 0618 h/i/j，
                 // onHud 首触在 premain 激活之后，current() 即本会话激活表）。
-                VersionTable vt = VersionRegistry.current();
                 java.lang.reflect.Field px = findField(pc, vt.posXF);
                 java.lang.reflect.Field py = findField(pc, vt.posYF);
                 java.lang.reflect.Field pz = findField(pc, vt.posZF);
