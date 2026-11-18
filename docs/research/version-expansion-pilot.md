@@ -252,6 +252,13 @@
 **el181-3 终验批（2026-11-18，W181 重开传送门实走；详档 `integrations/attic/out/el181-3/ops-verdict.md`）**：
 - **DIM-1 欠账销**：懒生成 ✓（进界出四 mcr 初 0 字节）+持久化 ✓（终态非零 749568–1175552B+散件零；落盘时机=换界即存 SAVE#2+save op SAVE#3，**非退出落盘**）+下界实体 PigZombie/Ghast 可读（N=93）。
 - **HUD 免做开关活体首验 ✓**：HUD_RENDER #1–#126800 全程 635 行、零绘制零降级（§5.1 a1.2.3 边界线 181 侧闭环）。
-- **新发现=维度跟随单向（新欠账，修复待拍板；机制 javap 终钉）**：WORLD_SWITCHED gen=2 由**出下界**（回程 changeWorld 存旧下界）触发；传送门双向均 m() 直调 3 参 changeWorld 绕过 2 参 load 钩，SWITCHED 全由 save 路径发出=save 驱动→出下界回主世界不切（新主世界直到退出才首存）→捕获滞留下界=getblocks 读 id87 地狱岩（用户实站主世界同坐标）+save op 存错世界+getplayer REJECTED no-player（下界 i 空而 g 含泄漏 qs=两表脱钩；removeEntity 只 i.remove 不碰 g+存旧世界发生在摘除之后，qs=同一对象 *8 还原残留非 1:1）；getinfo 全程 OK=WorldInfo 跨维度共享；退出路径 gen=3+SAVE#4 终把主世界落盘。**修复候选=ops 执行时惰性读 Minecraft.theWorld 替代缓存捕获**（影响面=滞留期存错世界+主世界游中改动仅退出兜底；复跑需回程双向批）。
+- **新发现=维度跟随单向（新欠账，2026-11-18 判决 B 落码毕；机制 javap 终钉）**：WORLD_SWITCHED gen=2 由**出下界**（回程 changeWorld 存旧下界）触发；传送门双向均 m() 直调 3 参 changeWorld 绕过 2 参 load 钩，SWITCHED 全由 save 路径发出=save 驱动→出下界回主世界不切（新主世界直到退出才首存）→捕获滞留下界=getblocks 读 id87 地狱岩（用户实站主世界同坐标）+save op 存错世界+getplayer REJECTED no-player（下界 i 空而 g 含泄漏 qs=两表脱钩；removeEntity 只 i.remove 不碰 g+存旧世界发生在摘除之后，qs=同一对象 *8 还原残留非 1:1）；getinfo 全程 OK=WorldInfo 跨维度共享；退出路径 gen=3+SAVE#4 终把主世界落盘。**修复判决 B 已落码（2026-11-18 拍板）=LOAD_WORLD 钩自 2 参委托壳改挂 3 参实体 a(World,String,Entity)（三径全汇=超集，捕获架构/generation 语义零改动）**
+
+**el181-4/5 修复终验批（2026-11-18，同 W181；详档 `integrations/attic/out/el181-5/ops-verdict.md`）**：
+- **el181-4 活体诊断暴露 ENTRY 注入缺陷**：3 参钩 ENTRY 捕获进界即中（44764ms SWITCHED→下界），但 34ms 后被方法体首行 f.a(s) 存旧世界经 onSaveWorld 把捕获切回主界（getplayer REJECTED）——预判"同对象 no-op"错误。**修订=EXIT 注入**（RETURN 前 ALOAD 1，存界+addEntity 完成后捕获=双向终态新世界），headless 37 checks 全绿+全版本线回归 ALL GREEN。
+- **el181-5 三方向终验全中**：①启动恢复（意外开局）=loadWorld 读 level.dat Dimension=-1 **直接以下界世界为初始 world 构造**（不走 m()、无 Toggling print），getplayer 命中下界坐标；②回程=下界回程瞬间被存（SAVE#1）+SWITCHED 新主界不回拉+getplayer 命中（*8 还原）+save op 存对新主界；③进界=主界瞬间被存（SAVE#3）+SWITCHED 新下界不回拉+getplayer 命中。**维度跟随欠账销**。
+- **两条旧判被推翻（记档修正）**："下界 playerEntities 永空"=el181-3 捕获时机伪象非下界定律；"退出终归存主世界"=退出存 theWorld 人在哪个维度存哪个。正向新证=玩家坐标+Dimension 字段持久化于 level.dat 单承载体。
+- **连带推翻 a1.2.0 静态判（2026-11-18 a120dim javap 复核）**："level.dat Dimension 键不参与单主加载选路/重载恒回主世界"错误——a1.2.0 `cu.<init>` 构造器即内联读 Player/Dimension==-1→new nz() 以下界为初始 world（恢复分支**首现 a1.2.0**，a1.1.2_01/a1.0.10 无）；b1.8.1 同构（rv.<init> provider==null 时查 rl.i()==-1）。附带修正：a1.2.0 k() 与 b1.8.1 m() 均复用玩家对象（旧记"每次切换重建"不确）。详见 a1.2.0_02.md §1A.2/§1A.3。
+- **b1.2_02/b1.7.3 同款旧判直接字节码推翻（2026-11-18 dim1217 批，非同构推断）**：b1.2_02 主构造器 `dn(File,String,J,qx)` @524-544 直读 level.dat Dimension==-1→new qi()（§11/§12"无消费方/重进回主世界"作废）；b1.7.3 `fd(wt,String,J)` aconst_null 委托主构造器 @319-345 读 ei.i()==-1→xa.a(-1)→new wd（§10"恒默认主世界"作废，且其④与结论本就自相矛盾；el173-1 ⑨ 键集观察保留、解释修正）。**四版（a1.2.0/b1.2_02/b1.7.3/b1.8.1）"World 构造器 provider==null 按 Dimension 选下界"同形实锤，转正断代前移至 a1.2.0**。
 
 **线尾收束**：9 代表版线指定版接入进度=a1.1.2_01/a1.2.0/b1.2_02/b1.7.3/**b1.8.1** 五批活体毕；余 Classic/Indev/Infdev 0618/0629（形态差异带，§5 次序建议）。

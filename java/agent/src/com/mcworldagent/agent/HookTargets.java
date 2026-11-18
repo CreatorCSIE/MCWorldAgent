@@ -295,7 +295,12 @@ public final class HookTargets {
      * 全同，唯一漂移 cf(Container) a(Lul;IIZ) 返回值 V→boolean（不在 ops 消费链）。
      * SAVE_WORLD：rv.a(Lny;)V public 包装（fd→rv、yb→ny 断代；本体 a(ZLny)V；
      * a(Z)Z=TickUpdates 禁钩同字母预避）。
-     * LOAD_WORLD：Minecraft.a(rv,String) public 0x0001（(rv,String,sz) 维度过载不钩）。
+     * LOAD_WORLD：Minecraft.a(rv,String,sz) public 0x0001——**2026-11-18 维度跟随修复
+     * （el181-3 判决 B）由 2 参委托壳改挂 3 参实体**：loadWorld 启动、handleRespawn
+     * （1→2→3 参）、传送门 m()（直调 3 参绕过 2 参）三径全汇 3 参=通用超集（a1.1.2_01
+     * 已证 (cu,String,dv) 形态 alpha 起存在）；**注入位=EXIT**（el181-4 活体实测修订：ENTRY
+     * 捕获被方法体首行存旧世界经 onSaveWorld 切回旧界，EXIT 在存界+addEntity 后捕获=双向终态
+     * 正确），slot1=World 形不变，a(null,...) 清场仍走 onWorldLoaded null 守卫。
      * RUN_TICK：Minecraft.k()V public（MC dump 与 b1.8 字节级全同——b1.7.3 断代值 k 保留）。
      * HUD_RENDER：abj.a(FZII)V public EXIT（uq→abj 仅类字母；onHud 链未钉=
      * HUD_HOOK_DISABLED 优雅降级）。
@@ -305,8 +310,8 @@ public final class HookTargets {
     public static final Target[] TARGETS_181 = {
         new Target("rv", "a", "(Lny;)V",
                 0x0001, 1, ENTRY, SAVE_WORLD, "World.saveWorld(progress) public wrapper"),
-        new Target("net/minecraft/client/Minecraft", "a", "(Lrv;Ljava/lang/String;)V",
-                0x0001, 1, ENTRY, LOAD_WORLD, "Minecraft.loadWorld(World,String)"),
+        new Target("net/minecraft/client/Minecraft", "a", "(Lrv;Ljava/lang/String;Lsz;)V",
+                0x0001, 1, EXIT, LOAD_WORLD, "Minecraft.changeWorld(World,String,Entity)"),
         new Target("net/minecraft/client/Minecraft", "k", "()V",
                 0x0001, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
         new Target("abj", "a", "(FZII)V",

@@ -211,11 +211,20 @@ public final class Transformers implements ClassFileTransformer {
         @Override
         public void visitInsn(int opcode) {
             if (opcode == Opcodes.RETURN && target.injectMode == HookTargets.EXIT) {
-                // EXIT 观察钩（HUD）：RETURN 前 ALOAD 0+INVOKESTATIC，对称压弹栈深不变；
-                // 多 RETURN 逐个注入=重复绘制同文本幂等。
-                mv.visitVarInsn(Opcodes.ALOAD, 0);
-                mv.visitMethodInsn(Opcodes.INVOKESTATIC, HOOKS, "onHud",
-                        "(Ljava/lang/Object;)V", false);
+                // EXIT 观察钩：RETURN 前注入，对称压弹栈深不变；多 RETURN 逐个注入幂等。
+                if (target.hookId == HookTargets.LOAD_WORLD) {
+                    // 判决 B 修订（2026-11-18 el181-4 活体实测）：3 参 changeWorld 改挂 EXIT——
+                    // ENTRY 捕获会被方法体首行 f.a(s) 存旧世界经 onSaveWorld 把捕获切回旧界
+                    //（进界 34ms 后 SWITCHED 回主界实锤）；EXIT 在存界+addEntity 完成后捕获，
+                    // 双向终态=新世界。ALOAD 1=slot1 World 实参（a(null,...) 清场走 null 守卫）。
+                    mv.visitVarInsn(Opcodes.ALOAD, 1);
+                    mv.visitMethodInsn(Opcodes.INVOKESTATIC, HOOKS, "onWorldLoaded",
+                            "(Ljava/lang/Object;)V", false);
+                } else {
+                    mv.visitVarInsn(Opcodes.ALOAD, 0);
+                    mv.visitMethodInsn(Opcodes.INVOKESTATIC, HOOKS, "onHud",
+                            "(Ljava/lang/Object;)V", false);
+                }
             } else if (opcode == Opcodes.ARETURN
                     && target.injectMode == HookTargets.ENTRY_AND_RESULT) {
                 if (!HookTargets.LOAD_CHUNK.equals(target.hookId)) {

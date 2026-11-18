@@ -7,7 +7,7 @@
   "provenance": {
     "evidence": "docs/compatibility/verscan/b1.8.1.md（§0-§6；取证产物 %TEMP%/mcaut/b181/：classlist 与 b1.8 零 diff+117 类 javap -p -s dump 逐类 hash 对照）",
     "mode": "javap",
-    "note": "b1.8.1 独立件（stamp=Minecraft Beta 1.8.1 自证，SHA1 对榫主卷 §0 钉表）；旁证直转批=借 retromcp b1.8 原生 tiny+实件逐锚复核。**锚面零漂移判决**：117 类 dump 116 类字节级全同，唯一漂移=cf(Container) a(Lul;IIZ) 返回值 V→boolean（b1.8.1 热修复点，不在 ops 消费链）。b1.8 旁证批（docs/compatibility/verscan/b1.8.md）表整体平移成立。类身份断代 vs b1.7.3：World fd→rv、Entity sn→kj、EntityLiving ls→wd、EntityPlayer gs→sz、InventoryPlayer ix→ui、ItemStack iz→ul、Item gm→sv、EntityList jc→um、GuiIngame uq→abj、WorldInfo ei→rl、IProgressUpdate yb→ny、RegionFile qj→jc、SaveHandler fm→dd、BiomeGenBase kd→vh（b1.8.md 前记 kd 错已修=ModelSpider）。⚠️ 跨版本撞车位：sn=EntityCreeper（≠b1.7.3 Entity）、jc=RegionFile（≠b1.7.3 EntityList）、wd=EntityLiving（≠b1.7.3 WorldProviderHell）。钩四项：SAVE_WORLD=rv.a(Lny;)V public 包装（本体 a(ZLny)V；a(Z)Z=TickUpdates 禁钩）、LOAD_WORLD=Minecraft.a(Lrv,String) public 0x0001（(rv,String,sz) 维度过载不钩）、RUN_TICK=Minecraft.k()V（MC dump 与 b1.8 字节级全同）、HUD_RENDER=abj.a(FZII)V public EXIT（onHud 反射链字母未钉=HUD_HOOK_DISABLED 优雅降级）。WORLD_CTOR 省略（rv 构造族=(acq,String,dx)/(acq,String,dx,acz)/(rv,acz)——WorldSettings dx 参=b1.8 系新面，dir 面走 cmd=）。存储=.mcr 世代（Anvil=12w07a 起超本线）；RegionStore 直接适用（jc 字段面=qj 同形、zl 命名串全）；rl=WorldInfo 键集=ei 全列+GameType/MapFeatures 新增（天气 l/m/n/o 同字母）。b1.8.1 新面=饥饿 kc=EntityFood（foodLevel 等 NBT 四键）+GameType int 键（无枚举类）。um 注册表 26 项活体批复核（Giant=hv:53 预期存活）。**el181-1 活体修正：mob 槽摘除**——真件 tz=EntityCreature **abstract**（javap 实锤；b1.8-pre1-2 起类树断代，中间层 tb=EntityMob/aq=EntityAnimal/pe=EntityWaterMob 全 abstract；b1.7.3 ii=concrete 故 173 活体 mob OK 与本判决不矛盾），b1.8+ 无泛用可实例化 mob 基类=能力断代；旁证批 b1.8 表同修。"
+    "note": "b1.8.1 独立件（stamp=Minecraft Beta 1.8.1 自证，SHA1 对榫主卷 §0 钉表）；旁证直转批=借 retromcp b1.8 原生 tiny+实件逐锚复核。**锚面零漂移判决**：117 类 dump 116 类字节级全同，唯一漂移=cf(Container) a(Lul;IIZ) 返回值 V→boolean（b1.8.1 热修复点，不在 ops 消费链）。b1.8 旁证批（docs/compatibility/verscan/b1.8.md）表整体平移成立。类身份断代 vs b1.7.3：World fd→rv、Entity sn→kj、EntityLiving ls→wd、EntityPlayer gs→sz、InventoryPlayer ix→ui、ItemStack iz→ul、Item gm→sv、EntityList jc→um、GuiIngame uq→abj、WorldInfo ei→rl、IProgressUpdate yb→ny、RegionFile qj→jc、SaveHandler fm→dd、BiomeGenBase kd→vh（b1.8.md 前记 kd 错已修=ModelSpider）。⚠️ 跨版本撞车位：sn=EntityCreeper（≠b1.7.3 Entity）、jc=RegionFile（≠b1.7.3 EntityList）、wd=EntityLiving（≠b1.7.3 WorldProviderHell）。钩四项：SAVE_WORLD=rv.a(Lny;)V public 包装（本体 a(ZLny)V；a(Z)Z=TickUpdates 禁钩）、LOAD_WORLD=Minecraft.a(Lrv,Ljava/lang/String,Lsz;)V public 0x0001（2026-11-18 维度跟随修复判决 B：2 参委托壳→3 参实体改挂，三径全汇）、RUN_TICK=Minecraft.k()V（MC dump 与 b1.8 字节级全同）、HUD_RENDER=abj.a(FZII)V public EXIT（onHud 反射链字母未钉=HUD_HOOK_DISABLED 优雅降级）。WORLD_CTOR 省略（rv 构造族=(acq,String,dx)/(acq,String,dx,acz)/(rv,acz)——WorldSettings dx 参=b1.8 系新面，dir 面走 cmd=）。存储=.mcr 世代（Anvil=12w07a 起超本线）；RegionStore 直接适用（jc 字段面=qj 同形、zl 命名串全）；rl=WorldInfo 键集=ei 全列+GameType/MapFeatures 新增（天气 l/m/n/o 同字母）。b1.8.1 新面=饥饿 kc=EntityFood（foodLevel 等 NBT 四键）+GameType int 键（无枚举类）。um 注册表 26 项活体批复核（Giant=hv:53 预期存活）。**el181-1 活体修正：mob 槽摘除**——真件 tz=EntityCreature **abstract**（javap 实锤；b1.8-pre1-2 起类树断代，中间层 tb=EntityMob/aq=EntityAnimal/pe=EntityWaterMob 全 abstract；b1.7.3 ii=concrete 故 173 活体 mob OK 与本判决不矛盾），b1.8+ 无泛用可实例化 mob 基类=能力断代；旁证批 b1.8 表同修。"
   },
   "hooks": {
     "SAVE_WORLD": {
@@ -22,11 +22,11 @@
     "LOAD_WORLD": {
       "class": "net/minecraft/client/Minecraft",
       "method": "a",
-      "desc": "(Lrv;Ljava/lang/String;)V",
+      "desc": "(Lrv;Ljava/lang/String;Lsz;)V",
       "access": "0x0001",
       "expectedHits": 1,
-      "injectMode": "ENTRY",
-      "note": "slot1=活体 World（详表 §1；(rv,String,sz) 维度过载不钩）"
+      "injectMode": "EXIT",
+      "note": "slot1=活体 World（详表 §1；判决 B+el181-4 修订：3 参实体改挂+EXIT 注入——ENTRY 捕获被方法体存旧世界切回旧界，EXIT 在存界+addEntity 后=双向终态正确；a(null,...) 清场走 null 守卫）"
     },
     "RUN_TICK": {
       "class": "net/minecraft/client/Minecraft",
