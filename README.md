@@ -47,7 +47,7 @@
 
 - **agent 队列待拍板**：grow/clear 两 op（审计缺口② 候选批，grow 语义=概率/循环催熟待拍）、harvest 存废、chunk 导出**进程内对账收口**（活体内存 vs 盘面一致性，用户判决"之后再收口"）、`getChunkFromChunkCoords` 深钩（Phase 0 教训 5 的 1729/639 缺口）、listops v2 能力元数据（Version Registry 机器可读形态）。
 - **版本扩展**：试点调研已毕（见上案卷）；待拍板=接入次序（建议 0618→0629→a1.1.2→b1.7.3）与首个跨版实跑批；指纹工业化编译器（tiny 为主+锚库补洞+聚类，方案已钉未开工）；0227/0313 次优先；高仿件覆盖放开（来源=nasko222 重建仓库，逐件对榫索引+逐件独立钉表）。
-- **桌面壳（Workbench 模型已判决落档）**：T1 命令台面板（速记翻译器+双源轮询，agent 侧零依赖）→ T2 Editor 注册制+Three.js 真渲染（§12 垂直切片唯缺步 4，数据源已就绪）→ T3 分屏/拖放/Palette/持久化。栈=Vue 3 + shadcn-vue + Tauri（已 DECIDED 单壳，原型已验收）。
+- **桌面壳（Workbench 模型已判决落档）**：T1 命令台面板 ✅ 已实现+实跑 `t1-shell-1` 全绿（2026-11-14，速记翻译器+双源轮询，agent 侧零依赖；真 kill/启动按钮判决=v1 不做，见 spec §5）→ T2 Editor 注册制+Three.js 真渲染（§12 垂直切片唯缺步 4，数据源已就绪）→ T3 分屏/拖放/Palette/持久化。栈=Vue 3 + shadcn-vue + Tauri（已 DECIDED 单壳，原型已验收）。
 - **游戏内控制台**（输入壳优先战略维持）：Classic 绕闸配方 / Infdev ConsoleScreen / Alpha sendChatMessage 数据层钩，见 [ingame-console.md](./docs/architecture/ingame-console.md)。
 - **MCP Server / 分析工具集成**（slime/monolith/pyramid 离线算法）：Phase 5/7 归位。
 
