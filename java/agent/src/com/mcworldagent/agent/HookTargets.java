@@ -212,8 +212,11 @@ public final class HookTargets {
      * +"Saving chunks"→bb.a(ZLph)Z；本体 ph null 守卫 ifnull 齐全→ops 传 null 直调包装，
      * 0629/a1.1.2_01 配方三连用。⚠️cu.a(Z)Z=TickUpdates 禁钩（el1121-1 同款陷阱）。
      * WORLD_CTOR：cu(File,String) public（构造族四重载之基础形，同 0327/a1.1.2_01 判决）。
-     * LOAD_WORLD：Minecraft.a(cu,String) public（sig 复核 0x0001；另有 (cu,String,dv) 三维参
-     * 重载=下界传送门新面，本批不钩）。
+     * LOAD_WORLD：Minecraft.a(cu,String,dv) public 0x0001——2026-11-19 维度跟随移植批
+     * （判决 B 同 b1.8.1 e3375b7）由 2 参委托壳改挂 3 参实体：javap 实锤 2 参壳
+     * aconst_null 委托 3 参+传送门 k() 两处直调 3 参=三径全汇超集；注入位=EXIT
+     * （体首段存旧世界 cu.a(Lph;)V 经 onSaveWorld 切回旧界，EXIT 在存界+addEntity 后
+     * 捕获=双向终态；单一尾 RETURN @341），slot1=World 形不变，a(null,...) 走 null 守卫。
      * RUN_TICK：Minecraft.i()V public（run() tick 循环 invokevirtual i()+try/catch 置 e=null
      * 调 a(Lcu;)V 对榫——a1.1.2_01 同字母同形）。
      * HUD_RENDER：mz.a(FZII)V public EXIT（tiny 直钉 renderGameOverlay+jq.b(F)V L1225
@@ -225,8 +228,8 @@ public final class HookTargets {
                 0x0001, 1, ENTRY, SAVE_WORLD, "World.saveWorld(progress) public wrapper"),
         new Target("cu", "<init>", "(Ljava/io/File;Ljava/lang/String;)V",
                 0x0001, 1, ENTRY, WORLD_CTOR, "World.<init>(File,String)"),
-        new Target("net/minecraft/client/Minecraft", "a", "(Lcu;Ljava/lang/String;)V",
-                0x0001, 1, ENTRY, LOAD_WORLD, "Minecraft.loadWorld(World,String)"),
+        new Target("net/minecraft/client/Minecraft", "a", "(Lcu;Ljava/lang/String;Ldv;)V",
+                0x0001, 1, EXIT, LOAD_WORLD, "Minecraft.changeWorld(World,String,Entity)"),
         new Target("net/minecraft/client/Minecraft", "i", "()V",
                 0x0001, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
         new Target("mz", "a", "(FZII)V",
@@ -239,8 +242,10 @@ public final class HookTargets {
      * SAVE_WORLD：dn.a(Lru)V public 包装（IProgressUpdate ph→ru 档位二断代；本体
      * a(ZLru)V null 守卫齐全=0629/a1.2.0 配方三连用；a(Z)Z=TickUpdates 禁钩同字母预避）。
      * WORLD_CTOR：dn(File,String) public（启用，同 a1.2.0 双钩保底）。
-     * LOAD_WORLD：Minecraft.a(dn,String) public 0x0001（钩形不变——(cu,String)→
-     * (dn,String) 仅类字母断代；(dn,String,eu) 三维参重载=维度切换接口不钩）。
+     * LOAD_WORLD：Minecraft.a(dn,String,eu) public 0x0001——2026-11-19 维度跟随移植批
+     * （判决 B 同 b1.8.1 e3375b7）由 2 参委托壳改挂 3 参实体：javap 实锤 2 参壳
+     * aconst_null 委托 3 参+传送门 k() 两处直调 3 参=三径全汇超集；注入位=EXIT
+     * （单一尾 RETURN @395，形制同 120）。
      * RUN_TICK：Minecraft.i()V public ✓同字母同形。
      * HUD_RENDER：pe.a(FZII)V public EXIT（钩形与 a1.2.0 mz 完全同构——ll
      * (EntityRenderer) 字节码 L281 invokevirtual pe.a:(FZII)V 调用点实锤）。
@@ -252,8 +257,8 @@ public final class HookTargets {
                 0x0001, 1, ENTRY, SAVE_WORLD, "World.saveWorld(progress) public wrapper"),
         new Target("dn", "<init>", "(Ljava/io/File;Ljava/lang/String;)V",
                 0x0001, 1, ENTRY, WORLD_CTOR, "World.<init>(File,String)"),
-        new Target("net/minecraft/client/Minecraft", "a", "(Ldn;Ljava/lang/String;)V",
-                0x0001, 1, ENTRY, LOAD_WORLD, "Minecraft.loadWorld(World,String)"),
+        new Target("net/minecraft/client/Minecraft", "a", "(Ldn;Ljava/lang/String;Leu;)V",
+                0x0001, 1, EXIT, LOAD_WORLD, "Minecraft.changeWorld(World,String,Entity)"),
         new Target("net/minecraft/client/Minecraft", "i", "()V",
                 0x0001, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
         new Target("pe", "a", "(FZII)V",
@@ -265,8 +270,10 @@ public final class HookTargets {
      * 详表 verscan/b1.7.3.md §9（javap 全量实锤，件 SHA1 43db9b49… 纯独立件 stamp 自证）。
      * SAVE_WORLD：fd.a(Lyb;)V public 包装（IProgressUpdate ru→yb 断代；本体 a(ZLyb)V
      * null 守卫=0629/a1.2.0/b1.2_02 配方四连用；a(Z)Z=TickUpdates 禁钩同字母预避）。
-     * LOAD_WORLD：Minecraft.a(fd,String) public 0x0001（钩形不变=仅类字母断代；
-     * (fd,String,gs) 维度过载=下界传送门新面不钩）。
+     * LOAD_WORLD：Minecraft.a(fd,String,gs) public 0x0001——2026-11-19 维度跟随移植批
+     * （判决 B 同 b1.8.1 e3375b7）由 2 参委托壳改挂 3 参实体：javap 实锤 2 参壳
+     * aconst_null 委托 3 参+传送门 m() 两处直调 3 参=三径全汇超集；注入位=EXIT
+     * （单一尾 RETURN @366，形制同 120）。
      * RUN_TICK：Minecraft.k()V **public**（⚠️ 字母断代 i→k——b1.2_02=i()V 惯例破裂，
      * 详表 §7 run() 调用点 invokespecial k()V 实锤；五项全中按实访问位）。
      * HUD_RENDER：uq.a(FZII)V public EXIT（钩形与 a1.1.2_01..b1.2_02 全同构）。
@@ -279,8 +286,8 @@ public final class HookTargets {
     public static final Target[] TARGETS_173 = {
         new Target("fd", "a", "(Lyb;)V",
                 0x0001, 1, ENTRY, SAVE_WORLD, "World.saveWorld(progress) public wrapper"),
-        new Target("net/minecraft/client/Minecraft", "a", "(Lfd;Ljava/lang/String;)V",
-                0x0001, 1, ENTRY, LOAD_WORLD, "Minecraft.loadWorld(World,String)"),
+        new Target("net/minecraft/client/Minecraft", "a", "(Lfd;Ljava/lang/String;Lgs;)V",
+                0x0001, 1, EXIT, LOAD_WORLD, "Minecraft.changeWorld(World,String,Entity)"),
         new Target("net/minecraft/client/Minecraft", "k", "()V",
                 0x0001, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
         new Target("uq", "a", "(FZII)V",
