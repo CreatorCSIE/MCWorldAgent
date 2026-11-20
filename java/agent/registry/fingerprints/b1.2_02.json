@@ -24,7 +24,7 @@
     "playerField": null,
     "playerListField": { "class": "dn", "name": "d", "descriptor": "Ljava/util/List;" },
     "entityClass": { "class": "nl", "name": null, "descriptor": null },
-    "explode": { "class": "dn", "name": "a", "descriptor": "(Lnl;DDDF)V" },
+    "explode": { "class": "dn", "name": "a", "descriptor": "(Lnl;DDDF)Lmc;" },
     "spawnEntity": { "class": "dn", "name": "a", "descriptor": "(Lnl;)Z" },
     "setEntityDead": { "class": "dn", "name": "d", "descriptor": "(Lnl;)V" },
     "entityList": { "class": "dn", "name": "l", "descriptor": "()Ljava/util/List;" },

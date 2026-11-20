@@ -131,6 +131,38 @@ save 策略（评审采纳，按操作类型）：
 
 批量写第二批已实装并验收（2026-11-13 落码，实跑 run `fill-1` 全项通过——NO_CHANGE 活体实例、同 id 短路 changed=220、存退重进持久化、FILL_MS 243 块含 save=9ms，见 [phase1-command-channel](../research/phase1-command-channel.md) §12）。第三批（getmeta/setmeta/genscatter/listops，2026-11-14 落码，无头 79/79）取证与判决变更见 [phase1-command-channel](../research/phase1-command-channel.md) §13，实跑验收 run `meta-1`+修复复验 `meta-2` 全项通过（difficulty 对账、setmeta nibble 持久化、火把目视转向、散布计数精确、NO_CHANGE；活体翻案=散布器基底 stone+预扫盒上界 486 格，见 §14/§15），见 [phase1-command-channel](../research/phase1-command-channel.md) §14。第四批（getlight/setlook/setmotion，2026-11-14 落码，**零新取证**——三面全部已钉面；协议=整数角度/整数千分位，无头 95/95）取证引用与 motion=double 纠正见 [phase1-command-channel](../research/phase1-command-channel.md) §17，实跑验收 `llm-1` 已完成全绿（2026-11-14：vy 不被首 tick 清零、存退重进 Rotation 盘面一致、新钉 0327 Player NBT=TAG_List 与 saveWorld 的 c==null 条件写窗）。第五批（give/inv/sethealth 物品栏三 op，2026-11-14 落码，KNOWN_OPS→21；javap 全量反汇编取证见 [.trae/specs/give-inv-health/spec.md](../../.trae/specs/give-inv-health/spec.md) §1 与 [phase1-command-channel](../research/phase1-command-channel.md) §18；无头 114/114）实跑 `give-1` **已完成全绿**（2026-11-14：齿轮 55 + 工具 256-260 耐久 d10 持久化闭环、满包/越界拒绝无副作用、置 0 死亡屏→Respawn 目视；新钉真实 addStack 分栈、和平回血、重生清空物品栏、0327 level.dat 根无 Level 包装）。第六批（explode/spawn/drop/invulnerable 实体面四 op，2026-11-14 落码，KNOWN_OPS→**25**——invulnerable 为 sed-1 批前用户判决"玩家不死先"增量，spec §5；源码树语义+javap 混淆指纹双路取证见 [.trae/specs/spawn-explode-drop/spec.md](../../.trae/specs/spawn-explode-drop/spec.md) §1 与 [phase1-command-channel](../research/phase1-command-channel.md) §19；无头 129/129）实跑 `sed-1` **已完成全绿**（2026-11-14，Easy=启动前 options.txt 切换；spawn 七 kind 上台活体+敌对围攻零掉血=免疫实锤、tnt/explode 破坏跨存退持久、实体存退即失、i-frame 瞬态钉版；新钉水面筑台找地/实体碰撞盒推人/水下爆炸照常；见 §19）；第七批（**NEW_CTOR 受限构造器补全**=戒律唯一豁免，用户判决 B 路线+0413/0414 泛化启示，见 §20 与 [.trae/specs/spawn-explode-drop/spec.md](../../.trae/specs/spawn-explode-drop/spec.md) §6；无头 130/130）实跑 `giant-1` **已完成全绿**（2026-11-14：CTOR-INJECTED 懒加载注入实锤+巨僵尸/人形基类双可见+存退即失复验，spawn kind 现九项）；第八批（tileentity 三 op getchest/setchest/getfurnace，2026-11-14 落码，KNOWN_OPS→**28**；源码+javap 双路取证见 [.trae/specs/tileentity-batch/spec.md](../../.trae/specs/tileentity-batch/spec.md) §1 与 [phase1-command-channel](../research/phase1-command-channel.md) §21；无头 144/144——含按类缓存结构缺陷修复实锤）实跑 `te-1` **已完成全绿**（2026-11-14 跨 3 会话：place 自动建 TE 活体实锤、冶炼闭环出铁锭 265、TE 持久双验（会话内+跨进程）、IInventory 通用面对炉成立；新钉=Chunk.d 空气位 NPE 原版地雷（teHandle 已映射 REJECTED，回归 145/145）、**存盘时序窗后果升级=IOOBE+玩家数据重置**（用户实锤，再启动自愈）、暂停停 TE tick 纪律；见 §21）；第九批（**零取证五 op** entitylist/playsound/setarmor/clearinv/replace，2026-11-14 落码，KNOWN_OPS→**33**——全部落已钉面（llm-1 同模式），spec [.trae/specs/zero-evidence-five/spec.md](../../.trae/specs/zero-evidence-five/spec.md) + [phase1 §22](../research/phase1-command-channel.md)；无头 160/160——又网住两真 bug：半截 `[h=` 残留（先探测后写修复）、假注册表无 55 用例改 35）实跑 `obs-1` **已完成全绿**（2026-11-14：entitylist N=4→存退 N=1 即失、kind=贴图路径活体钉版（/char.png、/mob/pig.png）、EntityItem null+无 health 省略分支、playsound 不存在音效静默、setarmor A0 闭环、clearinv/replace 持久+NO_CHANGE 三态；见 §22）；第十批（**hud-overlay** GuiIngame EXIT 钩观察面，2026-11-14 落码——织入新模式 `EXIT=4`（RETURN 前观察注入），**零新 op**（KNOWN_OPS 仍 33）；织入面反射链 GuiIngame=**`client.c.m`**（首版误钩 d.b=无关计时类，实跑教训：绘制调用全成功但画面无字=钩在 tick 路径；字符串常量扫描+类体 javap 才钉 GUI 类，见 [phase1 §23](../research/phase1-command-channel.md)）；XYZ+javaagent 面=showFPS 门+原版调试列排版（XYZ y=42；y=52 头行 `javaagents:`+y=62 起逐项 `- jar名`）+shortAgent 压缩（用户判决改造覆盖 spec 布局）；无头 164/164）实跑 `hud-1` **已验收通过**（2026-11-14 第七启动：伪色修复=EXIT 点零 GL 状态改动——glEnable 会激活准星段残留反色 blendFunc，教训入 §23；目视文字干净、showFPS 关全消）；client-ops 按用户判决不进队列。
 
+## 6.1 现代命令面对照备忘（2026-11-20 落，对象=正式版 26.3）
+
+调研方法：piston-data 26.3 client.jar（**无混淆**）直读 `net/minecraft/server/commands/` 全 100 命令类 + javap 字面量反汇编（jar 暂存件在案卷外，判决以本备忘为准）。时间线实据（用户供）：`/time` 的 clock/timeline/timemarker/rate/pause 子系= **26.1 Snapshot 3** 加入——"现代"自身半衰期以月计，移动靶论据由推测升级为实据。
+
+**命名判决（三层）**：
+
+1. **协议 op 名不改**——35 op 中现代对应仅覆盖 12（同名 4：fill/tp/give/playsound；异名 8：setblock/summon/spawnpoint/time/save-all/rotate/help≈/data get≈），其余 ~23 现代无对应；改名对齐不了多数面，且词汇权威在案卷 §6。
+2. **壳别名八条**（速记翻译器体验层，零协议）：`setblock→place`、`summon→spawn`、`spawnpoint→setspawn`、`time set <n>→settime`（**收窄形式**——现代 /time 是子命令族，仅数值 set 映射；其余子词壳侧预检提示"query 语义=getinfo"）、`teleport→tp`、`rotate→setlook`、`save-all→save`、`data get→getblock`。
+3. **clear 陷阱（唯一硬冲突，显式裁决）**：现代 `/clear`=清玩家背包（=我们 `clearinv`）；我们 canonical `clear`=杀地面物（现代等价=`/kill @e[type=item]`）。别名表**不引入** clear 现代映射，canonical 语义保留——未来游戏内控制台玩家肌肉记忆默认现代语义，此处最易咬人。
+
+**格式判决**：现代四支柱（resource location 名表/选择器 targets/相对坐标+浮点/SNBT）对早期版本**不可后向移植**（无数据地基：数字 id 即原生注册表、单人无选择器、MiniJson 整数子集实跑钉版、无 SNBT）；但我们的 **id+data 格式可前向移植**（1.13+ registry 内部仍有序数，游戏自带 legacy id+data→blockstate 转换表=结构升级同件）——协议格式不阻塞未来伸向现代版本。候选小增量：place 可选尾参 meta（id+data 一元化，向后兼容）。
+
+**time pause 取证补充（2026-11-20，26.3 字节码链闭环）**：26.x 把日周期**对象化**为独立 clock 子系统——`ClockState=(totalTicks,partialTick,rate,paused)`（SavedData 落盘，暂停态跨会话）、每维度经 `DimensionType.defaultClock` 绑 clock、睡觉改 `moveToTimeMarker(WAKE_UP_FROM_SLEEP)`；`ServerLevel.tickTime()` 反汇编实锤**只推进 gameTime+TimerQueue**（日周期已不经此处）。故 `/time pause`=仅冻结该 clock 的 totalTicks（日/月角度、天光、query 读数定格；实体/冶炼/随机刻/红石照常），其可行性**根植于 clock 与 tick 流解耦的现代架构**。老版本不可移植：0327 日周期与 tick 流是**同一计数器**（worldTime=b 每 tick+1、b%200 驱动 autosave——p0p1-gen 取证钉），"冻昼夜不冻实体"语义不存在；硬做两条路全违戒（每 tick 回写 b=通道无常驻任务语义 / 钩 b++=新注入面+打断 autosave 节律与存盘取证链）。**判决：time pause 不进候选表**——"现代命令依赖现代架构面"标本，反向加强移动靶论据（对齐 26.3 time 面=要求 clock 对象化，在册版本全无）。
+
+**逐版权益候选表（排除判决必须带版本定语——一刀切"现代有老版本无"已被证伪）**：
+
+| 候选 | 0327 | 版本门控 | 取证状态 |
+|---|---|---|---|
+| kill（实体） | 可做 | — | **零新取证**（chair-1 setEntityDead 泛化，去 instanceof EntityItem 过滤；补 spawn 无撤销的洞） |
+| clone（区域复制含 meta） | 可做 | — | **零新取证**（getblocks+place/setmeta 纯组合，cap 4096 同 fill；fixture 构建直接削活体批成本） |
+| particle（可视标记） | 待验 | — | 需新取证（0327 Effect/加粒子入口） |
+| setdifficulty | 可做 | — | 字段已钉（GameSettings.difficulty 客户端全局，**不进 level.dat** 语义须标清） |
+| weather | 待验 | **b1.5+ 确认存在**（用户钉） | 0327 有无 raining 字段待 javap |
+| gamemode | 不存在 | **b1.8+**（creative 旗标） | 版本门控候选 |
+| xp | 不存在 | **b1.8+**（经验字段，getplayer 同族） | 版本门控候选 |
+| effect | 不存在 | **b1.9-pre2+**（MobEffect 挂 EntityLiving；与 invulnerable=hurtResistantTime 不同面不互替） | 版本门控候选 |
+| nbt get/set（泛化 TE/实体） | 方向件 | — | 归 T2/listops v2 同族，不单独排 |
+
+其余排除项按同纪律重查（**scoreboard 疑似 b1.5 已有，不得沿用全局排除**）；排除表定稿形态=逐版三分式：不存在 / 版本门控候选(≥X) / 已排除有因。**listops v2 添一条硬论据**：version-gate 字段的机器可读形态正是路线 B（agent 侧能力表）的本职——此类事实写进 UI 硬编码必漂移。
+
+**自我纠错两则入档**：/explode、/bone_meal 在 vanilla 命令面**不存在**（Bukkit 遗产，26.3 全 jar 扫描零命中）——前轮口误，经实证翻正。
+
 ## 7. 戒律（不变项）
 
 坐标前校验世界加载（tick 计数阈值）；agent 不直接写世界文件——一切经游戏方法；每 run 的 mca/ 目录随 `out/<run>/` 归档；kill 前确认用户回标题（phase1 §6）。
