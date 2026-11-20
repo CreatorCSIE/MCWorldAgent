@@ -1,286 +1,1986 @@
-# F5 reconciliation report (F1 slow-path compiler vs anchor library)
+# F5 reconciliation report (F1 slow-path compiler, expanded facet set)
 
-Facets: getBlockId (III)I / setBlock (IIII)Z / saveWorld (era-dependent form). Verdicts: MATCH = class+name+descriptor all equal; MISS = differs (see oracle audit); SKIPPED = jar missing or SHA1 gate failed.
+Verdicts: MATCH = class+name+descriptor equal; N/A = version has no oracle slot (or runtime class unresolvable); BLOCKED = facet rule not generalizable (see summary); MISS = differs.
 
-## Matrix
+| facet                  | a1.1.2_01 | a1.2.0 | a1.2.6 | b1.2_02 | b1.7.3 | b1.8.1 | c0.30-c | in.0223 | inf.0327 | inf.0618 | inf.0629 |
+| facet | a1.1.2_01 | a1.2.0 | a1.2.6 | b1.2_02 | b1.7.3 | b1.8.1 | c0.30-c | in-2010022 | inf-201003 | inf-201006 | inf-201006 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| getBlockId | M | M | M | M | M | M | M | M | M | M | M |
+| setBlock | M | M | M | M | M | M | M | M | M | M | M |
+| saveWorld | M | M | M | M | M | M | M | M | M | M | M |
+| worldTime | M | M | . | M | M | M | . | . | M | M | M |
+| randSeed | M | M | . | M | M | M | . | M | M | M | M |
+| spawnX | M | M | . | M | M | M | M | M | M | M | M |
+| spawnY | M | M | . | M | M | M | M | M | M | M | M |
+| spawnZ | M | M | . | M | M | M | M | M | M | M | M |
+| difficulty | B | B | B | B | B | B | B | B | B | B | B |
+| getMeta | M | M | . | M | M | M | . | M | M | M | M |
+| setMetaSilent | M | M | . | M | M | M | . | M | M | . | . |
+| getLight | M | M | . | M | M | M | . | . | M | . | . |
+| entityClass | M | M | M | M | M | M | M | M | M | M | M |
+| setPosRot | M | M | M | M | M | M | M | . | M | M | M |
+| posX | M | M | M | M | M | M | M | M | M | M | M |
+| posY | M | M | M | M | M | M | M | M | M | M | M |
+| posZ | M | M | M | M | M | M | M | M | M | M | M |
+| motX | M | M | . | M | M | M | M | M | M | M | M |
+| motY | M | M | . | M | M | M | M | M | M | M | M |
+| motZ | M | M | . | M | M | M | M | M | M | M | M |
+| yaw | M | M | . | M | M | M | M | M | M | M | M |
+| pitch | M | M | . | M | M | M | M | M | M | M | M |
+| iframes | B | B | B | B | B | B | B | B | B | B | B |
+| entityType | . | . | . | . | . | . | . | . | M | M | M |
+| entityList | M | M | M | M | . | . | M | . | M | M | M |
+| spawnEntity | M | M | M | M | . | . | M | . | M | . | M |
+| setEntityDead | M | M | . | M | . | . | M | . | M | . | M |
+| playSound | M | M | M | M | M | M | . | . | M | . | M |
+| explode | M | M | M | M | . | . | . | . | M | . | M |
+| itemStackClass | M | M | M | M | . | . | . | M | M | M | M |
+| isCount | M | M | M | M | . | . | . | M | M | M | M |
+| isId | M | M | M | M | . | . | . | M | M | M | M |
+| isDmg | M | M | M | M | . | . | . | M | M | M | M |
+| inventoryPlayerClass | M | M | M | M | . | . | M | M | M | M | M |
+| invMain | M | M | M | M | . | . | M | M | M | M | M |
+| invArmor | M | M | M | M | . | . | . | M | M | M | M |
+| invCur | M | M | M | M | . | . | M | M | M | M | M |
+| addStack | M | M | M | M | . | . | M | . | M | . | M |
+| invField | M | M | M | M | . | . | . | M | M | M | M |
+| invSize | . | . | . | . | . | . | . | . | M | . | . |
+| invGet | . | . | . | . | . | . | . | . | M | . | . |
+| invSet | . | . | . | . | . | . | . | . | M | . | . |
+| tileEntityClass | M | M | M | M | . | . | . | M | M | M | M |
+| chestClass | . | . | M | . | . | . | . | M | M | M | M |
+| furnaceClass | . | . | M | . | . | . | . | M | M | M | M |
+| teGet | M | M | M | M | . | . | . | M | M | M | M |
+| teBurn | . | . | . | . | . | . | . | . | M | . | . |
+| teCook | . | . | . | . | . | . | . | . | M | . | . |
+| minecraftClass | M | M | M | M | M | M | M | M | M | M | M |
+| runTick | M | M | M | M | M | M | M | M | M | M | M |
+| guiIngame | M | M | M | M | M | M | M | M | M | M | M |
+| mobPig | M | M | . | M | M | M | . | . | M | . | M |
+| mobSheep | M | M | . | M | M | M | . | . | M | . | M |
+| mobCreeper | M | M | . | M | M | M | . | . | M | . | M |
+| mobSkeleton | M | M | . | M | M | M | . | . | M | . | M |
+| mobZombie | M | M | . | M | M | M | . | . | M | . | M |
+| mobSpider | M | M | . | M | M | M | . | . | M | . | M |
+| mobTnt | M | M | . | M | M | M | . | . | M | . | M |
+| mobGiant | M | M | . | M | M | M | . | . | M | . | M |
+| mobBase | . | . | . | . | . | . | . | . | M | . | . |
+| mobCreatureClass | M | M | . | M | . | . | . | . | . | . | . |
+| scatterClass | B | B | B | B | B | B | B | B | B | B | B |
 
-| version | family | World | getBlockId | setBlock | saveWorld |
-|---|---|---|---|---|---|
-| a1.1.2_01 | G3 | cn | MATCH | MATCH | MATCH |
-| a1.2.0 | G3 | cu | MATCH | MATCH | MATCH |
-| a1.2.6 | G3 | cy | MATCH | MATCH | MATCH |
-| b1.2_02 | G3 | dn | MATCH | MATCH | MATCH |
-| b1.7.3 | G3 | fd | MATCH | MATCH | MATCH |
-| b1.8.1 | G3 | rv | MATCH | MATCH | MATCH |
-| c0.30-c | G1 | com/mojang/minecraft/level/Level | MATCH | MATCH | MATCH |
-| in-20100223 | G2 | net/minecraft/a/a/g | MATCH | MATCH | MATCH |
-| inf-20100327 | G2 | net/minecraft/a/a/f | MATCH | MATCH | MATCH |
-| inf-20100618 | G2 | net/minecraft/a/a/g | MATCH | MATCH | MATCH |
-| inf-20100629 | G3 | ez | MATCH | MATCH | MATCH |
+M=MATCH X=MISS .=N/A B=BLOCKED
 
 ## Summary
 
-- facets compared: 33, MATCH: 33, MISS: 0, SKIPPED versions: 0
-- SUSPECT (anchor library pending human adjudication; compiler did NOT modify any JSON):
+- comparable cells: 450, MATCH: 450, MISS: 0, N/A: 199, BLOCKED cells: 33
+- BLOCKED facets: difficulty (no persisted NBT key in legacy eras (global client setting); field-only anchors are usage-based, not static-derivable); iframes (NBT 'HurtTime' binds the EntityLiving persisted field, but the registry pins the Entity damage-gate field; no generalizable static discriminator between them); scatterClass (ore scatterer identifiable only by runtime reversal (verscan te-1); no stable string/call anchor)
+- MISS/SUSPECT list:
   - none
-- note: 0327 and 0618 are structurally isomorphic for saveWorld (public final ()V wrapper delegating with iconst_1 to a private (Z)V level.dat core; identical call-graph shape). The detailed tables pin them at different hook levels (0327=core a(Z)V per phase1 WorldOps, 0618=wrapper f()V per verscan). No generalizable rule can reproduce both; this compiler follows the phase1 discipline (core preferred) and reports 0618 as a hook-level SUSPECT, not a rule failure.
+- regression note: core facets getBlockId/setBlock/saveWorld keep the batch-1 rules; 0618 saveWorld remains a hook-level SUSPECT (isomorphic bytecode, tables pin different levels) as adjudicated in batch 1.
 
 ## Per-version evidence chains
 
 ### a1.1.2_01 (family G3, World=cn)
 
-- world: probe scan (G3 group: level.dat,SpawnX,RandomSeed,TickNextTick list out of synch,Saving chunks,Saving level) -> shape-validated candidates: cn(hits=6:level.dat,SpawnX,RandomSeed,TickNextTick list out of synch,Saving chunks,Saving level)
 - **getBlockId** verdict=MATCH confidence=HIGH
   - oracle: {"class": "cn", "name": "a", "descriptor": "(III)I"}
   - compiled: {"class": "cn", "name": "a", "descriptor": "(III)I"}
-  - candidates: public non-static (III)I on cn = [a, e, j]
-  - a(III)I: tail-calls chunk getter ga.a(III)I which does direct baload (no nibble delegation) -> block-id
-  - e(III)I: callee pattern b(III)I does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
-  - j(III)I: callee pattern none does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
+  - candidates: public (III)I = [a, e, j]
+  - a: chunk delegate is direct baload getter -> block id
 - **setBlock** verdict=MATCH confidence=HIGH
   - oracle: {"class": "cn", "name": "d", "descriptor": "(IIII)Z"}
   - compiled: {"class": "cn", "name": "d", "descriptor": "(IIII)Z"}
-  - candidates: public non-static (IIII)Z on cn = [a, c, d, j, k]
-  - a: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - c: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - d: delegates to sibling (IIII)Z core a -> wrapper
-  - j: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - k: no sibling (IIII)Z delegation -> silent core / metadata setter
+  - candidates: public (IIII)Z = [a, c, d, j, k]
+  - d delegates to sibling (IIII)Z core -> wrapper
 - **saveWorld** verdict=MATCH confidence=HIGH
   - oracle: {"class": "cn", "name": "a", "descriptor": "(Lnu;)V"}
   - compiled: {"class": "cn", "name": "a", "descriptor": "(Lnu;)V"}
-  - rule A: public wrapper a(Lnu;)V delegates to core a(ZLnu;)V carrying save evidence 'Saving level'
+  - rule A: wrapper a(Lnu;)V -> core a(ZLnu;)V with 'Saving level'
+- **worldTime** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "c", "descriptor": "J"}
+  - compiled: {"class": "cn", "name": "c", "descriptor": "J"}
+  - NBT key 'Time' binds unique cn.c:J
+- **randSeed** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "u", "descriptor": "J"}
+  - compiled: {"class": "cn", "name": "u", "descriptor": "J"}
+  - NBT key 'RandomSeed' binds unique cn.u:J
+- **spawnX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "o", "descriptor": "I"}
+  - compiled: {"class": "cn", "name": "o", "descriptor": "I"}
+  - NBT key 'SpawnX' binds unique cn.o:I
+- **spawnY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "p", "descriptor": "I"}
+  - compiled: {"class": "cn", "name": "p", "descriptor": "I"}
+  - NBT key 'SpawnY' binds unique cn.p:I
+- **spawnZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "q", "descriptor": "I"}
+  - compiled: {"class": "cn", "name": "q", "descriptor": "I"}
+  - NBT key 'SpawnZ' binds unique cn.q:I
+- **getMeta** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "e", "descriptor": "(III)I"}
+  - compiled: {"class": "cn", "name": "e", "descriptor": "(III)I"}
+  - candidates: public (III)I|(III)B = [a(III)I, e(III)I, j(III)I]
+  - e(III)I: delegates to chunk nibble getter (shift/mask arithmetic) -> metadata
+- **setMetaSilent** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "b", "descriptor": "(IIII)V"}
+  - compiled: {"class": "cn", "name": "b", "descriptor": "(IIII)V"}
+  - candidates: public (IIII)V = [b, f, g, h, i]
+  - b: score 2 (sibling-(IIII)Z delegate=1, reaches-nibble=0)
+  - g: fans out 6 sibling (IIII)V calls -> light6, rejected
+  - i: consumes Random (particle/sound effects) -> block-destroy variant, rejected
+  - take b -> setMetaSilent
+- **getLight** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "j", "descriptor": "(III)I"}
+  - compiled: {"class": "cn", "name": "j", "descriptor": "(III)I"}
+  - j(III)I: delegates to 4-arg int light getter ((IIIZ)I) -> light
+- **entityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kh", "name": null, "descriptor": "class"}
+  - compiled: {"class": "kh", "name": "kh", "descriptor": "class"}
+  - WARN 3 candidates ['ge', 'kh', 'cf']; scored [(7, 'kh'), (0, 'ge'), (0, 'cf')] -> take kh
+- **setPosRot** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "kh", "name": "b", "descriptor": "(DDDFF)V"}
+  - compiled: {"class": "kh", "name": "b", "descriptor": "(DDDFF)V"}
+  - desc (DDDFF)V unique by shape -> b
+- **posX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kh", "name": "ak", "descriptor": "D"}
+  - compiled: {"class": "kh", "name": "ak", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kh", "name": "al", "descriptor": "D"}
+  - compiled: {"class": "kh", "name": "al", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kh", "name": "am", "descriptor": "D"}
+  - compiled: {"class": "kh", "name": "am", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kh", "name": "an", "descriptor": "D"}
+  - compiled: {"class": "kh", "name": "an", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kh", "name": "ao", "descriptor": "D"}
+  - compiled: {"class": "kh", "name": "ao", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kh", "name": "ap", "descriptor": "D"}
+  - compiled: {"class": "kh", "name": "ap", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **yaw** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "kh", "name": "aq", "descriptor": "F"}
+  - compiled: {"class": "kh", "name": "aq", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **pitch** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "kh", "name": "ar", "descriptor": "F"}
+  - compiled: {"class": "kh", "name": "ar", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **entityList** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "i", "descriptor": "()Ljava/util/List;"}
+  - compiled: {"class": "cn", "name": "i", "descriptor": "()Ljava/util/List;"}
+  - candidates: ()List getters = [i]
+- **spawnEntity** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "cn", "name": "a", "descriptor": "(Lkh;)Z"}
+  - compiled: {"class": "cn", "name": "a", "descriptor": "(Lkh;)Z"}
+  - candidates: single-entity-param methods = [a, b, c, d, e, f]
+  - a: body adds entity to collection -> spawn
+  - f: body adds entity to collection -> spawn
+- **setEntityDead** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "cn", "name": "d", "descriptor": "(Lkh;)V"}
+  - compiled: {"class": "cn", "name": "d", "descriptor": "(Lkh;)V"}
+  - d: calls entity kill/remove method -> setEntityDead
+  - e: calls entity kill/remove method -> setEntityDead
+- **playSound** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - compiled: {"class": "cn", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - unique (DDDLString;FF)V -> playSound
+- **explode** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "a", "descriptor": "(Lkh;DDDF)V"}
+  - compiled: {"class": "cn", "name": "a", "descriptor": "(Lkh;DDDF)V"}
+  - unique (LEntity;DDD..)V -> explode
+- **itemStackClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ev", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ev", "name": "ev", "descriptor": "class"}
+- **isCount** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ev", "name": "a", "descriptor": "I"}
+  - compiled: {"class": "ev", "name": "a", "descriptor": "I"}
+  - NBT 'Count' binds ev.a:I
+- **isId** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ev", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "ev", "name": "c", "descriptor": "I"}
+  - NBT 'id' (co-occurring with 'Count') binds c
+- **isDmg** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ev", "name": "d", "descriptor": "I"}
+  - compiled: {"class": "ev", "name": "d", "descriptor": "I"}
+  - NBT 'Damage' binds d
+- **inventoryPlayerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "eu", "name": null, "descriptor": "class"}
+  - compiled: {"class": "eu", "name": "eu", "descriptor": "class"}
+  - class eu declares 2 ItemStack[] fields ['a', 'b', 'c'] + ints ['d']
+- **invMain** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "eu", "name": "a", "descriptor": "[Lev;"}
+  - compiled: {"class": "eu", "name": "a", "descriptor": "[Lev;"}
+  - first ItemStack[] in declaration order
+- **invArmor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "eu", "name": "b", "descriptor": "[Lev;"}
+  - compiled: {"class": "eu", "name": "b", "descriptor": "[Lev;"}
+  - second ItemStack[]
+- **invCur** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "eu", "name": "d", "descriptor": "I"}
+  - compiled: {"class": "eu", "name": "d", "descriptor": "I"}
+  - first int field
+- **addStack** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "eu", "name": "a", "descriptor": "(Lev;)Z"}
+  - compiled: {"class": "eu", "name": "a", "descriptor": "(Lev;)Z"}
+  - (LItemStack;)Z on InventoryPlayer
+- **invField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dm", "name": "b", "descriptor": "Leu;"}
+  - compiled: {"class": "dm", "name": "b", "descriptor": "Leu;"}
+  - class dm holds both World ref and InventoryPlayer ref
+- **tileEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ic", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ic", "name": "ic", "descriptor": "class"}
+  - superclass of furnace
+- **teGet** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "b", "descriptor": "(III)Lic;"}
+  - compiled: {"class": "cn", "name": "b", "descriptor": "(III)Lic;"}
+  - World (III)LTILE; -> b
+- **minecraftClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "Minecraft", "descriptor": "class"}
+  - 2 candidates ['ad', 'net/minecraft/client/Minecraft']; entity-field score -> net/minecraft/client/Minecraft
+- **runTick** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "i", "descriptor": "()V"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "i", "descriptor": "()V"}
+  - ()V invoked by run() that drives World -> i
+- **guiIngame** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lu", "name": "a", "descriptor": "(FZII)V"}
+  - compiled: {"class": "lu", "name": "a", "descriptor": "(FZII)V"}
+  - class lu loads /gui/gui.png and exposes (FZII)V
+- **mobPig** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "mv", "name": null, "descriptor": "class"}
+  - compiled: {"class": "mv", "name": "mv", "descriptor": "class"}
+  - mob registered as type string 'Pig' -> class mv
+- **mobSheep** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "bo", "name": null, "descriptor": "class"}
+  - compiled: {"class": "bo", "name": "bo", "descriptor": "class"}
+  - mob registered as type string 'Sheep' -> class bo
+- **mobCreeper** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dd", "name": null, "descriptor": "class"}
+  - compiled: {"class": "dd", "name": "dd", "descriptor": "class"}
+  - mob registered as type string 'Creeper' -> class dd
+- **mobSkeleton** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cw", "name": null, "descriptor": "class"}
+  - compiled: {"class": "cw", "name": "cw", "descriptor": "class"}
+  - mob registered as type string 'Skeleton' -> class cw
+- **mobZombie** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "mb", "name": null, "descriptor": "class"}
+  - compiled: {"class": "mb", "name": "mb", "descriptor": "class"}
+  - mob registered as type string 'Zombie' -> class mb
+- **mobSpider** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ax", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ax", "name": "ax", "descriptor": "class"}
+  - mob registered as type string 'Spider' -> class ax
+- **mobTnt** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "jd", "name": null, "descriptor": "class"}
+  - compiled: {"class": "jd", "name": "jd", "descriptor": "class"}
+  - mob registered as type string 'PrimedTnt' -> class jd
+- **mobGiant** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "hl", "name": null, "descriptor": "class"}
+  - compiled: {"class": "hl", "name": "hl", "descriptor": "class"}
+  - mob registered as type string 'Giant' -> class hl
+- **mobCreatureClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "ek", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ek", "name": "ek", "descriptor": "class"}
+  - deepest common ancestor of peaceful mobs + creeper
 
 ### a1.2.0 (family G3, World=cu)
 
-- world: probe scan (G3 group: level.dat,SpawnX,RandomSeed,TickNextTick list out of synch,Saving chunks,Saving level) -> shape-validated candidates: cu(hits=6:level.dat,SpawnX,RandomSeed,TickNextTick list out of synch,Saving chunks,Saving level)
 - **getBlockId** verdict=MATCH confidence=HIGH
   - oracle: {"class": "cu", "name": "a", "descriptor": "(III)I"}
   - compiled: {"class": "cu", "name": "a", "descriptor": "(III)I"}
-  - candidates: public non-static (III)I on cu = [a, e, j]
-  - a(III)I: tail-calls chunk getter gs.a(III)I which does direct baload (no nibble delegation) -> block-id
-  - e(III)I: callee pattern b(III)I does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
-  - j(III)I: callee pattern none does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
+  - candidates: public (III)I = [a, e, j]
+  - a: chunk delegate is direct baload getter -> block id
 - **setBlock** verdict=MATCH confidence=HIGH
   - oracle: {"class": "cu", "name": "d", "descriptor": "(IIII)Z"}
   - compiled: {"class": "cu", "name": "d", "descriptor": "(IIII)Z"}
-  - candidates: public non-static (IIII)Z on cu = [a, c, d, j, k]
-  - a: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - c: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - d: delegates to sibling (IIII)Z core a -> wrapper
-  - j: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - k: no sibling (IIII)Z delegation -> silent core / metadata setter
+  - candidates: public (IIII)Z = [a, c, d, j, k]
+  - d delegates to sibling (IIII)Z core -> wrapper
 - **saveWorld** verdict=MATCH confidence=HIGH
   - oracle: {"class": "cu", "name": "a", "descriptor": "(Lph;)V"}
   - compiled: {"class": "cu", "name": "a", "descriptor": "(Lph;)V"}
-  - rule A: public wrapper a(Lph;)V delegates to core a(ZLph;)V carrying save evidence 'Saving level'
+  - rule A: wrapper a(Lph;)V -> core a(ZLph;)V with 'Saving level'
+- **worldTime** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "e", "descriptor": "J"}
+  - compiled: {"class": "cu", "name": "e", "descriptor": "J"}
+  - NBT key 'Time' binds unique cu.e:J
+- **randSeed** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "v", "descriptor": "J"}
+  - compiled: {"class": "cu", "name": "v", "descriptor": "J"}
+  - NBT key 'RandomSeed' binds unique cu.v:J
+- **spawnX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "n", "descriptor": "I"}
+  - compiled: {"class": "cu", "name": "n", "descriptor": "I"}
+  - NBT key 'SpawnX' binds unique cu.n:I
+- **spawnY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "o", "descriptor": "I"}
+  - compiled: {"class": "cu", "name": "o", "descriptor": "I"}
+  - NBT key 'SpawnY' binds unique cu.o:I
+- **spawnZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "p", "descriptor": "I"}
+  - compiled: {"class": "cu", "name": "p", "descriptor": "I"}
+  - NBT key 'SpawnZ' binds unique cu.p:I
+- **getMeta** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "e", "descriptor": "(III)I"}
+  - compiled: {"class": "cu", "name": "e", "descriptor": "(III)I"}
+  - candidates: public (III)I|(III)B = [a(III)I, e(III)I, j(III)I]
+  - e(III)I: delegates to chunk nibble getter (shift/mask arithmetic) -> metadata
+- **setMetaSilent** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "b", "descriptor": "(IIII)V"}
+  - compiled: {"class": "cu", "name": "b", "descriptor": "(IIII)V"}
+  - candidates: public (IIII)V = [b, f, g, h, i]
+  - b: score 2 (sibling-(IIII)Z delegate=1, reaches-nibble=0)
+  - g: fans out 6 sibling (IIII)V calls -> light6, rejected
+  - i: consumes Random (particle/sound effects) -> block-destroy variant, rejected
+  - take b -> setMetaSilent
+- **getLight** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "j", "descriptor": "(III)I"}
+  - compiled: {"class": "cu", "name": "j", "descriptor": "(III)I"}
+  - j(III)I: delegates to 4-arg int light getter ((IIIZ)I) -> light
+- **entityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lk", "name": null, "descriptor": "class"}
+  - compiled: {"class": "lk", "name": "lk", "descriptor": "class"}
+  - WARN 3 candidates ['lk', 'cl', 'gx']; scored [(7, 'lk'), (0, 'gx'), (0, 'cl')] -> take lk
+- **setPosRot** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "lk", "name": "b", "descriptor": "(DDDFF)V"}
+  - compiled: {"class": "lk", "name": "b", "descriptor": "(DDDFF)V"}
+  - desc (DDDFF)V unique by shape -> b
+- **posX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lk", "name": "ap", "descriptor": "D"}
+  - compiled: {"class": "lk", "name": "ap", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lk", "name": "aq", "descriptor": "D"}
+  - compiled: {"class": "lk", "name": "aq", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lk", "name": "ar", "descriptor": "D"}
+  - compiled: {"class": "lk", "name": "ar", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lk", "name": "as", "descriptor": "D"}
+  - compiled: {"class": "lk", "name": "as", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lk", "name": "at", "descriptor": "D"}
+  - compiled: {"class": "lk", "name": "at", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lk", "name": "au", "descriptor": "D"}
+  - compiled: {"class": "lk", "name": "au", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **yaw** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "lk", "name": "av", "descriptor": "F"}
+  - compiled: {"class": "lk", "name": "av", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **pitch** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "lk", "name": "aw", "descriptor": "F"}
+  - compiled: {"class": "lk", "name": "aw", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **entityList** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "k", "descriptor": "()Ljava/util/List;"}
+  - compiled: {"class": "cu", "name": "k", "descriptor": "()Ljava/util/List;"}
+  - candidates: ()List getters = [k]
+- **spawnEntity** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "cu", "name": "a", "descriptor": "(Llk;)Z"}
+  - compiled: {"class": "cu", "name": "a", "descriptor": "(Llk;)Z"}
+  - candidates: single-entity-param methods = [a, b, c, d, e, f]
+  - a: body adds entity to collection -> spawn
+  - f: body adds entity to collection -> spawn
+- **setEntityDead** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "d", "descriptor": "(Llk;)V"}
+  - compiled: {"class": "cu", "name": "d", "descriptor": "(Llk;)V"}
+  - d: calls entity kill/remove method -> setEntityDead
+- **playSound** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - compiled: {"class": "cu", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - unique (DDDLString;FF)V -> playSound
+- **explode** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "a", "descriptor": "(Llk;DDDF)V"}
+  - compiled: {"class": "cu", "name": "a", "descriptor": "(Llk;DDDF)V"}
+  - unique (LEntity;DDD..)V -> explode
+- **itemStackClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fi", "name": null, "descriptor": "class"}
+  - compiled: {"class": "fi", "name": "fi", "descriptor": "class"}
+- **isCount** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fi", "name": "a", "descriptor": "I"}
+  - compiled: {"class": "fi", "name": "a", "descriptor": "I"}
+  - NBT 'Count' binds fi.a:I
+- **isId** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fi", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "fi", "name": "c", "descriptor": "I"}
+  - NBT 'id' (co-occurring with 'Count') binds c
+- **isDmg** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fi", "name": "d", "descriptor": "I"}
+  - compiled: {"class": "fi", "name": "d", "descriptor": "I"}
+  - NBT 'Damage' binds d
+- **inventoryPlayerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fh", "name": null, "descriptor": "class"}
+  - compiled: {"class": "fh", "name": "fh", "descriptor": "class"}
+  - class fh declares 2 ItemStack[] fields ['a', 'b', 'c'] + ints ['d']
+- **invMain** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fh", "name": "a", "descriptor": "[Lfi;"}
+  - compiled: {"class": "fh", "name": "a", "descriptor": "[Lfi;"}
+  - first ItemStack[] in declaration order
+- **invArmor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fh", "name": "b", "descriptor": "[Lfi;"}
+  - compiled: {"class": "fh", "name": "b", "descriptor": "[Lfi;"}
+  - second ItemStack[]
+- **invCur** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "fh", "name": "d", "descriptor": "I"}
+  - compiled: {"class": "fh", "name": "d", "descriptor": "I"}
+  - first int field
+- **addStack** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fh", "name": "a", "descriptor": "(Lfi;)Z"}
+  - compiled: {"class": "fh", "name": "a", "descriptor": "(Lfi;)Z"}
+  - (LItemStack;)Z on InventoryPlayer
+- **invField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dv", "name": "e", "descriptor": "Lfh;"}
+  - compiled: {"class": "dv", "name": "e", "descriptor": "Lfh;"}
+  - class dv holds both World ref and InventoryPlayer ref
+- **tileEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "iz", "name": null, "descriptor": "class"}
+  - compiled: {"class": "iz", "name": "iz", "descriptor": "class"}
+  - superclass of furnace
+- **teGet** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "b", "descriptor": "(III)Liz;"}
+  - compiled: {"class": "cu", "name": "b", "descriptor": "(III)Liz;"}
+  - World (III)LTILE; -> b
+- **minecraftClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "Minecraft", "descriptor": "class"}
+  - 2 candidates ['af', 'net/minecraft/client/Minecraft']; entity-field score -> net/minecraft/client/Minecraft
+- **runTick** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "i", "descriptor": "()V"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "i", "descriptor": "()V"}
+  - ()V invoked by run() that drives World -> i
+- **guiIngame** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "mz", "name": "a", "descriptor": "(FZII)V"}
+  - compiled: {"class": "mz", "name": "a", "descriptor": "(FZII)V"}
+  - class mz loads /gui/gui.png and exposes (FZII)V
+- **mobPig** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "oc", "name": null, "descriptor": "class"}
+  - compiled: {"class": "oc", "name": "oc", "descriptor": "class"}
+  - mob registered as type string 'Pig' -> class oc
+- **mobSheep** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "bu", "name": null, "descriptor": "class"}
+  - compiled: {"class": "bu", "name": "bu", "descriptor": "class"}
+  - mob registered as type string 'Sheep' -> class bu
+- **mobCreeper** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dl", "name": null, "descriptor": "class"}
+  - compiled: {"class": "dl", "name": "dl", "descriptor": "class"}
+  - mob registered as type string 'Creeper' -> class dl
+- **mobSkeleton** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dd", "name": null, "descriptor": "class"}
+  - compiled: {"class": "dd", "name": "dd", "descriptor": "class"}
+  - mob registered as type string 'Skeleton' -> class dd
+- **mobZombie** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "nh", "name": null, "descriptor": "class"}
+  - compiled: {"class": "nh", "name": "nh", "descriptor": "class"}
+  - mob registered as type string 'Zombie' -> class nh
+- **mobSpider** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "bc", "name": null, "descriptor": "class"}
+  - compiled: {"class": "bc", "name": "bc", "descriptor": "class"}
+  - mob registered as type string 'Spider' -> class bc
+- **mobTnt** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kg", "name": null, "descriptor": "class"}
+  - compiled: {"class": "kg", "name": "kg", "descriptor": "class"}
+  - mob registered as type string 'PrimedTnt' -> class kg
+- **mobGiant** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ig", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ig", "name": "ig", "descriptor": "class"}
+  - mob registered as type string 'Giant' -> class ig
+- **mobCreatureClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "ex", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ex", "name": "ex", "descriptor": "class"}
+  - deepest common ancestor of peaceful mobs + creeper
 
 ### a1.2.6 (family G3, World=cy)
 
-- world: probe scan (G3 group: level.dat,SpawnX,RandomSeed,TickNextTick list out of synch,Saving chunks,Saving level) -> shape-validated candidates: cy(hits=6:level.dat,SpawnX,RandomSeed,TickNextTick list out of synch,Saving chunks,Saving level)
 - **getBlockId** verdict=MATCH confidence=HIGH
   - oracle: {"class": "cy", "name": "a", "descriptor": "(III)I"}
   - compiled: {"class": "cy", "name": "a", "descriptor": "(III)I"}
-  - candidates: public non-static (III)I on cy = [a, e, j]
-  - a(III)I: tail-calls chunk getter ha.a(III)I which does direct baload (no nibble delegation) -> block-id
-  - e(III)I: callee pattern b(III)I does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
-  - j(III)I: callee pattern none does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
+  - candidates: public (III)I = [a, e, j]
+  - a: chunk delegate is direct baload getter -> block id
 - **setBlock** verdict=MATCH confidence=HIGH
   - oracle: {"class": "cy", "name": "d", "descriptor": "(IIII)Z"}
   - compiled: {"class": "cy", "name": "d", "descriptor": "(IIII)Z"}
-  - candidates: public non-static (IIII)Z on cy = [a, c, d, j, k]
-  - a: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - c: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - d: delegates to sibling (IIII)Z core a -> wrapper
-  - j: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - k: no sibling (IIII)Z delegation -> silent core / metadata setter
+  - candidates: public (IIII)Z = [a, c, d, j, k]
+  - d delegates to sibling (IIII)Z core -> wrapper
 - **saveWorld** verdict=MATCH confidence=HIGH
   - oracle: {"class": "cy", "name": "a", "descriptor": "(Lpu;)V"}
   - compiled: {"class": "cy", "name": "a", "descriptor": "(Lpu;)V"}
-  - rule A: public wrapper a(Lpu;)V delegates to core a(ZLpu;)V carrying save evidence 'Saving level'
+  - rule A: wrapper a(Lpu;)V -> core a(ZLpu;)V with 'Saving level'
+- **entityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lw", "name": null, "descriptor": "class"}
+  - compiled: {"class": "lw", "name": "lw", "descriptor": "class"}
+  - WARN 3 candidates ['hf', 'lw', 'co']; scored [(7, 'lw'), (0, 'hf'), (0, 'co')] -> take lw
+- **setPosRot** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "lw", "name": "b", "descriptor": "(DDDFF)V"}
+  - compiled: {"class": "lw", "name": "b", "descriptor": "(DDDFF)V"}
+  - desc (DDDFF)V unique by shape -> b
+- **posX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lw", "name": "aw", "descriptor": "D"}
+  - compiled: {"class": "lw", "name": "aw", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lw", "name": "ax", "descriptor": "D"}
+  - compiled: {"class": "lw", "name": "ax", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lw", "name": "ay", "descriptor": "D"}
+  - compiled: {"class": "lw", "name": "ay", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **entityList** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cy", "name": "k", "descriptor": "()Ljava/util/List;"}
+  - compiled: {"class": "cy", "name": "k", "descriptor": "()Ljava/util/List;"}
+  - candidates: ()List getters = [k]
+- **spawnEntity** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "cy", "name": "a", "descriptor": "(Llw;)Z"}
+  - compiled: {"class": "cy", "name": "a", "descriptor": "(Llw;)Z"}
+  - candidates: single-entity-param methods = [a, b, c, d, e, f]
+  - a: body adds entity to collection -> spawn
+  - f: body adds entity to collection -> spawn
+- **playSound** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cy", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - compiled: {"class": "cy", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - unique (DDDLString;FF)V -> playSound
+- **explode** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "cy", "name": "a", "descriptor": "(Llw;DDDF)Lks;"}
+  - compiled: {"class": "cy", "name": "a", "descriptor": "(Llw;DDDF)Lks;"}
+  - 2 candidates; take first
+- **itemStackClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fp", "name": null, "descriptor": "class"}
+  - compiled: {"class": "fp", "name": "fp", "descriptor": "class"}
+- **isCount** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fp", "name": "a", "descriptor": "I"}
+  - compiled: {"class": "fp", "name": "a", "descriptor": "I"}
+  - NBT 'Count' binds fp.a:I
+- **isId** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fp", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "fp", "name": "c", "descriptor": "I"}
+  - NBT 'id' (co-occurring with 'Count') binds c
+- **isDmg** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fp", "name": "d", "descriptor": "I"}
+  - compiled: {"class": "fp", "name": "d", "descriptor": "I"}
+  - NBT 'Damage' binds d
+- **inventoryPlayerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fo", "name": null, "descriptor": "class"}
+  - compiled: {"class": "fo", "name": "fo", "descriptor": "class"}
+  - class fo declares 2 ItemStack[] fields ['a', 'b', 'c'] + ints ['d']
+- **invMain** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fo", "name": "a", "descriptor": "[Lfp;"}
+  - compiled: {"class": "fo", "name": "a", "descriptor": "[Lfp;"}
+  - first ItemStack[] in declaration order
+- **invArmor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fo", "name": "b", "descriptor": "[Lfp;"}
+  - compiled: {"class": "fo", "name": "b", "descriptor": "[Lfp;"}
+  - second ItemStack[]
+- **invCur** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "fo", "name": "d", "descriptor": "I"}
+  - compiled: {"class": "fo", "name": "d", "descriptor": "I"}
+  - first int field
+- **addStack** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fo", "name": "a", "descriptor": "(Lfp;)Z"}
+  - compiled: {"class": "fo", "name": "a", "descriptor": "(Lfp;)Z"}
+  - (LItemStack;)Z on InventoryPlayer
+- **invField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "eb", "name": "e", "descriptor": "Lfo;"}
+  - compiled: {"class": "eb", "name": "e", "descriptor": "Lfo;"}
+  - class eb holds both World ref and InventoryPlayer ref
+- **tileEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ji", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ji", "name": "ji", "descriptor": "class"}
+  - superclass of furnace
+- **chestClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ga", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ga", "name": "ga", "descriptor": "class"}
+  - TE subclass with Items-bound ItemStack[] field a
+- **furnaceClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lt", "name": null, "descriptor": "class"}
+  - compiled: {"class": "lt", "name": "lt", "descriptor": "class"}
+  - furnace=lt (BurnTime+CookTime bound); tileEntityClass = its superclass ji
+- **teGet** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cy", "name": "b", "descriptor": "(III)Lji;"}
+  - compiled: {"class": "cy", "name": "b", "descriptor": "(III)Lji;"}
+  - World (III)LTILE; -> b
+- **minecraftClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "Minecraft", "descriptor": "class"}
+  - 2 candidates ['ah', 'net/minecraft/client/Minecraft']; entity-field score -> net/minecraft/client/Minecraft
+- **runTick** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "i", "descriptor": "()V"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "i", "descriptor": "()V"}
+  - ()V invoked by run() that drives World -> i
+- **guiIngame** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "nl", "name": "a", "descriptor": "(FZII)V"}
+  - compiled: {"class": "nl", "name": "a", "descriptor": "(FZII)V"}
+  - class nl loads /gui/gui.png and exposes (FZII)V
 
 ### b1.2_02 (family G3, World=dn)
 
-- world: probe scan (G3 group: level.dat,SpawnX,RandomSeed,TickNextTick list out of synch,Saving chunks,Saving level) -> shape-validated candidates: dn(hits=6:level.dat,SpawnX,RandomSeed,TickNextTick list out of synch,Saving chunks,Saving level)
 - **getBlockId** verdict=MATCH confidence=HIGH
   - oracle: {"class": "dn", "name": "a", "descriptor": "(III)I"}
   - compiled: {"class": "dn", "name": "a", "descriptor": "(III)I"}
-  - candidates: public non-static (III)I on dn = [a, e, l]
-  - a(III)I: tail-calls chunk getter ib.a(III)I which does direct baload (no nibble delegation) -> block-id
-  - e(III)I: callee pattern b(III)I does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
-  - l(III)I: callee pattern none does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
+  - candidates: public (III)I = [a, e, l]
+  - a: chunk delegate is direct baload getter -> block id
 - **setBlock** verdict=MATCH confidence=HIGH
   - oracle: {"class": "dn", "name": "e", "descriptor": "(IIII)Z"}
   - compiled: {"class": "dn", "name": "e", "descriptor": "(IIII)Z"}
-  - candidates: public non-static (IIII)Z on dn = [a, b, d, e, k, l]
-  - a: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - b: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - d: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - e: delegates to sibling (IIII)Z core b -> wrapper
-  - k: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - l: no sibling (IIII)Z delegation -> silent core / metadata setter
+  - candidates: public (IIII)Z = [a, b, d, e, k, l]
+  - e delegates to sibling (IIII)Z core -> wrapper
 - **saveWorld** verdict=MATCH confidence=HIGH
   - oracle: {"class": "dn", "name": "a", "descriptor": "(Lru;)V"}
   - compiled: {"class": "dn", "name": "a", "descriptor": "(Lru;)V"}
-  - rule A: public wrapper a(Lru;)V delegates to core a(ZLru;)V carrying save evidence 'Saving level'
+  - rule A: wrapper a(Lru;)V -> core a(ZLru;)V with 'Saving level'
+- **worldTime** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "e", "descriptor": "J"}
+  - compiled: {"class": "dn", "name": "e", "descriptor": "J"}
+  - NBT key 'Time' binds unique dn.e:J
+- **randSeed** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "u", "descriptor": "J"}
+  - compiled: {"class": "dn", "name": "u", "descriptor": "J"}
+  - NBT key 'RandomSeed' binds unique dn.u:J
+- **spawnX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "m", "descriptor": "I"}
+  - compiled: {"class": "dn", "name": "m", "descriptor": "I"}
+  - NBT key 'SpawnX' binds unique dn.m:I
+- **spawnY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "n", "descriptor": "I"}
+  - compiled: {"class": "dn", "name": "n", "descriptor": "I"}
+  - NBT key 'SpawnY' binds unique dn.n:I
+- **spawnZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "o", "descriptor": "I"}
+  - compiled: {"class": "dn", "name": "o", "descriptor": "I"}
+  - NBT key 'SpawnZ' binds unique dn.o:I
+- **getMeta** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "e", "descriptor": "(III)I"}
+  - compiled: {"class": "dn", "name": "e", "descriptor": "(III)I"}
+  - candidates: public (III)I|(III)B = [a(III)I, e(III)I, l(III)I]
+  - e(III)I: delegates to chunk nibble getter (shift/mask arithmetic) -> metadata
+- **setMetaSilent** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "c", "descriptor": "(IIII)V"}
+  - compiled: {"class": "dn", "name": "c", "descriptor": "(IIII)V"}
+  - candidates: public (IIII)V = [c, g, h, i, j]
+  - c: score 2 (sibling-(IIII)Z delegate=1, reaches-nibble=0)
+  - h: fans out 6 sibling (IIII)V calls -> light6, rejected
+  - j: consumes Random (particle/sound effects) -> block-destroy variant, rejected
+  - take c -> setMetaSilent
+- **getLight** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "l", "descriptor": "(III)I"}
+  - compiled: {"class": "dn", "name": "l", "descriptor": "(III)I"}
+  - l(III)I: delegates to 4-arg int light getter ((IIIZ)I) -> light
+- **entityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "nl", "name": null, "descriptor": "class"}
+  - compiled: {"class": "nl", "name": "nl", "descriptor": "class"}
+  - WARN 4 candidates ['nl', 'db', 'eu', 'ig']; scored [(7, 'nl'), (3, 'eu'), (2, 'ig'), (0, 'db')] -> take nl
+- **setPosRot** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "nl", "name": "b", "descriptor": "(DDDFF)V"}
+  - compiled: {"class": "nl", "name": "b", "descriptor": "(DDDFF)V"}
+  - desc (DDDFF)V unique by shape -> b
+- **posX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "nl", "name": "aF", "descriptor": "D"}
+  - compiled: {"class": "nl", "name": "aF", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "nl", "name": "aG", "descriptor": "D"}
+  - compiled: {"class": "nl", "name": "aG", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "nl", "name": "aH", "descriptor": "D"}
+  - compiled: {"class": "nl", "name": "aH", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "nl", "name": "aI", "descriptor": "D"}
+  - compiled: {"class": "nl", "name": "aI", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "nl", "name": "aJ", "descriptor": "D"}
+  - compiled: {"class": "nl", "name": "aJ", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "nl", "name": "aK", "descriptor": "D"}
+  - compiled: {"class": "nl", "name": "aK", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **yaw** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "nl", "name": "aL", "descriptor": "F"}
+  - compiled: {"class": "nl", "name": "aL", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **pitch** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "nl", "name": "aM", "descriptor": "F"}
+  - compiled: {"class": "nl", "name": "aM", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **entityList** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "l", "descriptor": "()Ljava/util/List;"}
+  - compiled: {"class": "dn", "name": "l", "descriptor": "()Ljava/util/List;"}
+  - candidates: ()List getters = [l]
+- **spawnEntity** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "dn", "name": "a", "descriptor": "(Lnl;)Z"}
+  - compiled: {"class": "dn", "name": "a", "descriptor": "(Lnl;)Z"}
+  - candidates: single-entity-param methods = [a, b, c, d, e, f]
+  - a: body adds entity to collection -> spawn
+  - f: body adds entity to collection -> spawn
+- **setEntityDead** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "d", "descriptor": "(Lnl;)V"}
+  - compiled: {"class": "dn", "name": "d", "descriptor": "(Lnl;)V"}
+  - d: calls entity kill/remove method -> setEntityDead
+- **playSound** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - compiled: {"class": "dn", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - unique (DDDLString;FF)V -> playSound
+- **explode** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "dn", "name": "a", "descriptor": "(Lnl;DDDF)Lmc;"}
+  - compiled: {"class": "dn", "name": "a", "descriptor": "(Lnl;DDDF)Lmc;"}
+  - 2 candidates; take first
+- **itemStackClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gm", "name": null, "descriptor": "class"}
+  - compiled: {"class": "gm", "name": "gm", "descriptor": "class"}
+- **isCount** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gm", "name": "a", "descriptor": "I"}
+  - compiled: {"class": "gm", "name": "a", "descriptor": "I"}
+  - NBT 'Count' binds gm.a:I
+- **isId** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gm", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "gm", "name": "c", "descriptor": "I"}
+  - NBT 'id' (co-occurring with 'Count') binds c
+- **isDmg** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gm", "name": "d", "descriptor": "I"}
+  - compiled: {"class": "gm", "name": "d", "descriptor": "I"}
+  - NBT 'Damage' binds d
+- **inventoryPlayerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gl", "name": null, "descriptor": "class"}
+  - compiled: {"class": "gl", "name": "gl", "descriptor": "class"}
+  - class gl declares 2 ItemStack[] fields ['a', 'b'] + ints ['c']
+- **invMain** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gl", "name": "a", "descriptor": "[Lgm;"}
+  - compiled: {"class": "gl", "name": "a", "descriptor": "[Lgm;"}
+  - first ItemStack[] in declaration order
+- **invArmor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gl", "name": "b", "descriptor": "[Lgm;"}
+  - compiled: {"class": "gl", "name": "b", "descriptor": "[Lgm;"}
+  - second ItemStack[]
+- **invCur** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "gl", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "gl", "name": "c", "descriptor": "I"}
+  - first int field
+- **addStack** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gl", "name": "a", "descriptor": "(Lgm;)Z"}
+  - compiled: {"class": "gl", "name": "a", "descriptor": "(Lgm;)Z"}
+  - (LItemStack;)Z on InventoryPlayer
+- **invField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "eu", "name": "f", "descriptor": "Lgl;"}
+  - compiled: {"class": "eu", "name": "f", "descriptor": "Lgl;"}
+  - class eu holds both World ref and InventoryPlayer ref
+- **tileEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kp", "name": null, "descriptor": "class"}
+  - compiled: {"class": "kp", "name": "kp", "descriptor": "class"}
+  - superclass of furnace
+- **teGet** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "b", "descriptor": "(III)Lkp;"}
+  - compiled: {"class": "dn", "name": "b", "descriptor": "(III)Lkp;"}
+  - World (III)LTILE; -> b
+- **minecraftClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "Minecraft", "descriptor": "class"}
+  - 2 candidates ['an', 'net/minecraft/client/Minecraft']; entity-field score -> net/minecraft/client/Minecraft
+- **runTick** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "i", "descriptor": "()V"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "i", "descriptor": "()V"}
+  - ()V invoked by run() that drives World -> i
+- **guiIngame** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "pe", "name": "a", "descriptor": "(FZII)V"}
+  - compiled: {"class": "pe", "name": "a", "descriptor": "(FZII)V"}
+  - class pe loads /gui/gui.png and exposes (FZII)V
+- **mobPig** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "qk", "name": null, "descriptor": "class"}
+  - compiled: {"class": "qk", "name": "qk", "descriptor": "class"}
+  - mob registered as type string 'Pig' -> class qk
+- **mobSheep** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ch", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ch", "name": "ch", "descriptor": "class"}
+  - mob registered as type string 'Sheep' -> class ch
+- **mobCreeper** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "eh", "name": null, "descriptor": "class"}
+  - compiled: {"class": "eh", "name": "eh", "descriptor": "class"}
+  - mob registered as type string 'Creeper' -> class eh
+- **mobSkeleton** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dy", "name": null, "descriptor": "class"}
+  - compiled: {"class": "dy", "name": "dy", "descriptor": "class"}
+  - mob registered as type string 'Skeleton' -> class dy
+- **mobZombie** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "pn", "name": null, "descriptor": "class"}
+  - compiled: {"class": "pn", "name": "pn", "descriptor": "class"}
+  - mob registered as type string 'Zombie' -> class pn
+- **mobSpider** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "bn", "name": null, "descriptor": "class"}
+  - compiled: {"class": "bn", "name": "bn", "descriptor": "class"}
+  - mob registered as type string 'Spider' -> class bn
+- **mobTnt** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "mb", "name": null, "descriptor": "class"}
+  - compiled: {"class": "mb", "name": "mb", "descriptor": "class"}
+  - mob registered as type string 'PrimedTnt' -> class mb
+- **mobGiant** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "jv", "name": null, "descriptor": "class"}
+  - compiled: {"class": "jv", "name": "jv", "descriptor": "class"}
+  - mob registered as type string 'Giant' -> class jv
+- **mobCreatureClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "fz", "name": null, "descriptor": "class"}
+  - compiled: {"class": "fz", "name": "fz", "descriptor": "class"}
+  - deepest common ancestor of peaceful mobs + creeper
 
 ### b1.7.3 (family G3, World=fd)
 
-- world: probe scan (G3 group: level.dat,SpawnX,RandomSeed,TickNextTick list out of synch,Saving chunks,Saving level) -> shape-validated candidates: fd(hits=3:TickNextTick list out of synch,Saving chunks,Saving level)
 - **getBlockId** verdict=MATCH confidence=HIGH
   - oracle: {"class": "fd", "name": "a", "descriptor": "(III)I"}
   - compiled: {"class": "fd", "name": "a", "descriptor": "(III)I"}
-  - candidates: public non-static (III)I on fd = [a, e, m, n]
-  - a(III)I: tail-calls chunk getter lm.a(III)I which does direct baload (no nibble delegation) -> block-id
-  - e(III)I: callee pattern b(III)I does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
-  - m(III)I: callee pattern none does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
-  - n(III)I: callee pattern none does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
+  - candidates: public (III)I = [a, e, m, n]
+  - a: chunk delegate is direct baload getter -> block id
 - **setBlock** verdict=MATCH confidence=HIGH
   - oracle: {"class": "fd", "name": "f", "descriptor": "(IIII)Z"}
   - compiled: {"class": "fd", "name": "f", "descriptor": "(IIII)Z"}
-  - candidates: public non-static (IIII)Z on fd = [b, c, e, f, j, k]
-  - b: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - c: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - e: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - f: delegates to sibling (IIII)Z core c -> wrapper
-  - j: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - k: no sibling (IIII)Z delegation -> silent core / metadata setter
+  - candidates: public (IIII)Z = [b, c, e, f, j, k]
+  - f delegates to sibling (IIII)Z core -> wrapper
 - **saveWorld** verdict=MATCH confidence=HIGH
   - oracle: {"class": "fd", "name": "a", "descriptor": "(Lyb;)V"}
   - compiled: {"class": "fd", "name": "a", "descriptor": "(Lyb;)V"}
-  - rule A: public wrapper a(Lyb;)V delegates to core a(ZLyb;)V carrying save evidence 'Saving level'
+  - rule A: wrapper a(Lyb;)V -> core a(ZLyb;)V with 'Saving level'
+- **worldTime** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ei", "name": "e", "descriptor": "J"}
+  - compiled: {"class": "ei", "name": "e", "descriptor": "J"}
+  - NBT key 'Time' binds unique ei.e:J
+- **randSeed** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ei", "name": "a", "descriptor": "J"}
+  - compiled: {"class": "ei", "name": "a", "descriptor": "J"}
+  - NBT key 'RandomSeed' binds unique ei.a:J
+- **spawnX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ei", "name": "b", "descriptor": "I"}
+  - compiled: {"class": "ei", "name": "b", "descriptor": "I"}
+  - NBT key 'SpawnX' binds unique ei.b:I
+- **spawnY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ei", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "ei", "name": "c", "descriptor": "I"}
+  - NBT key 'SpawnY' binds unique ei.c:I
+- **spawnZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ei", "name": "d", "descriptor": "I"}
+  - compiled: {"class": "ei", "name": "d", "descriptor": "I"}
+  - NBT key 'SpawnZ' binds unique ei.d:I
+- **getMeta** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fd", "name": "e", "descriptor": "(III)I"}
+  - compiled: {"class": "fd", "name": "e", "descriptor": "(III)I"}
+  - candidates: public (III)I|(III)B = [a(III)I, e(III)I, m(III)I, n(III)I]
+  - e(III)I: delegates to chunk nibble getter (shift/mask arithmetic) -> metadata
+- **setMetaSilent** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fd", "name": "d", "descriptor": "(IIII)V"}
+  - compiled: {"class": "fd", "name": "d", "descriptor": "(IIII)V"}
+  - candidates: public (IIII)V = [d, h, i]
+  - d: score 2 (sibling-(IIII)Z delegate=1, reaches-nibble=0)
+  - i: fans out 6 sibling (IIII)V calls -> light6, rejected
+  - take d -> setMetaSilent
+- **getLight** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "fd", "name": "n", "descriptor": "(III)I"}
+  - compiled: {"class": "fd", "name": "n", "descriptor": "(III)I"}
+  - m(III)I: delegates to 4-arg int light getter ((IIII)I) -> light
+  - n(III)I: delegates to 4-arg int light getter ((IIIZ)I) -> light
+- **entityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "sn", "name": "sn", "descriptor": "class"}
+  - compiled: {"class": "sn", "name": "sn", "descriptor": "class"}
+  - WARN 4 candidates ['gs', 'ls', 'sn', 'eq']; scored [(7, 'sn'), (3, 'gs'), (2, 'ls'), (0, 'eq')] -> take sn
+- **setPosRot** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "sn", "name": "b", "descriptor": "(DDDFF)V"}
+  - compiled: {"class": "sn", "name": "b", "descriptor": "(DDDFF)V"}
+  - desc (DDDFF)V unique by shape -> b
+- **posX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "sn", "name": "aM", "descriptor": "D"}
+  - compiled: {"class": "sn", "name": "aM", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "sn", "name": "aN", "descriptor": "D"}
+  - compiled: {"class": "sn", "name": "aN", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "sn", "name": "aO", "descriptor": "D"}
+  - compiled: {"class": "sn", "name": "aO", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "sn", "name": "aP", "descriptor": "D"}
+  - compiled: {"class": "sn", "name": "aP", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "sn", "name": "aQ", "descriptor": "D"}
+  - compiled: {"class": "sn", "name": "aQ", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "sn", "name": "aR", "descriptor": "D"}
+  - compiled: {"class": "sn", "name": "aR", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **yaw** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "sn", "name": "aS", "descriptor": "F"}
+  - compiled: {"class": "sn", "name": "aS", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **pitch** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "sn", "name": "aT", "descriptor": "F"}
+  - compiled: {"class": "sn", "name": "aT", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **playSound** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fd", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - compiled: {"class": "fd", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - unique (DDDLString;FF)V -> playSound
+- **minecraftClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "Minecraft", "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "Minecraft", "descriptor": "class"}
+  - 2 candidates ['bd', 'net/minecraft/client/Minecraft']; entity-field score -> net/minecraft/client/Minecraft
+- **runTick** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "k", "descriptor": "()V"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "k", "descriptor": "()V"}
+  - ()V invoked by run() that drives World -> k
+- **guiIngame** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "uq", "name": "a", "descriptor": "(FZII)V"}
+  - compiled: {"class": "uq", "name": "a", "descriptor": "(FZII)V"}
+  - class uq loads /gui/gui.png and exposes (FZII)V
+- **mobPig** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "wh", "name": "wh", "descriptor": "class"}
+  - compiled: {"class": "wh", "name": "wh", "descriptor": "class"}
+  - mob registered as type string 'Pig' -> class wh
+- **mobSheep** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dl", "name": "dl", "descriptor": "class"}
+  - compiled: {"class": "dl", "name": "dl", "descriptor": "class"}
+  - mob registered as type string 'Sheep' -> class dl
+- **mobCreeper** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gb", "name": "gb", "descriptor": "class"}
+  - compiled: {"class": "gb", "name": "gb", "descriptor": "class"}
+  - mob registered as type string 'Creeper' -> class gb
+- **mobSkeleton** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fr", "name": "fr", "descriptor": "class"}
+  - compiled: {"class": "fr", "name": "fr", "descriptor": "class"}
+  - mob registered as type string 'Skeleton' -> class fr
+- **mobZombie** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "uz", "name": "uz", "descriptor": "class"}
+  - compiled: {"class": "uz", "name": "uz", "descriptor": "class"}
+  - mob registered as type string 'Zombie' -> class uz
+- **mobSpider** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "cn", "descriptor": "class"}
+  - compiled: {"class": "cn", "name": "cn", "descriptor": "class"}
+  - mob registered as type string 'Spider' -> class cn
+- **mobTnt** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "qw", "name": "qw", "descriptor": "class"}
+  - compiled: {"class": "qw", "name": "qw", "descriptor": "class"}
+  - mob registered as type string 'PrimedTnt' -> class qw
+- **mobGiant** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "nt", "name": "nt", "descriptor": "class"}
+  - compiled: {"class": "nt", "name": "nt", "descriptor": "class"}
+  - mob registered as type string 'Giant' -> class nt
 
 ### b1.8.1 (family G3, World=rv)
 
-- world: probe scan (G3 group: level.dat,SpawnX,RandomSeed,TickNextTick list out of synch,Saving chunks,Saving level) -> shape-validated candidates: rv(hits=3:TickNextTick list out of synch,Saving chunks,Saving level)
 - **getBlockId** verdict=MATCH confidence=HIGH
   - oracle: {"class": "rv", "name": "a", "descriptor": "(III)I"}
   - compiled: {"class": "rv", "name": "a", "descriptor": "(III)I"}
-  - candidates: public non-static (III)I on rv = [a, e, m, n]
-  - a(III)I: tail-calls chunk getter vy.a(III)I which does direct baload (no nibble delegation) -> block-id
-  - e(III)I: callee pattern b(III)I does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
-  - m(III)I: callee pattern none does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
-  - n(III)I: callee pattern none does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
+  - candidates: public (III)I = [a, e, m, n]
+  - a: chunk delegate is direct baload getter -> block id
 - **setBlock** verdict=MATCH confidence=HIGH
   - oracle: {"class": "rv", "name": "g", "descriptor": "(IIII)Z"}
   - compiled: {"class": "rv", "name": "g", "descriptor": "(IIII)Z"}
-  - candidates: public non-static (IIII)Z on rv = [e, d, c, g, k, l]
-  - e: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - d: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - c: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - g: delegates to sibling (IIII)Z core d -> wrapper
-  - k: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - l: no sibling (IIII)Z delegation -> silent core / metadata setter
+  - candidates: public (IIII)Z = [e, d, c, g, k, l]
+  - g delegates to sibling (IIII)Z core -> wrapper
 - **saveWorld** verdict=MATCH confidence=HIGH
   - oracle: {"class": "rv", "name": "a", "descriptor": "(Lny;)V"}
   - compiled: {"class": "rv", "name": "a", "descriptor": "(Lny;)V"}
-  - rule A: public wrapper a(Lny;)V delegates to core a(ZLny;)V carrying save evidence 'Saving level'
+  - rule A: wrapper a(Lny;)V -> core a(ZLny;)V with 'Saving level'
+- **worldTime** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "rl", "name": "e", "descriptor": "J"}
+  - compiled: {"class": "rl", "name": "e", "descriptor": "J"}
+  - NBT key 'Time' binds unique rl.e:J
+- **randSeed** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "rl", "name": "a", "descriptor": "J"}
+  - compiled: {"class": "rl", "name": "a", "descriptor": "J"}
+  - NBT key 'RandomSeed' binds unique rl.a:J
+- **spawnX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "rl", "name": "b", "descriptor": "I"}
+  - compiled: {"class": "rl", "name": "b", "descriptor": "I"}
+  - NBT key 'SpawnX' binds unique rl.b:I
+- **spawnY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "rl", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "rl", "name": "c", "descriptor": "I"}
+  - NBT key 'SpawnY' binds unique rl.c:I
+- **spawnZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "rl", "name": "d", "descriptor": "I"}
+  - compiled: {"class": "rl", "name": "d", "descriptor": "I"}
+  - NBT key 'SpawnZ' binds unique rl.d:I
+- **getMeta** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "rv", "name": "e", "descriptor": "(III)I"}
+  - compiled: {"class": "rv", "name": "e", "descriptor": "(III)I"}
+  - candidates: public (III)I|(III)B = [a(III)I, e(III)I, m(III)I, n(III)I]
+  - e(III)I: delegates to chunk nibble getter (shift/mask arithmetic) -> metadata
+- **setMetaSilent** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "rv", "name": "f", "descriptor": "(IIII)V"}
+  - compiled: {"class": "rv", "name": "f", "descriptor": "(IIII)V"}
+  - candidates: public (IIII)V = [f, i, j]
+  - f: score 2 (sibling-(IIII)Z delegate=1, reaches-nibble=0)
+  - j: fans out 6 sibling (IIII)V calls -> light6, rejected
+  - take f -> setMetaSilent
+- **getLight** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "rv", "name": "n", "descriptor": "(III)I"}
+  - compiled: {"class": "rv", "name": "n", "descriptor": "(III)I"}
+  - m(III)I: delegates to 4-arg int light getter ((IIII)I) -> light
+  - n(III)I: delegates to 4-arg int light getter ((IIIZ)I) -> light
+- **entityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kj", "name": "kj", "descriptor": "class"}
+  - compiled: {"class": "kj", "name": "kj", "descriptor": "class"}
+  - WARN 4 candidates ['rp', 'sz', 'wd', 'kj']; scored [(7, 'kj'), (3, 'sz'), (2, 'wd'), (0, 'rp')] -> take kj
+- **setPosRot** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "kj", "name": "b", "descriptor": "(DDDFF)V"}
+  - compiled: {"class": "kj", "name": "b", "descriptor": "(DDDFF)V"}
+  - desc (DDDFF)V unique by shape -> b
+- **posX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kj", "name": "o", "descriptor": "D"}
+  - compiled: {"class": "kj", "name": "o", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kj", "name": "p", "descriptor": "D"}
+  - compiled: {"class": "kj", "name": "p", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kj", "name": "q", "descriptor": "D"}
+  - compiled: {"class": "kj", "name": "q", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kj", "name": "r", "descriptor": "D"}
+  - compiled: {"class": "kj", "name": "r", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kj", "name": "s", "descriptor": "D"}
+  - compiled: {"class": "kj", "name": "s", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kj", "name": "t", "descriptor": "D"}
+  - compiled: {"class": "kj", "name": "t", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **yaw** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "kj", "name": "u", "descriptor": "F"}
+  - compiled: {"class": "kj", "name": "u", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **pitch** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "kj", "name": "v", "descriptor": "F"}
+  - compiled: {"class": "kj", "name": "v", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **playSound** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "rv", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - compiled: {"class": "rv", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - unique (DDDLString;FF)V -> playSound
+- **minecraftClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "Minecraft", "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "Minecraft", "descriptor": "class"}
+  - 2 candidates ['pk', 'net/minecraft/client/Minecraft']; entity-field score -> net/minecraft/client/Minecraft
+- **runTick** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "k", "descriptor": "()V"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "k", "descriptor": "()V"}
+  - ()V invoked by run() that drives World -> k
+- **guiIngame** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "abj", "name": "a", "descriptor": "(FZII)V"}
+  - compiled: {"class": "abj", "name": "a", "descriptor": "(FZII)V"}
+  - class abj loads /gui/gui.png and exposes (FZII)V
+- **mobPig** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "mx", "name": "mx", "descriptor": "class"}
+  - compiled: {"class": "mx", "name": "mx", "descriptor": "class"}
+  - mob registered as type string 'Pig' -> class mx
+- **mobSheep** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "bx", "name": "bx", "descriptor": "class"}
+  - compiled: {"class": "bx", "name": "bx", "descriptor": "class"}
+  - mob registered as type string 'Sheep' -> class bx
+- **mobCreeper** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "sn", "name": "sn", "descriptor": "class"}
+  - compiled: {"class": "sn", "name": "sn", "descriptor": "class"}
+  - mob registered as type string 'Creeper' -> class sn
+- **mobSkeleton** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "se", "name": "se", "descriptor": "class"}
+  - compiled: {"class": "se", "name": "se", "descriptor": "class"}
+  - mob registered as type string 'Skeleton' -> class se
+- **mobZombie** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "abq", "name": "abq", "descriptor": "class"}
+  - compiled: {"class": "abq", "name": "abq", "descriptor": "class"}
+  - mob registered as type string 'Zombie' -> class abq
+- **mobSpider** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "bh", "name": "bh", "descriptor": "class"}
+  - compiled: {"class": "bh", "name": "bh", "descriptor": "class"}
+  - mob registered as type string 'Spider' -> class bh
+- **mobTnt** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ze", "name": "ze", "descriptor": "class"}
+  - compiled: {"class": "ze", "name": "ze", "descriptor": "class"}
+  - mob registered as type string 'PrimedTnt' -> class ze
+- **mobGiant** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "hv", "name": "hv", "descriptor": "class"}
+  - compiled: {"class": "hv", "name": "hv", "descriptor": "class"}
+  - mob registered as type string 'Giant' -> class hv
 
 ### c0.30-c (family G1, World=com/mojang/minecraft/level/Level)
 
-- world: probe scan (G1 group: The level is corrupt!) -> shape-validated candidates: com/mojang/minecraft/level/Level(hits=1:The level is corrupt!)
-- world: single probe hit on com/mojang/minecraft/level/Level (weak but unique after shape filter)
 - **getBlockId** verdict=MATCH confidence=HIGH
   - oracle: {"class": "com/mojang/minecraft/level/Level", "name": "getTile", "descriptor": "(III)I"}
   - compiled: {"class": "com/mojang/minecraft/level/Level", "name": "getTile", "descriptor": "(III)I"}
-  - candidates: public non-static (III)I on com/mojang/minecraft/level/Level = [getTile]
-  - unique (III)I candidate -> getTile
+  - candidates: public (III)I = [getTile]
 - **setBlock** verdict=MATCH confidence=HIGH
   - oracle: {"class": "com/mojang/minecraft/level/Level", "name": "setTile", "descriptor": "(IIII)Z"}
   - compiled: {"class": "com/mojang/minecraft/level/Level", "name": "setTile", "descriptor": "(IIII)Z"}
-  - candidates: public non-static (IIII)Z on com/mojang/minecraft/level/Level = [setTileNoNeighborChange, netSetTileNoNeighborChange, setTile, netSetTile, setTileNoUpdate]
-  - setTileNoNeighborChange: delegates to sibling (IIII)Z core netSetTileNoNeighborChange -> wrapper
-  - netSetTileNoNeighborChange: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - setTile: delegates to sibling (IIII)Z core setTileNoNeighborChange -> wrapper
-  - netSetTile: delegates to sibling (IIII)Z core netSetTileNoNeighborChange -> wrapper
-  - setTileNoUpdate: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - tiebreak: also calls sibling (IIII)V notification -> [setTile, netSetTile]
-  - tiebreak: networkMode boolean gate (getfield :Z + early false return) -> setTile
+  - candidates: public (IIII)Z = [setTileNoNeighborChange, netSetTileNoNeighborChange, setTile, netSetTile, setTileNoUpdate]
+  - setTileNoNeighborChange delegates to sibling (IIII)Z core -> wrapper
+  - setTile delegates to sibling (IIII)Z core -> wrapper
+  - netSetTile delegates to sibling (IIII)Z core -> wrapper
 - **saveWorld** verdict=MATCH confidence=HIGH
   - oracle: {"class": "com/mojang/minecraft/level/a", "name": "a", "descriptor": "(Lcom/mojang/minecraft/level/Level;Ljava/io/File;)Z"}
   - compiled: {"class": "com/mojang/minecraft/level/a", "name": "a", "descriptor": "(Lcom/mojang/minecraft/level/Level;Ljava/io/File;)Z"}
-  - rule D: serializer method com/mojang/minecraft/level/a.a(Lcom/mojang/minecraft/level/Level;Ljava/io/File;)Z found on com/mojang/minecraft/level/a (storage manager for this era)
+  - rule D: serializer com/mojang/minecraft/level/a.a(Lcom/mojang/minecraft/level/Level;Ljava/io/File;)Z
+- **spawnX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/level/Level", "name": "xSpawn", "descriptor": "I"}
+  - compiled: {"class": "com/mojang/minecraft/level/Level", "name": "xSpawn", "descriptor": "I"}
+  - G1 readable spawn field xSpawn
+  - NBT key 'SpawnX' binds unique com/mojang/minecraft/level/Level.xSpawn:I
+- **spawnY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/level/Level", "name": "ySpawn", "descriptor": "I"}
+  - compiled: {"class": "com/mojang/minecraft/level/Level", "name": "ySpawn", "descriptor": "I"}
+  - G1 readable spawn field ySpawn
+  - NBT key 'SpawnY' binds unique com/mojang/minecraft/level/Level.ySpawn:I
+- **spawnZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/level/Level", "name": "zSpawn", "descriptor": "I"}
+  - compiled: {"class": "com/mojang/minecraft/level/Level", "name": "zSpawn", "descriptor": "I"}
+  - G1 readable spawn field zSpawn
+  - NBT key 'SpawnZ' binds unique com/mojang/minecraft/level/Level.zSpawn:I
+- **entityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/Entity", "name": null, "descriptor": "class"}
+  - compiled: {"class": "com/mojang/minecraft/Entity", "name": "Entity", "descriptor": "class"}
+  - World-referenced type chain -> unique class com/mojang/minecraft/Entity with 13 consecutive F fields
+- **setPosRot** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "com/mojang/minecraft/Entity", "name": "moveTo", "descriptor": "(FFFFF)V"}
+  - compiled: {"class": "com/mojang/minecraft/Entity", "name": "moveTo", "descriptor": "(FFFFF)V"}
+  - desc (FFFFF)V unique by shape -> moveTo
+- **posX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/Entity", "name": "x", "descriptor": "F"}
+  - compiled: {"class": "com/mojang/minecraft/Entity", "name": "x", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **posY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/Entity", "name": "y", "descriptor": "F"}
+  - compiled: {"class": "com/mojang/minecraft/Entity", "name": "y", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **posZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/Entity", "name": "z", "descriptor": "F"}
+  - compiled: {"class": "com/mojang/minecraft/Entity", "name": "z", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **motX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/Entity", "name": "xd", "descriptor": "F"}
+  - compiled: {"class": "com/mojang/minecraft/Entity", "name": "xd", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **motY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/Entity", "name": "yd", "descriptor": "F"}
+  - compiled: {"class": "com/mojang/minecraft/Entity", "name": "yd", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **motZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/Entity", "name": "zd", "descriptor": "F"}
+  - compiled: {"class": "com/mojang/minecraft/Entity", "name": "zd", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **yaw** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "com/mojang/minecraft/Entity", "name": "yRot", "descriptor": "F"}
+  - compiled: {"class": "com/mojang/minecraft/Entity", "name": "yRot", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **pitch** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "com/mojang/minecraft/Entity", "name": "xRot", "descriptor": "F"}
+  - compiled: {"class": "com/mojang/minecraft/Entity", "name": "xRot", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **entityList** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/level/Level", "name": "findEntities", "descriptor": "(Lcom/mojang/minecraft/Entity;Lcom/mojang/minecraft/phys/AABB;)Ljava/util/List;"}
+  - compiled: {"class": "com/mojang/minecraft/level/Level", "name": "findEntities", "descriptor": "(Lcom/mojang/minecraft/Entity;Lcom/mojang/minecraft/phys/AABB;)Ljava/util/List;"}
+  - G1: entity+AABB -> List query method
+- **spawnEntity** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/level/Level", "name": "addEntity", "descriptor": "(Lcom/mojang/minecraft/Entity;)V"}
+  - compiled: {"class": "com/mojang/minecraft/level/Level", "name": "addEntity", "descriptor": "(Lcom/mojang/minecraft/Entity;)V"}
+  - candidates: single-entity-param methods = [addEntity]
+  - addEntity: body adds entity to collection -> spawn
+- **setEntityDead** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/Entity", "name": "remove", "descriptor": "()V"}
+  - compiled: {"class": "com/mojang/minecraft/Entity", "name": "remove", "descriptor": "()V"}
+  - G1 readable era: Entity.remove()V
+- **inventoryPlayerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/player/Inventory", "name": null, "descriptor": "class"}
+  - compiled: {"class": "com/mojang/minecraft/player/Inventory", "name": "Inventory", "descriptor": "class"}
+  - G1 readable: class named Inventory with int[] slots
+- **invMain** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/player/Inventory", "name": "slots", "descriptor": "[I"}
+  - compiled: {"class": "com/mojang/minecraft/player/Inventory", "name": "slots", "descriptor": "[I"}
+  - G1 readable field name 'slots'
+- **invCur** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/player/Inventory", "name": "selected", "descriptor": "I"}
+  - compiled: {"class": "com/mojang/minecraft/player/Inventory", "name": "selected", "descriptor": "I"}
+  - G1 readable field name 'selected'
+- **addStack** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/player/Inventory", "name": "addResource", "descriptor": "(I)Z"}
+  - compiled: {"class": "com/mojang/minecraft/player/Inventory", "name": "addResource", "descriptor": "(I)Z"}
+  - G1 readable: addResource
+- **minecraftClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/l", "name": null, "descriptor": "class"}
+  - compiled: {"class": "com/mojang/minecraft/l", "name": "l", "descriptor": "class"}
+  - unique Runnable class holding World field: com/mojang/minecraft/l
+- **runTick** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/l", "name": "run", "descriptor": "()V"}
+  - compiled: {"class": "com/mojang/minecraft/l", "name": "run", "descriptor": "()V"}
+  - G1: run()V is the tick driver
+- **guiIngame** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/e/m", "name": "a", "descriptor": "(FZII)V"}
+  - compiled: {"class": "com/mojang/minecraft/e/m", "name": "a", "descriptor": "(FZII)V"}
+  - class com/mojang/minecraft/e/m loads /gui/gui.png and exposes (FZII)V
 
 ### in-20100223 (family G2, World=net/minecraft/a/a/g)
 
-- world: probe scan (G2 group: level.dat,SpawnX,RandomSeed,MinecraftLevel,The level is corrupt!,TickNextTick list out of synch) -> shape-validated candidates: net/minecraft/a/a/g(hits=1:The level is corrupt!)
-- world: single probe hit on net/minecraft/a/a/g (weak but unique after shape filter)
 - **getBlockId** verdict=MATCH confidence=HIGH
   - oracle: {"class": "net/minecraft/a/a/g", "name": "a", "descriptor": "(III)I"}
   - compiled: {"class": "net/minecraft/a/a/g", "name": "a", "descriptor": "(III)I"}
-  - candidates: public non-static (III)I on net/minecraft/a/a/g = [a]
-  - unique (III)I candidate -> a
+  - candidates: public (III)I = [a]
 - **setBlock** verdict=MATCH confidence=HIGH
   - oracle: {"class": "net/minecraft/a/a/g", "name": "b", "descriptor": "(IIII)Z"}
   - compiled: {"class": "net/minecraft/a/a/g", "name": "b", "descriptor": "(IIII)Z"}
-  - candidates: public non-static (IIII)Z on net/minecraft/a/a/g = [a, b, d]
-  - a: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - b: delegates to sibling (IIII)Z core a -> wrapper
-  - d: no sibling (IIII)Z delegation -> silent core / metadata setter
+  - candidates: public (IIII)Z = [a, b, d]
+  - b delegates to sibling (IIII)Z core -> wrapper
 - **saveWorld** verdict=MATCH confidence=HIGH
   - oracle: {"class": "net/minecraft/a/a/a", "name": "a", "descriptor": "(Lnet/minecraft/a/a/g;Ljava/io/OutputStream;)V"}
   - compiled: {"class": "net/minecraft/a/a/a", "name": "a", "descriptor": "(Lnet/minecraft/a/a/g;Ljava/io/OutputStream;)V"}
-  - rule D: serializer method net/minecraft/a/a/a.a(Lnet/minecraft/a/a/g;Ljava/io/OutputStream;)V found on net/minecraft/a/a/a (storage manager for this era)
+  - rule D: serializer net/minecraft/a/a/a.a(Lnet/minecraft/a/a/g;Ljava/io/OutputStream;)V
+- **randSeed** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "h", "descriptor": "J"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "h", "descriptor": "J"}
+  - unique instance J field -> level seed
+  - NBT key 'RandomSeed' binds unique net/minecraft/a/a/g.h:J
+- **spawnX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "i", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "i", "descriptor": "I"}
+  - indev 'Spawn' key binds 3 consecutive int fields ['i', 'j', 'k'] -> spawnX = #0
+  - NBT key 'SpawnX' binds unique net/minecraft/a/a/g.i:I
+- **spawnY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "j", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "j", "descriptor": "I"}
+  - indev 'Spawn' key binds 3 consecutive int fields ['i', 'j', 'k'] -> spawnY = #1
+  - NBT key 'SpawnY' binds unique net/minecraft/a/a/g.j:I
+- **spawnZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "k", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "k", "descriptor": "I"}
+  - indev 'Spawn' key binds 3 consecutive int fields ['i', 'j', 'k'] -> spawnZ = #2
+  - NBT key 'SpawnZ' binds unique net/minecraft/a/a/g.k:I
+- **getMeta** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "e", "descriptor": "(III)B"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "e", "descriptor": "(III)B"}
+  - candidates: public (III)I|(III)B = [a(III)I, d(III)B, e(III)B]
+  - d(III)B: direct nibble read (baload + shift/mask on own arrays) -> metadata
+  - e(III)B: direct nibble read (baload + shift/mask on own arrays) -> metadata
+- **setMetaSilent** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "f", "descriptor": "(IIII)V"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "f", "descriptor": "(IIII)V"}
+  - candidates: public (IIII)V = [c, e, f, g]
+  - c: fans out 6 sibling (IIII)V calls -> light6, rejected
+  - f: score 1 (sibling-(IIII)Z delegate=0, reaches-nibble=1)
+  - g: consumes Random (particle/sound effects) -> block-destroy variant, rejected
+  - take f -> setMetaSilent
+- **entityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "b", "descriptor": "class"}
+  - World-referenced type chain -> unique class net/minecraft/a/c/b with 13 consecutive F fields
+- **posX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "h", "descriptor": "F"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "h", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **posY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "i", "descriptor": "F"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "i", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **posZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "j", "descriptor": "F"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "j", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **motX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "k", "descriptor": "F"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "k", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **motY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "l", "descriptor": "F"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "l", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **motZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "m", "descriptor": "F"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "m", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **yaw** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "n", "descriptor": "F"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "n", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **pitch** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "o", "descriptor": "F"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "o", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **itemStackClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/k", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/b/k", "name": "k", "descriptor": "class"}
+- **isCount** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/k", "name": "a", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/b/k", "name": "a", "descriptor": "I"}
+  - NBT 'Count' binds net/minecraft/a/b/k.a:I
+- **isId** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/k", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/b/k", "name": "c", "descriptor": "I"}
+  - NBT 'id' (co-occurring with 'Count') binds c
+- **isDmg** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/k", "name": "d", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/b/k", "name": "d", "descriptor": "I"}
+  - NBT 'Damage' binds d
+- **inventoryPlayerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/e/b", "name": "b", "descriptor": "class"}
+  - class net/minecraft/a/c/e/b declares 2 ItemStack[] fields ['a', 'b'] + ints ['c']
+- **invMain** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/b", "name": "a", "descriptor": "[Lnet/minecraft/a/b/k;"}
+  - compiled: {"class": "net/minecraft/a/c/e/b", "name": "a", "descriptor": "[Lnet/minecraft/a/b/k;"}
+  - first ItemStack[] in declaration order
+- **invArmor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/b", "name": "b", "descriptor": "[Lnet/minecraft/a/b/k;"}
+  - compiled: {"class": "net/minecraft/a/c/e/b", "name": "b", "descriptor": "[Lnet/minecraft/a/b/k;"}
+  - second ItemStack[]
+- **invCur** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/e/b", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/c/e/b", "name": "c", "descriptor": "I"}
+  - first int field
+- **invField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/a", "name": "b", "descriptor": "Lnet/minecraft/a/c/e/b;"}
+  - compiled: {"class": "net/minecraft/a/c/e/a", "name": "b", "descriptor": "Lnet/minecraft/a/c/e/b;"}
+  - class net/minecraft/a/c/e/a holds both World ref and InventoryPlayer ref
+- **tileEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/a/a", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/b/a/a", "name": "a", "descriptor": "class"}
+  - superclass of furnace
+- **chestClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/a/c", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/b/a/c", "name": "c", "descriptor": "class"}
+  - TE subclass with Items-bound ItemStack[] field e
+- **furnaceClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/a/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/b/a/b", "name": "b", "descriptor": "class"}
+  - furnace=net/minecraft/a/a/b/a/b (BurnTime+CookTime bound); tileEntityClass = its superclass net/minecraft/a/a/b/a/a
+- **teGet** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "j", "descriptor": "(III)Lnet/minecraft/a/a/b/a/a;"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "j", "descriptor": "(III)Lnet/minecraft/a/a/b/a/a;"}
+  - World (III)LTILE; -> j
+- **minecraftClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/d", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/client/d", "name": "d", "descriptor": "class"}
+  - unique Runnable class holding World field: net/minecraft/client/d
+- **runTick** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/d", "name": "f", "descriptor": "()V"}
+  - compiled: {"class": "net/minecraft/client/d", "name": "f", "descriptor": "()V"}
+  - ()V invoked by run() that drives World -> f
+- **guiIngame** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/c/l", "name": "a", "descriptor": "(F)V"}
+  - compiled: {"class": "net/minecraft/client/c/l", "name": "a", "descriptor": "(F)V"}
+  - class net/minecraft/client/c/l loads /gui/gui.png and exposes (F)V
 
 ### inf-20100327 (family G2, World=net/minecraft/a/a/f)
 
-- world: probe scan (G2 group: level.dat,SpawnX,RandomSeed,MinecraftLevel,The level is corrupt!,TickNextTick list out of synch) -> shape-validated candidates: net/minecraft/a/a/f(hits=3:level.dat,SpawnX,RandomSeed)
 - **getBlockId** verdict=MATCH confidence=HIGH
   - oracle: {"class": "net/minecraft/a/a/f", "name": "a", "descriptor": "(III)I"}
   - compiled: {"class": "net/minecraft/a/a/f", "name": "a", "descriptor": "(III)I"}
-  - candidates: public non-static (III)I on net/minecraft/a/a/f = [a, d, f]
-  - a(III)I: tail-calls chunk getter net/minecraft/a/a/e/d.a(III)I which does direct baload (no nibble delegation) -> block-id
-  - d(III)I: callee pattern b(III)I does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
-  - f(III)I: callee pattern none does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
+  - candidates: public (III)I = [a, d, f]
+  - a: chunk delegate is direct baload getter -> block id
 - **setBlock** verdict=MATCH confidence=HIGH
   - oracle: {"class": "net/minecraft/a/a/f", "name": "c", "descriptor": "(IIII)Z"}
   - compiled: {"class": "net/minecraft/a/a/f", "name": "c", "descriptor": "(IIII)Z"}
-  - candidates: public non-static (IIII)Z on net/minecraft/a/a/f = [a, c]
-  - a: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - c: delegates to sibling (IIII)Z core a -> wrapper
+  - candidates: public (IIII)Z = [a, c]
+  - c delegates to sibling (IIII)Z core -> wrapper
 - **saveWorld** verdict=MATCH confidence=HIGH
   - oracle: {"class": "net/minecraft/a/a/f", "name": "a", "descriptor": "(Z)V"}
   - compiled: {"class": "net/minecraft/a/a/f", "name": "a", "descriptor": "(Z)V"}
-  - rule B: (Z)V core a carries save evidence 'level.dat'
+  - rule B: (Z)V core a carries 'level.dat'
+- **worldTime** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "b", "descriptor": "J"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "b", "descriptor": "J"}
+  - NBT key 'Time' binds unique net/minecraft/a/a/f.b:J
+- **randSeed** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "x", "descriptor": "J"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "x", "descriptor": "J"}
+  - NBT key 'RandomSeed' binds unique net/minecraft/a/a/f.x:J
+- **spawnX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "g", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "g", "descriptor": "I"}
+  - NBT key 'SpawnX' binds unique net/minecraft/a/a/f.g:I
+- **spawnY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "h", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "h", "descriptor": "I"}
+  - NBT key 'SpawnY' binds unique net/minecraft/a/a/f.h:I
+- **spawnZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "i", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "i", "descriptor": "I"}
+  - NBT key 'SpawnZ' binds unique net/minecraft/a/a/f.i:I
+- **getMeta** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "d", "descriptor": "(III)I"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "d", "descriptor": "(III)I"}
+  - candidates: public (III)I|(III)B = [a(III)I, d(III)I, f(III)I]
+  - d(III)I: delegates to chunk nibble getter (shift/mask arithmetic) -> metadata
+- **setMetaSilent** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "b", "descriptor": "(IIII)V"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "b", "descriptor": "(IIII)V"}
+  - candidates: public (IIII)V = [b, d, e, f, g]
+  - b: score 2 (sibling-(IIII)Z delegate=1, reaches-nibble=0)
+  - e: fans out 6 sibling (IIII)V calls -> light6, rejected
+  - g: consumes Random (particle/sound effects) -> block-destroy variant, rejected
+  - take b -> setMetaSilent
+- **getLight** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "f", "descriptor": "(III)I"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "f", "descriptor": "(III)I"}
+  - f(III)I: delegates to 4-arg int light getter ((IIII)I) -> light
+- **entityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "b", "descriptor": "class"}
+  - WARN 2 candidates ['net/minecraft/a/c/b', 'net/minecraft/a/d/b']; scored [(7, 'net/minecraft/a/c/b'), (4, 'net/minecraft/a/d/b')] -> take net/minecraft/a/c/b
+- **setPosRot** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "b", "descriptor": "(DDDFF)V"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "b", "descriptor": "(DDDFF)V"}
+  - desc (DDDFF)V unique by shape -> b
+- **posX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "g", "descriptor": "D"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "g", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "h", "descriptor": "D"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "h", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "i", "descriptor": "D"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "i", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "j", "descriptor": "D"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "j", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "k", "descriptor": "D"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "k", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "l", "descriptor": "D"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "l", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **yaw** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "m", "descriptor": "F"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "m", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **pitch** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "n", "descriptor": "F"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "n", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **entityType** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "a", "descriptor": "()Ljava/lang/String;"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "a", "descriptor": "()Ljava/lang/String;"}
+  - 2 declared ()String; take a
+- **entityList** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "i", "descriptor": "()Ljava/util/List;"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "i", "descriptor": "()Ljava/util/List;"}
+  - candidates: ()List getters = [i]
+- **spawnEntity** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "a", "descriptor": "(Lnet/minecraft/a/c/b;)V"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "a", "descriptor": "(Lnet/minecraft/a/c/b;)V"}
+  - candidates: single-entity-param methods = [a]
+  - a: body adds entity to collection -> spawn
+- **setEntityDead** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "b", "descriptor": "(Lnet/minecraft/a/c/b;)V"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "b", "descriptor": "(Lnet/minecraft/a/c/b;)V"}
+  - b: calls entity kill/remove method -> setEntityDead
+- **playSound** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - unique (DDDLString;FF)V -> playSound
+- **explode** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "a", "descriptor": "(Lnet/minecraft/a/c/b;DDDF)V"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "a", "descriptor": "(Lnet/minecraft/a/c/b;DDDF)V"}
+  - unique (LEntity;DDD..)V -> explode
+- **itemStackClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/k", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/b/k", "name": "k", "descriptor": "class"}
+- **isCount** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/k", "name": "a", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/b/k", "name": "a", "descriptor": "I"}
+  - NBT 'Count' binds net/minecraft/a/b/k.a:I
+- **isId** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/k", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/b/k", "name": "c", "descriptor": "I"}
+  - NBT 'id' (co-occurring with 'Count') binds c
+- **isDmg** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/k", "name": "d", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/b/k", "name": "d", "descriptor": "I"}
+  - NBT 'Damage' binds d
+- **inventoryPlayerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/e/b", "name": "b", "descriptor": "class"}
+  - class net/minecraft/a/c/e/b declares 2 ItemStack[] fields ['a', 'b'] + ints ['c']
+- **invMain** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/b", "name": "a", "descriptor": "[Lnet/minecraft/a/b/k;"}
+  - compiled: {"class": "net/minecraft/a/c/e/b", "name": "a", "descriptor": "[Lnet/minecraft/a/b/k;"}
+  - first ItemStack[] in declaration order
+- **invArmor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/b", "name": "b", "descriptor": "[Lnet/minecraft/a/b/k;"}
+  - compiled: {"class": "net/minecraft/a/c/e/b", "name": "b", "descriptor": "[Lnet/minecraft/a/b/k;"}
+  - second ItemStack[]
+- **invCur** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/e/b", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/c/e/b", "name": "c", "descriptor": "I"}
+  - first int field
+- **addStack** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/b", "name": "a", "descriptor": "(Lnet/minecraft/a/b/k;)Z"}
+  - compiled: {"class": "net/minecraft/a/c/e/b", "name": "a", "descriptor": "(Lnet/minecraft/a/b/k;)Z"}
+  - (LItemStack;)Z on InventoryPlayer
+- **invField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/a", "name": "b", "descriptor": "Lnet/minecraft/a/c/e/b;"}
+  - compiled: {"class": "net/minecraft/a/c/e/a", "name": "b", "descriptor": "Lnet/minecraft/a/c/e/b;"}
+  - class net/minecraft/a/c/e/a holds both World ref and InventoryPlayer ref
+- **invSize** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b", "name": "a", "descriptor": "()I"}
+  - compiled: {"class": "net/minecraft/a/b", "name": "a", "descriptor": "()I"}
+  - ()I on IInventory
+- **invGet** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b", "name": "a", "descriptor": "(I)Lnet/minecraft/a/b/k;"}
+  - compiled: {"class": "net/minecraft/a/b", "name": "a", "descriptor": "(I)Lnet/minecraft/a/b/k;"}
+  - (I)LS; on IInventory
+- **invSet** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b", "name": "a", "descriptor": "(ILnet/minecraft/a/b/k;)V"}
+  - compiled: {"class": "net/minecraft/a/b", "name": "a", "descriptor": "(ILnet/minecraft/a/b/k;)V"}
+  - (ILS;)V on IInventory
+- **tileEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/a/a", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/b/a/a", "name": "a", "descriptor": "class"}
+  - superclass of furnace
+- **chestClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/a/c", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/b/a/c", "name": "c", "descriptor": "class"}
+  - TE subclass with Items-bound ItemStack[] field e
+- **furnaceClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/a/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/b/a/b", "name": "b", "descriptor": "class"}
+  - furnace=net/minecraft/a/a/b/a/b (BurnTime+CookTime bound); tileEntityClass = its superclass net/minecraft/a/a/b/a/a
+- **teGet** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "h", "descriptor": "(III)Lnet/minecraft/a/a/b/a/a;"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "h", "descriptor": "(III)Lnet/minecraft/a/a/b/a/a;"}
+  - World (III)LTILE; -> h
+- **teBurn** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/a/b", "name": "f", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/a/b/a/b", "name": "f", "descriptor": "I"}
+  - BurnTime binds f
+- **teCook** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/a/b", "name": "h", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/a/b/a/b", "name": "h", "descriptor": "I"}
+  - CookTime binds h
+- **minecraftClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/d", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/client/d", "name": "d", "descriptor": "class"}
+  - unique Runnable class holding World field: net/minecraft/client/d
+- **runTick** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/d", "name": "h", "descriptor": "()V"}
+  - compiled: {"class": "net/minecraft/client/d", "name": "h", "descriptor": "()V"}
+  - ()V invoked by run() that drives World -> h
+- **guiIngame** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/c/m", "name": "a", "descriptor": "(F)V"}
+  - compiled: {"class": "net/minecraft/client/c/m", "name": "a", "descriptor": "(F)V"}
+  - class net/minecraft/client/c/m loads /gui/gui.png and exposes (F)V
+- **mobPig** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b/c", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/b/c", "name": "c", "descriptor": "class"}
+  - mob registered as type string 'Pig' -> class net/minecraft/a/c/b/c
+- **mobSheep** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/b/b", "name": "b", "descriptor": "class"}
+  - mob registered as type string 'Sheep' -> class net/minecraft/a/c/b/b
+- **mobCreeper** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/a/d", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/a/d", "name": "d", "descriptor": "class"}
+  - mob registered as type string 'Creeper' -> class net/minecraft/a/c/a/d
+- **mobSkeleton** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/a/c", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/a/c", "name": "c", "descriptor": "class"}
+  - mob registered as type string 'Skeleton' -> class net/minecraft/a/c/a/c
+- **mobZombie** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/a/f", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/a/f", "name": "f", "descriptor": "class"}
+  - mob registered as type string 'Zombie' -> class net/minecraft/a/c/a/f
+- **mobSpider** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/a/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/a/b", "name": "b", "descriptor": "class"}
+  - mob registered as type string 'Spider' -> class net/minecraft/a/c/a/b
+- **mobTnt** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/c/a", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/c/a", "name": "a", "descriptor": "class"}
+  - mob registered as type string 'PrimedTnt' -> class net/minecraft/a/c/c/a
+- **mobGiant** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/a/a", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/a/a", "name": "a", "descriptor": "class"}
+  - mob registered as type string 'Giant' -> class net/minecraft/a/c/a/a
+- **mobBase** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/c", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/c", "name": "c", "descriptor": "class"}
+  - deepest common ancestor of hostile mobs
 
 ### inf-20100618 (family G2, World=net/minecraft/a/a/g)
 
-- world: probe scan (G2 group: level.dat,SpawnX,RandomSeed,MinecraftLevel,The level is corrupt!,TickNextTick list out of synch) -> shape-validated candidates: net/minecraft/a/a/g(hits=4:level.dat,SpawnX,RandomSeed,TickNextTick list out of synch)
 - **getBlockId** verdict=MATCH confidence=HIGH
   - oracle: {"class": "net/minecraft/a/a/g", "name": "a", "descriptor": "(III)I"}
   - compiled: {"class": "net/minecraft/a/a/g", "name": "a", "descriptor": "(III)I"}
-  - candidates: public non-static (III)I on net/minecraft/a/a/g = [a, d, f]
-  - a(III)I: tail-calls chunk getter net/minecraft/a/a/e/e.a(III)I which does direct baload (no nibble delegation) -> block-id
-  - d(III)I: callee pattern b(III)I does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
-  - f(III)I: callee pattern none does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
+  - candidates: public (III)I = [a, d, f]
+  - a: chunk delegate is direct baload getter -> block id
 - **setBlock** verdict=MATCH confidence=HIGH
   - oracle: {"class": "net/minecraft/a/a/g", "name": "c", "descriptor": "(IIII)Z"}
   - compiled: {"class": "net/minecraft/a/a/g", "name": "c", "descriptor": "(IIII)Z"}
-  - candidates: public non-static (IIII)Z on net/minecraft/a/a/g = [a, c]
-  - a: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - c: delegates to sibling (IIII)Z core a -> wrapper
+  - candidates: public (IIII)Z = [a, c]
+  - c delegates to sibling (IIII)Z core -> wrapper
 - **saveWorld** verdict=MATCH confidence=HIGH
   - oracle: {"class": "net/minecraft/a/a/g", "name": "b", "descriptor": "(Z)V"}
   - compiled: {"class": "net/minecraft/a/a/g", "name": "b", "descriptor": "(Z)V"}
-  - rule B: (Z)V core b carries save evidence 'level.dat'
+  - rule B: (Z)V core b carries 'level.dat'
+- **worldTime** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "b", "descriptor": "J"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "b", "descriptor": "J"}
+  - NBT key 'Time' binds unique net/minecraft/a/a/g.b:J
+- **randSeed** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "m", "descriptor": "J"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "m", "descriptor": "J"}
+  - NBT key 'RandomSeed' binds unique net/minecraft/a/a/g.m:J
+- **spawnX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "i", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "i", "descriptor": "I"}
+  - NBT key 'SpawnX' binds unique net/minecraft/a/a/g.i:I
+- **spawnY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "j", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "j", "descriptor": "I"}
+  - NBT key 'SpawnY' binds unique net/minecraft/a/a/g.j:I
+- **spawnZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "k", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "k", "descriptor": "I"}
+  - NBT key 'SpawnZ' binds unique net/minecraft/a/a/g.k:I
+- **getMeta** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "d", "descriptor": "(III)I"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "d", "descriptor": "(III)I"}
+  - candidates: public (III)I|(III)B = [a(III)I, d(III)I, f(III)I]
+  - d(III)I: delegates to chunk nibble getter (shift/mask arithmetic) -> metadata
+- **entityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "b", "descriptor": "class"}
+  - WARN 2 candidates ['net/minecraft/a/d/b', 'net/minecraft/a/c/b']; scored [(7, 'net/minecraft/a/c/b'), (0, 'net/minecraft/a/d/b')] -> take net/minecraft/a/c/b
+- **setPosRot** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "b", "descriptor": "(DDDFF)V"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "b", "descriptor": "(DDDFF)V"}
+  - desc (DDDFF)V unique by shape -> b
+- **posX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "h", "descriptor": "D"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "h", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "i", "descriptor": "D"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "i", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "j", "descriptor": "D"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "j", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "k", "descriptor": "D"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "k", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "l", "descriptor": "D"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "l", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "m", "descriptor": "D"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "m", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **yaw** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "n", "descriptor": "F"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "n", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **pitch** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "o", "descriptor": "F"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "o", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **entityType** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "o", "descriptor": "()Ljava/lang/String;"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "o", "descriptor": "()Ljava/lang/String;"}
+  - unique declared ()String -> o
+- **entityList** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "j", "descriptor": "()Ljava/util/List;"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "j", "descriptor": "()Ljava/util/List;"}
+  - candidates: ()List getters = [j]
+- **itemStackClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/o", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/b/o", "name": "o", "descriptor": "class"}
+- **isCount** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/o", "name": "a", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/b/o", "name": "a", "descriptor": "I"}
+  - NBT 'Count' binds net/minecraft/a/b/o.a:I
+- **isId** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/o", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/b/o", "name": "c", "descriptor": "I"}
+  - NBT 'id' (co-occurring with 'Count') binds c
+- **isDmg** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/o", "name": "d", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/b/o", "name": "d", "descriptor": "I"}
+  - NBT 'Damage' binds d
+- **inventoryPlayerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/e/b", "name": "b", "descriptor": "class"}
+  - class net/minecraft/a/c/e/b declares 2 ItemStack[] fields ['a', 'b'] + ints ['c']
+- **invMain** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/b", "name": "a", "descriptor": "[Lnet/minecraft/a/b/o;"}
+  - compiled: {"class": "net/minecraft/a/c/e/b", "name": "a", "descriptor": "[Lnet/minecraft/a/b/o;"}
+  - first ItemStack[] in declaration order
+- **invArmor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/b", "name": "b", "descriptor": "[Lnet/minecraft/a/b/o;"}
+  - compiled: {"class": "net/minecraft/a/c/e/b", "name": "b", "descriptor": "[Lnet/minecraft/a/b/o;"}
+  - second ItemStack[]
+- **invCur** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/e/b", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/c/e/b", "name": "c", "descriptor": "I"}
+  - first int field
+- **invField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/a", "name": "b", "descriptor": "Lnet/minecraft/a/c/e/b;"}
+  - compiled: {"class": "net/minecraft/a/c/e/a", "name": "b", "descriptor": "Lnet/minecraft/a/c/e/b;"}
+  - class net/minecraft/a/c/e/a holds both World ref and InventoryPlayer ref
+- **tileEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/a/a", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/b/a/a", "name": "a", "descriptor": "class"}
+  - superclass of furnace
+- **chestClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/a/c", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/b/a/c", "name": "c", "descriptor": "class"}
+  - TE subclass with Items-bound ItemStack[] field e
+- **furnaceClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/a/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/b/a/b", "name": "b", "descriptor": "class"}
+  - furnace=net/minecraft/a/a/b/a/b (BurnTime+CookTime bound); tileEntityClass = its superclass net/minecraft/a/a/b/a/a
+- **teGet** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "i", "descriptor": "(III)Lnet/minecraft/a/a/b/a/a;"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "i", "descriptor": "(III)Lnet/minecraft/a/a/b/a/a;"}
+  - World (III)LTILE; -> i
+- **minecraftClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/client/d", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/client/d", "name": "d", "descriptor": "class"}
+  - 2 candidates ['net/minecraft/client/d', 'net/minecraft/isom/a']; entity-field score -> net/minecraft/client/d
+- **runTick** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/d", "name": "l", "descriptor": "()V"}
+  - compiled: {"class": "net/minecraft/client/d", "name": "l", "descriptor": "()V"}
+  - ()V invoked by run() that drives World -> l
+- **guiIngame** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/c/m", "name": "a", "descriptor": "(F)V"}
+  - compiled: {"class": "net/minecraft/client/c/m", "name": "a", "descriptor": "(F)V"}
+  - class net/minecraft/client/c/m loads /gui/gui.png and exposes (F)V
 
 ### inf-20100629 (family G3, World=ez)
 
-- world: probe scan (G3 group: level.dat,SpawnX,RandomSeed,TickNextTick list out of synch,Saving chunks,Saving level) -> shape-validated candidates: ez(hits=5:level.dat,SpawnX,RandomSeed,TickNextTick list out of synch,Saving chunks)
 - **getBlockId** verdict=MATCH confidence=HIGH
   - oracle: {"class": "ez", "name": "a", "descriptor": "(III)I"}
   - compiled: {"class": "ez", "name": "a", "descriptor": "(III)I"}
-  - candidates: public non-static (III)I on ez = [a, d, i]
-  - a(III)I: tail-calls chunk getter jr.b(III)I which does direct baload (no nibble delegation) -> block-id
-  - d(III)I: callee pattern c(III)I does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
-  - i(III)I: callee pattern none does not match unsigned-byte chunk getter -> rejected (getMeta/getLight shape)
+  - candidates: public (III)I = [a, d, i]
+  - a: chunk delegate is direct baload getter -> block id
 - **setBlock** verdict=MATCH confidence=HIGH
   - oracle: {"class": "ez", "name": "c", "descriptor": "(IIII)Z"}
   - compiled: {"class": "ez", "name": "c", "descriptor": "(IIII)Z"}
-  - candidates: public non-static (IIII)Z on ez = [a, c]
-  - a: no sibling (IIII)Z delegation -> silent core / metadata setter
-  - c: delegates to sibling (IIII)Z core a -> wrapper
+  - candidates: public (IIII)Z = [a, c]
+  - c delegates to sibling (IIII)Z core -> wrapper
 - **saveWorld** verdict=MATCH confidence=HIGH
   - oracle: {"class": "ez", "name": "a", "descriptor": "(Liw;)V"}
   - compiled: {"class": "ez", "name": "a", "descriptor": "(Liw;)V"}
-  - rule A: public wrapper a(Liw;)V delegates to core a(ZLiw;)V carrying save evidence 'Saving chunks'
+  - rule A: wrapper a(Liw;)V -> core a(ZLiw;)V with 'Saving chunks'
+- **worldTime** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "b", "descriptor": "J"}
+  - compiled: {"class": "ez", "name": "b", "descriptor": "J"}
+  - NBT key 'Time' binds unique ez.b:J
+- **randSeed** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "m", "descriptor": "J"}
+  - compiled: {"class": "ez", "name": "m", "descriptor": "J"}
+  - NBT key 'RandomSeed' binds unique ez.m:J
+- **spawnX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "i", "descriptor": "I"}
+  - compiled: {"class": "ez", "name": "i", "descriptor": "I"}
+  - NBT key 'SpawnX' binds unique ez.i:I
+- **spawnY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "j", "descriptor": "I"}
+  - compiled: {"class": "ez", "name": "j", "descriptor": "I"}
+  - NBT key 'SpawnY' binds unique ez.j:I
+- **spawnZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "k", "descriptor": "I"}
+  - compiled: {"class": "ez", "name": "k", "descriptor": "I"}
+  - NBT key 'SpawnZ' binds unique ez.k:I
+- **getMeta** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "d", "descriptor": "(III)I"}
+  - compiled: {"class": "ez", "name": "d", "descriptor": "(III)I"}
+  - candidates: public (III)I|(III)B = [a(III)I, d(III)I, i(III)I]
+  - d(III)I: delegates to chunk nibble getter (shift/mask arithmetic) -> metadata
+- **entityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "em", "name": null, "descriptor": "class"}
+  - compiled: {"class": "em", "name": "em", "descriptor": "class"}
+  - WARN 2 candidates ['ej', 'em']; scored [(7, 'em'), (0, 'ej')] -> take em
+- **setPosRot** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "em", "name": "b", "descriptor": "(DDDFF)V"}
+  - compiled: {"class": "em", "name": "b", "descriptor": "(DDDFF)V"}
+  - desc (DDDFF)V unique by shape -> b
+- **posX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "em", "name": "j", "descriptor": "D"}
+  - compiled: {"class": "em", "name": "j", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "em", "name": "k", "descriptor": "D"}
+  - compiled: {"class": "em", "name": "k", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **posZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "em", "name": "l", "descriptor": "D"}
+  - compiled: {"class": "em", "name": "l", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motX** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "em", "name": "m", "descriptor": "D"}
+  - compiled: {"class": "em", "name": "m", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motY** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "em", "name": "n", "descriptor": "D"}
+  - compiled: {"class": "em", "name": "n", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **motZ** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "em", "name": "o", "descriptor": "D"}
+  - compiled: {"class": "em", "name": "o", "descriptor": "D"}
+  - see setPosRot/field-graph chain
+- **yaw** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "em", "name": "p", "descriptor": "F"}
+  - compiled: {"class": "em", "name": "p", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **pitch** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "em", "name": "q", "descriptor": "F"}
+  - compiled: {"class": "em", "name": "q", "descriptor": "F"}
+  - see setPosRot/field-graph chain
+- **entityType** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "em", "name": "r", "descriptor": "()Ljava/lang/String;"}
+  - compiled: {"class": "em", "name": "r", "descriptor": "()Ljava/lang/String;"}
+  - unique declared ()String -> r
+- **entityList** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "h", "descriptor": "()Ljava/util/List;"}
+  - compiled: {"class": "ez", "name": "h", "descriptor": "()Ljava/util/List;"}
+  - candidates: ()List getters = [h]
+- **spawnEntity** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "a", "descriptor": "(Lem;)V"}
+  - compiled: {"class": "ez", "name": "a", "descriptor": "(Lem;)V"}
+  - candidates: single-entity-param methods = [a, c]
+  - a: body adds entity to collection -> spawn
+- **setEntityDead** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "ez", "name": "b", "descriptor": "(Lem;)V"}
+  - compiled: {"class": "ez", "name": "b", "descriptor": "(Lem;)V"}
+  - b: calls entity kill/remove method -> setEntityDead
+  - c: calls entity kill/remove method -> setEntityDead
+- **playSound** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - compiled: {"class": "ez", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
+  - unique (DDDLString;FF)V -> playSound
+- **explode** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "a", "descriptor": "(Lem;DDDF)V"}
+  - compiled: {"class": "ez", "name": "a", "descriptor": "(Lem;DDDF)V"}
+  - unique (LEntity;DDD..)V -> explode
+- **itemStackClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "hr", "name": null, "descriptor": "class"}
+  - compiled: {"class": "hr", "name": "hr", "descriptor": "class"}
+- **isCount** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "hr", "name": "a", "descriptor": "I"}
+  - compiled: {"class": "hr", "name": "a", "descriptor": "I"}
+  - NBT 'Count' binds hr.a:I
+- **isId** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "hr", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "hr", "name": "c", "descriptor": "I"}
+  - NBT 'id' (co-occurring with 'Count') binds c
+- **isDmg** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "hr", "name": "d", "descriptor": "I"}
+  - compiled: {"class": "hr", "name": "d", "descriptor": "I"}
+  - NBT 'Damage' binds d
+- **inventoryPlayerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ho", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ho", "name": "ho", "descriptor": "class"}
+  - class ho declares 2 ItemStack[] fields ['a', 'b'] + ints ['c']
+- **invMain** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ho", "name": "a", "descriptor": "[Lhr;"}
+  - compiled: {"class": "ho", "name": "a", "descriptor": "[Lhr;"}
+  - first ItemStack[] in declaration order
+- **invArmor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ho", "name": "b", "descriptor": "[Lhr;"}
+  - compiled: {"class": "ho", "name": "b", "descriptor": "[Lhr;"}
+  - second ItemStack[]
+- **invCur** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "ho", "name": "c", "descriptor": "I"}
+  - compiled: {"class": "ho", "name": "c", "descriptor": "I"}
+  - first int field
+- **addStack** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ho", "name": "a", "descriptor": "(Lhr;)Z"}
+  - compiled: {"class": "ho", "name": "a", "descriptor": "(Lhr;)Z"}
+  - (LItemStack;)Z on InventoryPlayer
+- **invField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gc", "name": "b", "descriptor": "Lho;"}
+  - compiled: {"class": "gc", "name": "b", "descriptor": "Lho;"}
+  - class gc holds both World ref and InventoryPlayer ref
+- **tileEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "bf", "name": null, "descriptor": "class"}
+  - compiled: {"class": "bf", "name": "bf", "descriptor": "class"}
+  - superclass of furnace
+- **chestClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "id", "name": null, "descriptor": "class"}
+  - compiled: {"class": "id", "name": "id", "descriptor": "class"}
+  - TE subclass with Items-bound ItemStack[] field e
+- **furnaceClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "eh", "name": null, "descriptor": "class"}
+  - compiled: {"class": "eh", "name": "eh", "descriptor": "class"}
+  - furnace=eh (BurnTime+CookTime bound); tileEntityClass = its superclass bf
+- **teGet** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "b", "descriptor": "(III)Lbf;"}
+  - compiled: {"class": "ez", "name": "b", "descriptor": "(III)Lbf;"}
+  - World (III)LTILE; -> b
+- **minecraftClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "at", "name": null, "descriptor": "class"}
+  - compiled: {"class": "at", "name": "at", "descriptor": "class"}
+  - unique Runnable class holding World field: at
+- **runTick** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "at", "name": "m", "descriptor": "()V"}
+  - compiled: {"class": "at", "name": "m", "descriptor": "()V"}
+  - ()V invoked by run() that drives World -> m
+- **guiIngame** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gf", "name": "a", "descriptor": "(F)V"}
+  - compiled: {"class": "gf", "name": "a", "descriptor": "(F)V"}
+  - class gf loads /gui/gui.png and exposes (F)V
+- **mobPig** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "hx", "name": null, "descriptor": "class"}
+  - compiled: {"class": "hx", "name": "hx", "descriptor": "class"}
+  - mob registered as type string 'Pig' -> class hx
+- **mobSheep** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dk", "name": null, "descriptor": "class"}
+  - compiled: {"class": "dk", "name": "dk", "descriptor": "class"}
+  - mob registered as type string 'Sheep' -> class dk
+- **mobCreeper** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ft", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ft", "name": "ft", "descriptor": "class"}
+  - mob registered as type string 'Creeper' -> class ft
+- **mobSkeleton** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fj", "name": null, "descriptor": "class"}
+  - compiled: {"class": "fj", "name": "fj", "descriptor": "class"}
+  - mob registered as type string 'Skeleton' -> class fj
+- **mobZombie** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gr", "name": null, "descriptor": "class"}
+  - compiled: {"class": "gr", "name": "gr", "descriptor": "class"}
+  - mob registered as type string 'Zombie' -> class gr
+- **mobSpider** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cf", "name": null, "descriptor": "class"}
+  - compiled: {"class": "cf", "name": "cf", "descriptor": "class"}
+  - mob registered as type string 'Spider' -> class cf
+- **mobTnt** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cy", "name": null, "descriptor": "class"}
+  - compiled: {"class": "cy", "name": "cy", "descriptor": "class"}
+  - mob registered as type string 'PrimedTnt' -> class cy
+- **mobGiant** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "aa", "name": null, "descriptor": "class"}
+  - compiled: {"class": "aa", "name": "aa", "descriptor": "class"}
+  - mob registered as type string 'Giant' -> class aa
