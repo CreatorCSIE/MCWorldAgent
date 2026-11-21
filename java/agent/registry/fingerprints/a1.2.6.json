@@ -49,7 +49,7 @@
     "signClass": { "class": "qc", "name": null, "descriptor": null },
     "mobSpawnerClass": { "class": "bl", "name": null, "descriptor": null },
     "iInventoryClass": { "class": "hi", "name": null, "descriptor": null },
-    "itemEntityClass": { "class": "pp", "name": null, "descriptor": null },
+    "itemEntityClass": { "class": "eo", "name": null, "descriptor": null },
     "guiIngame": { "class": "nl", "name": "a", "descriptor": "(FZII)V" },
     "fontRendererClass": { "class": "ls", "name": null, "descriptor": null }
   },
@@ -112,7 +112,7 @@
     "signClass": "verscan §4 qc=Sign",
     "mobSpawnerClass": "verscan §4 bl=MobSpawner",
     "iInventoryClass": "verscan §4 接口=hi（方法面未钉）",
-    "itemEntityClass": "verscan §3 EntityItem=pp（构造器未钉）",
+    "itemEntityClass": "F1 续扩面翻案（2026-11-21）：原钉 pp（构造器未钉=疑点自白）实非 EntityItem；eo 具全形态（fp=ItemStack 字段+(cy,DDD,ev)V 型构造+Item/Age NBT）",
     "guiIngame": "verscan §5 nl.a(FZII)V——HUD 断代同 a1.1.2",
     "fontRendererClass": "verscan §5 ls",
     "jarSha1": "主卷 <repo>/docs/research/version-expansion-pilot.md §0 对榫表"

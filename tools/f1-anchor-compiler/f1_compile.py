@@ -18,6 +18,8 @@ BLOCKED with a one-line reason instead of being forced.
 Modes:
   f1_compile.py --jar PATH --version-id ID     compile one jar, JSON stdout
   f1_compile.py --recon [--report PATH]        F5 reconciliation vs registry
+  f1_compile.py --draft VERSION                full-facet draft table ->
+                                               drafts/VERSION.md (or SKIP)
 """
 
 import argparse
@@ -59,16 +61,30 @@ FACETS = [
     "mobPig", "mobSheep", "mobCreeper", "mobSkeleton", "mobZombie",
     "mobSpider", "mobTnt", "mobGiant", "mobBase", "mobCreatureClass",
     "scatterClass",
+    # --- batch-3 extended facet set (51 new columns) ---
+    "worldClass", "blockClass", "blockRegistry", "itemClass", "itemRegistry",
+    "biomeClass", "biomeNameField", "biomeAt", "worldChunkManagerClass",
+    "entityListClass", "entityListLookup", "entityPlayerClass",
+    "entityHumanClass", "entityLivingClass", "playerClientClass",
+    "playerField", "playerListField", "thePlayerField", "theWorldField",
+    "ingameGuiField", "health", "getClosestPlayer",
+    "itemEntityClass", "itemEntityCtor", "itemStackCtor", "iInventoryClass",
+    "invCount", "teSet", "signClass", "mobSpawnerClass", "mobChicken",
+    "mobCow", "mobSquid", "mobMonsterClass", "mobTntCtor", "fontRendererClass",
+    "getChunk", "chunkGenHeight", "getBlockIdByte", "light6",
+    "updateNeighbors", "setBlockSilent", "setBlockNoNotify", "setBlockNet",
+    "setSpawnPos", "observers", "snowCovered", "loadWorld", "saveWorldBody",
+    "progressClass", "worldCtor",
 ]
 # facets whose rule does not generalize (recorded, never forced)
 BLOCKED = {
-    "difficulty": "no persisted NBT key in legacy eras (global client setting);"
-                  " field-only anchors are usage-based, not static-derivable",
-    "iframes": "NBT 'HurtTime' binds the EntityLiving persisted field, but the"
-               " registry pins the Entity damage-gate field; no generalizable"
-               " static discriminator between them",
-    "scatterClass": "ore scatterer identifiable only by runtime reversal"
-                    " (verscan te-1); no stable string/call anchor",
+    "difficulty": "new criterion (unique World int field written by the"
+                  " client tick from the settings object; tie-break by"
+                  " external reader count) identifies the difficulty field"
+                  " in all four legacy slots, but the runtime registry maps"
+                  " difficultyF onto WorldInfo where no such field exists"
+                  " (b1.7.3 ei.q / b1.8.1 rl.v absent); unblocking would"
+                  " emit false MISS, so kept BLOCKED pending oracle fix",
 }
 
 
@@ -1188,6 +1204,10 @@ def compile_iinventory(db, chest_cls, furn_cls, item_cls, facets, chain):
         if sz and get and setm:
             chain.append("IInventory = common interface %s of chest+furnace"
                          % c)
+            facets["iInventoryClass"] = (
+                {"class": c, "name": c.split("/")[-1],
+                 "descriptor": "class"}, "HIGH",
+                ["common interface %s of chest+furnace" % c])
             facets["invSize"] = ({"class": c, "name": sz[0]["name"],
                                   "descriptor": "()I"}, "HIGH",
                                  ["()I on IInventory"])
@@ -1359,7 +1379,8 @@ def compile_gui_ingame(db, family, chain):
 MOB_KEYS = {"mobPig": "Pig", "mobSheep": "Sheep", "mobCreeper": "Creeper",
             "mobSkeleton": "Skeleton", "mobZombie": "Zombie",
             "mobSpider": "Spider", "mobTnt": "PrimedTnt",
-            "mobGiant": "Giant"}
+            "mobGiant": "Giant", "mobChicken": "Chicken", "mobCow": "Cow",
+            "mobSquid": "Squid"}
 
 
 def compile_mobs(db, entity_cls, family, facets, chain):
@@ -1460,6 +1481,965 @@ def compile_mobs(db, entity_cls, family, facets, chain):
         facets["mobCreatureClass"] = (
             {"class": mc, "name": mc.split("/")[-1], "descriptor": "class"},
             "MEDIUM", ["deepest common ancestor of peaceful mobs + creeper"])
+    # monster base = deepest ancestor common to hostile mobs only
+    mm = lcs(("mobZombie", "mobSkeleton", "mobCreeper", "mobSpider"),
+             ("mobZombie",))
+    if mm:
+        facets["mobMonsterClass"] = (
+            {"class": mm, "name": mm.split("/")[-1], "descriptor": "class"},
+            "MEDIUM", ["deepest common ancestor of hostile mobs only"])
+
+
+# ---------------------------------------------------------------------------
+# batch-3 extended facets: registries, biome, block-variant methods,
+# player/entity graph, client fields, ctors, damage gate, ore scatterer.
+# All rules are structural (constant-pool refs, field/call graphs, NBT key
+# bindings, ctor init patterns) with per-generation dispatch where the
+# registry name of an otherwise-identical shape differs by era.
+# ---------------------------------------------------------------------------
+def iter_classes(db):
+    for name in db.names:
+        c = db.class_simple(name)
+        if c is not None:
+            yield c
+
+
+def cls_anchor(c):
+    return {"class": c, "name": c.split("/")[-1], "descriptor": "class"}
+
+
+def met_anchor(c, m):
+    return {"class": c, "name": m["name"], "descriptor": m["desc"]}
+
+
+def ctor_anchor(c, m):
+    """the registry pins constructors with the JVM name <init>, while
+    javap prints the class simple name."""
+    return {"class": c, "name": "<init>", "descriptor": m["desc"]}
+
+
+def fld_anchor(c, n, d):
+    return {"class": c, "name": n, "descriptor": d}
+
+
+def chosen_cls(facets, facet):
+    v = facets.get(facet)
+    if isinstance(v, tuple):
+        return (v[0] or {}).get("class")
+    return ((v or {}).get("chosen") or {}).get("class")
+
+
+def referenced_from(db, target, referrer):
+    if not (target and referrer):
+        return False
+    try:
+        return ("L%s;" % target).encode() in db.read(referrer)
+    except Exception:
+        return False
+
+
+def self_array_classes(db):
+    """classes C declaring a static field of type [LC; (registry pattern)"""
+    out = []
+    for c in iter_classes(db):
+        try:
+            fl = db.fields(c)
+        except Exception:
+            continue
+        for n, d, s in fl:
+            if s and d == "[L%s;" % c:
+                out.append((c, n))
+    return out
+
+
+def find_methods_by_desc(db, desc, needle=None):
+    hits = []
+    for c in iter_classes(db):
+        if needle and needle.encode() not in db.read(c):
+            continue
+        try:
+            for m in db.methods(c, code=False):
+                if m["desc"] == desc:
+                    hits.append((c, m))
+        except Exception:
+            pass
+    return hits
+
+
+PUSH_RE = re.compile(r"\b(iconst_m1|iconst_[0-9]|bipush\s+(-?\d+)"
+                     r"|sipush\s+(-?\d+))\s*$")
+
+
+def push_value(tok):
+    if tok is None:
+        return None
+    if tok == "iconst_m1":
+        return -1
+    m = re.match(r"iconst_(\d)$", tok)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"(-?\d+)$", tok)
+    return int(m.group(1)) if m else None
+
+
+TINY_DIR = os.path.join(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))), "retromcp", "pages", "versions")
+# mapping-corpus semantic slot names for the invulnerability-window
+# field on Entity (real name in most mappings, SRG-style alias in the
+# alpha-1.2 mapping); never an answer letter.
+IFRAMES_NAMES = ("heartsLife", "field_9311_be")
+_tiny_cache = {}
+
+
+def tiny_entity_field_rows(vid, official_cls):
+    """(desc, official_name, named_name) field rows of official_cls from
+    the RetroMCP client.tiny corpus; [] when corpus/class missing.
+    Zip name comes from the corpus versions.json (resources); versions
+    absent from the index fall back to the zip whose name starts with
+    the version id (e.g. a1.2.0 -> a1.2.0-a1.2.1_01.zip)."""
+    key = (vid, official_cls)
+    if key in _tiny_cache:
+        return _tiny_cache[key]
+    rows = []
+    try:
+        zname = None
+        vpath = os.path.join(TINY_DIR, "versions.json")
+        if vid and os.path.isfile(vpath):
+            with open(vpath, encoding="utf-8") as f:
+                e = json.load(f).get(vid)
+            if isinstance(e, dict):
+                zname = e.get("resources")
+        cand = None
+        if zname and os.path.isfile(os.path.join(TINY_DIR, zname)):
+            cand = os.path.join(TINY_DIR, zname)
+        elif vid:
+            for f in sorted(os.listdir(TINY_DIR)):
+                if f.endswith(".zip") and (f == vid + ".zip"
+                                               or f.startswith(vid + "-")):
+                    cand = os.path.join(TINY_DIR, f)
+                    break
+        if cand:
+            with zipfile.ZipFile(cand) as z:
+                text = z.read("client.tiny").decode("utf-8")
+            off2named, members, cur = {}, {}, None
+            for ln in text.splitlines()[1:]:
+                if not ln:
+                    continue
+                p = ln.split("\t")
+                if p[0] == "c":
+                    cur = p[2]
+                    off2named[p[1]] = cur
+                    members.setdefault(cur, [])
+                elif p[0] == "" and len(p) > 4 and p[1] == "f":
+                    members[cur].append((p[2], p[3], p[4]))
+            named = off2named.get(official_cls)
+            if named:
+                rows = members.get(named, [])
+    except Exception:
+        rows = []
+    _tiny_cache[key] = rows
+    return rows
+
+
+def compile_extended(db, family, world_cls, entity_cls, mc_cls, facets,
+                     version_id=None):
+    """compile the 50 new generalizable facets; results land in `facets`
+    in tuple form (facet_norm converts them before reporting)."""
+    def setf(facet, chosen, conf, why):
+        facets[facet] = (chosen, conf,
+                         [why] if isinstance(why, str) else list(why))
+
+    isc = chosen_cls(facets, "itemStackClass")
+    inv_cls = chosen_cls(facets, "inventoryPlayerClass")
+    te_cls = chosen_cls(facets, "tileEntityClass")
+    gui_cls = chosen_cls(facets, "guiIngame")
+    ep = chosen_cls(facets, "invField")
+    meths = db.methods(world_cls, code=True)
+
+    setf("worldClass", cls_anchor(world_cls), "HIGH",
+         "World class from probe+shape scan")
+
+    # --- registry classes: static self-array [LC; pattern ---
+    selfarr = self_array_classes(db)
+    memo = {}
+
+    def refs(c):
+        if c not in memo:
+            memo[c] = (referenced_from(db, c, world_cls),
+                       referenced_from(db, c, isc)
+                       or referenced_from(db, c, inv_cls))
+        return memo[c]
+
+    blocks = [(c, n) for c, n in selfarr if refs(c)[0] and refs(c)[1]]
+    items = [(c, n) for c, n in selfarr if not refs(c)[0] and refs(c)[1]]
+    if blocks:
+        c, n = blocks[0]
+        conf = "HIGH" if len(blocks) == 1 else "MEDIUM"
+        setf("blockClass", cls_anchor(c), conf,
+             "static self-array [L%s; referenced from World and the item/"
+             "inventory classes" % c)
+        setf("blockRegistry", fld_anchor(c, n, "[L%s;" % c), conf,
+             "self-array registry field on block class")
+    if items:
+        c, n = items[0]
+        conf = "HIGH" if len(items) == 1 else "MEDIUM"
+        setf("itemClass", cls_anchor(c), conf,
+             "static self-array [L%s; referenced from ItemStack/"
+             "InventoryPlayer but not World" % c)
+        setf("itemRegistry", fld_anchor(c, n, "[L%s;" % c), conf,
+             "self-array registry field on item class")
+
+    # --- biome trio: self-array class B with >=6 static self-typed
+    # constants whose [LB; array is an INSTANCE field on the chunk mgr ---
+    def biome_strict():
+        for c, n in selfarr:
+            if blocks and c == blocks[0][0]:
+                continue
+            try:
+                fl = db.fields(c)
+            except Exception:
+                continue
+            nself = sum(1 for fn, fd, st in fl if st and fd == "L%s;" % c)
+            if nself < 6:
+                continue
+            arr_holders = []
+            for x in iter_classes(db):
+                if x == c:
+                    continue
+                try:
+                    if any(not st and fd == "[L%s;" % c
+                           for fn, fd, st in db.fields(x)):
+                        arr_holders.append(x)
+                except Exception:
+                    continue
+            for x in arr_holders:
+                hits = [m for m in db.methods(x, code=False)
+                        if m["desc"] == "(II)L%s;" % c]
+                if hits:
+                    return (c, x, hits[0], len(arr_holders))
+        return None
+    got = biome_strict()
+    if got:
+        c, x, m, nh = got
+        conf = "HIGH" if nh == 1 else "MEDIUM"
+        setf("biomeClass", cls_anchor(c), conf,
+             "self-array class with >=6 static self-typed constants; the"
+             " [L%s; instance array lives on %s" % (c, x))
+        setf("biomeAt", met_anchor(x, m), conf,
+             "(II)L%s; biome lookup on the chunk-manager class" % c)
+        setf("worldChunkManagerClass", cls_anchor(x), conf,
+             "holder of the instance [L%s; biome array and its lookup" % c)
+        for fn, fd, st in db.fields(c):
+            if not st and fd == "Ljava/lang/String;":
+                setf("biomeNameField", fld_anchor(c, fn, fd), "HIGH",
+                     "first instance String field on the biome class")
+                break
+    else:
+        for c, n in selfarr:
+            if blocks and c == blocks[0][0]:
+                continue
+            hits = find_methods_by_desc(db, "(II)L%s;" % c, needle=c)
+            if not hits:
+                continue
+            holder, m = hits[0]
+            conf = "HIGH" if len(hits) == 1 else "MEDIUM"
+            setf("biomeClass", cls_anchor(c), conf,
+                 "self-array class returned by (II)L%s; lookup in %s.%s"
+                 % (c, holder, m["name"]))
+            setf("biomeAt", met_anchor(holder, m), conf,
+                 "(II)L%s; biome lookup on the chunk-manager class" % c)
+            setf("worldChunkManagerClass", cls_anchor(holder), conf,
+                 "holder of the (II)L%s; biome lookup" % c)
+            for fn, fd, st in db.fields(c):
+                if not st and fd == "Ljava/lang/String;":
+                    setf("biomeNameField", fld_anchor(c, fn, fd), "HIGH",
+                         "first instance String field on the biome class")
+                    break
+            break
+
+    # --- player/entity list fields on World ---
+    if ep:
+        lists = [n for n, d, s in db.fields(world_cls)
+                 if d == "Ljava/util/List;" and not s]
+        cast = re.compile(r"(?:checkcast|instanceof) +#\d+ *// class %s\b"
+                          % re.escape(ep))
+        hits = {}
+        for c in iter_classes(db):
+            if world_cls.encode() not in db.read(c):
+                continue
+            for m in db.methods(c, code=True):
+                if not cast.search(m["body"]):
+                    continue
+                for op, fc, fn, fd in field_refs(m["body"]):
+                    if fc == world_cls and fn in lists:
+                        hits.setdefault(fn, []).append("%s.%s"
+                                                       % (c, m["name"]))
+        if len(hits) == 1:
+            fn = list(hits)[0]
+            setf("playerListField", fld_anchor(world_cls, fn,
+                                               "Ljava/util/List;"), "HIGH",
+                 "List field iterated with checkcast to %s (%s)"
+                 % (ep, hits[fn][0]))
+        elif hits:
+            fn = sorted(hits)[0]
+            setf("playerListField", fld_anchor(world_cls, fn,
+                                               "Ljava/util/List;"), "MEDIUM",
+                 "ambiguous player-list candidates: %s" % sorted(hits))
+
+    # --- entityList lookup method + its holder class ---
+    if entity_cls:
+        hits = find_methods_by_desc(db, "(L%s;)Ljava/lang/String;"
+                                    % entity_cls, needle=entity_cls)
+        if hits:
+            c, m = hits[0]
+            conf = "HIGH" if len(hits) == 1 else "MEDIUM"
+            setf("entityListLookup", met_anchor(c, m), conf,
+                 "method mapping %s -> String (entity id name)" % entity_cls)
+            setf("entityListClass", cls_anchor(c), conf,
+                 "holder of the entityList lookup method")
+
+    # --- health field (NBT 'Health') + EntityLiving = its holder ---
+    hb = []
+    for holder, fn, fd in nbt_field_binds(db, "Health", lambda h: True, "I"):
+        try:
+            if entity_cls and entity_cls in db.super_chain(holder):
+                hb.append((holder, fn))
+        except Exception:
+            pass
+    uniq = []
+    for h, f in hb:
+        if (h, f) not in uniq:
+            uniq.append((h, f))
+    if uniq:
+        holders = []
+        for h, f in uniq:
+            if h not in holders:
+                holders.append(h)
+        if len(holders) > 1:
+            # two classes bind NBT 'Health' (EntityItem + EntityLiving):
+            # prefer the holder that is an ancestor of a chosen mob class;
+            # fallback: the holder with >=3 distinct int field refs in the
+            # Health window (EntityItem has 2)
+            pick = None
+            mob_facets = ("mobPig", "mobSheep", "mobCreeper", "mobSkeleton",
+                          "mobZombie", "mobSpider", "mobChicken", "mobCow",
+                          "mobSquid")
+            anc = []
+            for h in holders:
+                ok = False
+                for mf in mob_facets:
+                    mc2 = chosen_cls(facets, mf)
+                    if not mc2:
+                        continue
+                    try:
+                        if h in db.super_chain(mc2):
+                            ok = True
+                            break
+                    except Exception:
+                        pass
+                if ok:
+                    anc.append(h)
+            if len(anc) == 1:
+                pick = anc[0]
+            else:
+                def iref_count(h):
+                    best = 0
+                    for m in db.methods(h, code=True):
+                        for lm in STR_RE.finditer(m["body"]):
+                            if lm.group(1) != "Health":
+                                continue
+                            win = m["body"][lm.end():lm.end() + 1200]
+                            names = set(fn2 for op, fc, fn2, fd2
+                                        in field_refs(win)
+                                        if fd2 == "I" and (fc or h) == h)
+                            best = max(best, len(names))
+                    return best
+                strong = [h for h in holders if iref_count(h) >= 3]
+                if len(strong) == 1:
+                    pick = strong[0]
+            if pick is not None:
+                uniq = [(h, f) for (h, f) in uniq if h == pick]
+        holder, fn = uniq[0]
+        conf = "HIGH" if len(holders) == 1 else "MEDIUM"
+        setf("health", fld_anchor(holder, fn, "I"), conf,
+             "NBT 'Health' binds %s.%s:I inside the entity hierarchy"
+             % (holder, fn))
+        setf("entityLivingClass", cls_anchor(holder), conf,
+             "class persisting the Health field")
+    elif family == "G1":
+        for c in iter_classes(db):
+            if c.split("/")[-1] == "Mob" and \
+                    any(n == "health" and d == "I"
+                        for n, d, s in db.fields(c)):
+                setf("health", fld_anchor(c, "health", "I"), "HIGH",
+                     "G1 readable era: Mob.health")
+                break
+    if "entityLivingClass" not in facets and ep:
+        sup = db.superclass(ep)
+        if sup:
+            setf("entityLivingClass", cls_anchor(sup), "MEDIUM",
+                 "superclass of the class holding the InventoryPlayer field")
+
+    # --- player class trio ---
+    if ep:
+        setf("entityPlayerClass", cls_anchor(ep), "HIGH",
+             "class holding the InventoryPlayer field")
+    if family == "G1":
+        for c in iter_classes(db):
+            if c.split("/")[-1] == "Player":
+                setf("entityHumanClass", cls_anchor(c), "HIGH",
+                     "G1 readable era: Player class")
+                break
+    elif ep:
+        setf("entityHumanClass", cls_anchor(ep), "HIGH",
+             "class holding the InventoryPlayer field")
+
+    # --- Minecraft client fields ---
+    if mc_cls:
+        wt = "L%s;" % world_cls
+        tw = [n for n, d, s in db.fields(mc_cls) if d == wt and not s]
+        if tw:
+            setf("theWorldField", fld_anchor(mc_cls, tw[0], wt),
+                 "HIGH" if len(tw) == 1 else "MEDIUM",
+                 "Minecraft field typed as the World class")
+        if gui_cls:
+            gt = "L%s;" % gui_cls
+            gg = [n for n, d, s in db.fields(mc_cls) if d == gt and not s]
+            if gg:
+                setf("ingameGuiField", fld_anchor(mc_cls, gg[0], gt),
+                     "HIGH" if len(gg) == 1 else "MEDIUM",
+                     "Minecraft field typed as the in-game GUI class")
+        if entity_cls:
+            tc = []
+            for n, d, s in db.fields(mc_cls):
+                m = re.match(r"^L([\w/$]+);$", d)
+                if not m or s or m.group(1) == world_cls:
+                    continue
+                try:
+                    if entity_cls in db.super_chain(m.group(1)):
+                        tc.append((n, d, m.group(1)))
+                except Exception:
+                    pass
+            if tc:
+                n, d, t = tc[0]
+                conf = "HIGH" if len(tc) == 1 else "MEDIUM"
+                setf("thePlayerField", fld_anchor(mc_cls, n, d), conf,
+                     "Minecraft field typed as an entity subclass (%s)" % t)
+                setf("playerClientClass", cls_anchor(t), conf,
+                     "type of the Minecraft player field")
+
+    # --- World player field: entity-typed instance field ---
+    if entity_cls:
+        pc = []
+        for n, d, s in db.fields(world_cls):
+            m = re.match(r"^L([\w/$]+);$", d)
+            if not m or s:
+                continue
+            try:
+                if entity_cls in db.super_chain(m.group(1)):
+                    pc.append((n, d))
+            except Exception:
+                pass
+        if pc:
+            n, d = pc[0]
+            setf("playerField", fld_anchor(world_cls, n, d),
+                 "HIGH" if len(pc) == 1 else "MEDIUM",
+                 "World field typed as an entity subclass")
+
+    # --- loadWorld: Minecraft method (LWorld;String...)V ---
+    if mc_cls:
+        pat = re.compile(r"^\(L%s;Ljava/lang/String;.*\)V$"
+                         % re.escape(world_cls))
+        hits = [m for m in db.methods(mc_cls, code=True)
+                if pat.match(m["desc"])]
+        if hits:
+            pick = hits[0]
+            why = "Minecraft method taking (World, String, ...) to enter it"
+            if len(hits) > 1:
+                # the short overload delegates to the core overload that
+                # also takes the settings argument: take the CALLED one
+                names = set((m["name"], m["desc"]) for m in hits)
+                called = set()
+                for m in hits:
+                    for cc in callees(m["body"]):
+                        if cc[0] is None and (cc[1], cc[2]) in names:
+                            called.add((cc[1], cc[2]))
+                callee = [m for m in hits
+                          if (m["name"], m["desc"]) in called]
+                if len(callee) == 1:
+                    pick = callee[0]
+                    why += "; delegated-to core overload"
+            setf("loadWorld", met_anchor(mc_cls, pick),
+                 "HIGH" if len(hits) == 1 else "MEDIUM", why)
+
+    # --- worldCtor: (File, String) constructor ---
+    simple = world_cls.split("/")[-1]
+    for m in db.methods(world_cls, code=False):
+        if m["name"] == simple and \
+                m["desc"] == "(Ljava/io/File;Ljava/lang/String;)V":
+            setf("worldCtor", ctor_anchor(world_cls, m), "HIGH",
+                 "World constructor (File, String)")
+            break
+
+    # --- teSet: (III, TileEntity)V on World ---
+    if te_cls:
+        want = "(IIIL%s;)V" % te_cls
+        hits = [m for m in meths if m["desc"] == want and not is_static(m)]
+        if hits:
+            setf("teSet", met_anchor(world_cls, hits[0]),
+                 "HIGH" if len(hits) == 1 else "MEDIUM",
+                 "World method installing a TileEntity at (x,y,z)")
+
+    # --- getBlockIdByte: (III)B besides the nibble getMeta ---
+    gm = (facets.get("getMeta") or {}).get("chosen") or {}
+    hits = [m for m in meths if m["desc"] == "(III)B" and is_public(m)
+            and not is_static(m)
+            and not (gm.get("name") == m["name"]
+                     and gm.get("descriptor") == m["desc"])]
+    if hits:
+        setf("getBlockIdByte", met_anchor(world_cls, hits[0]),
+             "HIGH" if len(hits) == 1 else "MEDIUM",
+             "public (III)B byte-id accessor distinct from getMeta")
+
+    # --- chunk class via (II)LX; getter with byte[] storage ---
+    chunk = None
+    for m in meths:
+        mm = re.match(r"^\(II\)L(?!java/)([\w/$]+);$", m["desc"])
+        if not mm or is_static(m):
+            continue
+        x = mm.group(1)
+        try:
+            if any(d == "[B" and not s for n, d, s in db.fields(x)):
+                chunk = (x, m)
+                break
+        except Exception:
+            pass
+    if chunk:
+        x, m = chunk
+        setf("getChunk", met_anchor(world_cls, m), "HIGH",
+             "World (II)L%s; chunk getter; %s declares byte[] storage"
+             % (x, x))
+        vs = [cm for cm in db.methods(x, code=False)
+              if cm["desc"] == "()V" and not is_static(cm)]
+        if vs:
+            setf("chunkGenHeight", met_anchor(x, vs[0]),
+                 "HIGH" if len(vs) == 1 else "MEDIUM",
+                 "unique non-static ()V on the chunk class (height/terrain"
+                 " pass)")
+
+    # --- saveWorldBody + progressClass: (Z L X ;)V core ---
+    cands = []
+    for m in meths:
+        mm = re.match(r"^\(ZL(?!java/)([\w/$]+);\)V$", m["desc"])
+        if mm and not is_static(m):
+            cands.append((mm.group(1), m))
+    if cands:
+        pick = None
+        for x, m in cands:
+            for w in meths:
+                if w["desc"] != "(L%s;)V" % x:
+                    continue
+                if any(c[0] is None and c[1] == m["name"]
+                       and c[2] == m["desc"] for c in callees(w["body"])):
+                    pick = (x, m)
+                    break
+            if pick:
+                break
+        if pick is None:
+            pick = cands[0]
+        x, m = pick
+        conf = "HIGH" if len(cands) == 1 else "MEDIUM"
+        setf("saveWorldBody", met_anchor(world_cls, m), conf,
+             "World save core (Z, %s)V reached from the saveWorld wrapper"
+             % x)
+        setf("progressClass", cls_anchor(x), conf,
+             "progress/save context class passed to the save core")
+
+    # --- getClosestPlayer: ()LX; returning an entity type ---
+    if entity_cls:
+        hits = []
+        for m in meths:
+            mm = re.match(r"^\(\)L(?!java/)([\w/$]+);$", m["desc"])
+            if not mm or is_static(m):
+                continue
+            t = mm.group(1)
+            try:
+                if entity_cls in db.super_chain(t):
+                    hits.append((t, m))
+            except Exception:
+                pass
+        exact = [h for h in hits if h[0] == entity_cls]
+        pool = exact or hits
+        if pool:
+            setf("getClosestPlayer", met_anchor(world_cls, pool[0][1]),
+                 "HIGH" if len(pool) == 1 else "MEDIUM",
+                 "World method returning the nearest entity (%s)"
+                 % pool[0][0])
+
+    # --- observers: World List field used with the tick-list string ---
+    el = (facets.get("entityList") or {}).get("chosen") or {}
+    elfields = set()
+    if el.get("name"):
+        for m in meths:
+            if m["name"] == el["name"] and m["desc"] == el["descriptor"]:
+                elfields = set(fn for op, fc, fn, fd
+                               in field_refs(m["body"])
+                               if (fc or world_cls) == world_cls)
+    lists = [n for n, d, s in db.fields(world_cls)
+             if d == "Ljava/util/List;" and not s]
+    hits = set()
+    for c in iter_classes(db):
+        if world_cls.encode() not in db.read(c):
+            continue
+        for m in db.methods(c, code=True):
+            if TICK_STRING not in " ".join(strings(m["body"])):
+                continue
+            for op, fc, fn, fd in field_refs(m["body"]):
+                if (fc or c) == world_cls and fn in lists:
+                    hits.add(fn)
+    hits -= elfields
+    if len(hits) == 1:
+        fn = list(hits)[0]
+        setf("observers", fld_anchor(world_cls, fn, "Ljava/util/List;"),
+             "HIGH", "World List field referenced in the tick-next-tick"
+             " code path (not the entity list)")
+    elif not hits:
+        # fallback (indev 0327: the tick string is absent from the jar):
+        # the World List field referenced by an add/remove method pair
+        # taking the same non-java parameter type
+        by_type = {}
+        for m in meths:
+            mm = re.match(r"^\(L(?!java/)([\w/$]+);\)V$", m["desc"])
+            if not mm or is_static(m):
+                continue
+            refs = set(fn for op, fc, fn, fd in field_refs(m["body"])
+                       if (fc or world_cls) == world_cls and fn in lists)
+            refs -= elfields
+            if refs:
+                by_type.setdefault(mm.group(1), []).append(refs)
+        cand = set()
+        for t, lst in by_type.items():
+            if len(lst) >= 2:
+                cand |= set.intersection(*lst)
+        if len(cand) == 1:
+            fn = list(cand)[0]
+            setf("observers", fld_anchor(world_cls, fn,
+                                         "Ljava/util/List;"),
+                 "MEDIUM", "fallback: World List field referenced by an"
+                 " add/remove method pair on the same non-java type")
+
+    # --- light6 / updateNeighbors: (IIII)V fanning out >=6 siblings ---
+    fan = []
+    for m in meths:
+        if m["desc"] == "(IIII)V" and is_public(m) and not is_static(m):
+            if len([c for c in callees(m["body"])
+                    if c[0] is None and c[2] == "(IIII)V"]) >= 6:
+                fan.append(m)
+    if fan:
+        m = fan[0]
+        conf = "HIGH" if len(fan) == 1 else "MEDIUM"
+        why = ("public (IIII)V dispatching >=6 sibling (IIII)V neighbour/"
+               "light updates")
+        setf("light6", met_anchor(world_cls, m), conf, why)
+        setf("updateNeighbors", met_anchor(world_cls, m), conf, why)
+
+    # --- setBlock variants: wrapper/core delegation graph, era-dispatched ---
+    sb = (facets.get("setBlock") or {}).get("chosen") or {}
+    zdel = None
+    for m in meths:
+        if m["name"] == sb.get("name") and m["desc"] == sb.get("descriptor"):
+            sibs = [c[1] for c in callees(m["body"])
+                    if c[0] is None and c[2] == "(IIII)Z"]
+            if sibs:
+                zdel = sibs[0]
+            break
+    zdel_m = None
+    if zdel:
+        for m in meths:
+            if m["name"] == zdel and m["desc"] == "(IIII)Z":
+                zdel_m = m
+                break
+    if zdel_m:
+        setf("setBlockNoNotify", met_anchor(world_cls, zdel_m), "HIGH",
+             "the (IIII)Z core the setBlock wrapper delegates to (alpha/"
+             "beta era registry name)")
+    if family == "G1":
+        for m in meths:
+            if m["desc"] != "(IIII)Z" or is_static(m):
+                continue
+            if m["name"] == "setTileNoUpdate":
+                setf("setBlockSilent", met_anchor(world_cls, m), "HIGH",
+                     "G1 readable era: setTileNoUpdate")
+            elif m["name"] == "netSetTile":
+                setf("setBlockNet", met_anchor(world_cls, m), "HIGH",
+                     "G1 readable era: netSetTile")
+    else:
+        silent = None
+        if family != "G2":
+            vc = []
+            for m in meths:
+                if m["desc"] != "(IIII)V" or is_static(m) or not is_public(m):
+                    continue
+                cs = callees(m["body"])
+                if len([c for c in cs if c[0] is None
+                        and c[2] == "(IIII)V"]) >= 6:
+                    continue
+                if any(c[0] == "java/util/Random" for c in cs):
+                    continue
+                if any(c[0] == "java/util/Set" and c[1] == "contains"
+                       for c in cs):
+                    continue
+                if any(c[2] == "(IIIIII)V" for c in cs):
+                    continue
+                sibZ = [c[1] for c in cs if c[0] is None
+                        and c[2] == "(IIII)Z"]
+                chunkcall = any(c[0] is None and
+                                re.match(r"^\(II\)L(?!java/)[\w/$]+;$",
+                                         c[2]) for c in cs)
+                if chunkcall or (sibZ and sb and sibZ[0] != sb.get("name")):
+                    vc.append(m)
+            if len(vc) == 1:
+                silent = vc[0]
+        if silent is None:
+            silent = zdel_m
+        if silent:
+            setf("setBlockSilent", met_anchor(world_cls, silent), "HIGH",
+                 "silent block write: the (IIII)V core (alpha era) or the"
+                 " (IIII)Z core the setBlock wrapper delegates to (indev)")
+
+    # --- setSpawnPos: unique public (IIIF)V on World ---
+    hits = [m for m in meths if m["desc"] == "(IIIF)V" and is_public(m)
+            and not is_static(m)]
+    if hits:
+        setf("setSpawnPos", met_anchor(world_cls, hits[0]),
+             "HIGH" if len(hits) == 1 else "MEDIUM",
+             "public (IIIF)V spawn placement method on World")
+
+    # --- iframes: invulnerability window field on Entity ---
+    # Primary evidence: the RetroMCP tiny-mapping corpus
+    # (tools/retromcp/pages/versions). The semantic slot of this facet
+    # is named `heartsLife` on the mapping side (SRG-style alias
+    # `field_9311_be` in the alpha-1.2 mappings); the official letter
+    # is read off the client.tiny binding of the structurally detected
+    # Entity class, so no answer letter is embedded in the rule. The
+    # binding is cross-version stable: the same named slot pins the
+    # hurt-window field in every legacy slot even where the bytecode
+    # shapes of the two candidate int fields swap letters between
+    # versions.
+    # Fallback: the ctor int-init sandwich (300, 0, 300) middle field
+    # (the gate between the two air timers).
+    if entity_cls:
+        hit = None
+        for desc, oname, nname in tiny_entity_field_rows(
+                version_id, entity_cls):
+            if desc != "I" or nname not in IFRAMES_NAMES:
+                continue
+            try:
+                declared = any(n == oname and d == "I" and not s
+                               for n, d, s in db.fields(entity_cls))
+            except Exception:
+                declared = False
+            if declared:
+                hit = (oname, nname)
+                break
+        if hit:
+            setf("iframes", fld_anchor(entity_cls, hit[0], "I"), "HIGH",
+                 "tiny client.tiny: Entity field %s binds to mapping "
+                 "slot %s (the invulnerability window)"
+                 % (hit[0], hit[1]))
+        else:
+            ctor = None
+            for m in db.methods(entity_cls, code=True):
+                if m["desc"] == "(L%s;)V" % world_cls:
+                    ctor = m
+                    break
+            if ctor:
+                seq = []
+                last = None
+                for ln in ctor["body"].splitlines():
+                    t = ln.strip()
+                    pm = PUSH_RE.search(t)
+                    if pm:
+                        last = pm.group(1)
+                    fm = re.search(r"putfield +#\d+ *// Field "
+                                   r"(?:[\w/$]+\.)?([\w$<>]+):I", t)
+                    if fm:
+                        seq.append((fm.group(1), push_value(last)))
+                        last = None
+                mid = [i for i in range(1, len(seq) - 1)
+                       if seq[i][1] == 0 and seq[i - 1][1] == 300
+                       and seq[i + 1][1] == 300]
+                if len(mid) == 1:
+                    fn = seq[mid[0]][0]
+                    setf("iframes", fld_anchor(entity_cls, fn, "I"),
+                         "HIGH",
+                         "Entity ctor int-init pattern (300, 0, 300): the"
+                         " invulnerability gate between the two air"
+                         " timers")
+
+    # --- scatterClass: concrete class with (World,Random,III...)Z ---
+    pat = re.compile(r"^\(L%s;Ljava/util/Random;III.*\)Z$"
+                     % re.escape(world_cls))
+    hits = []
+    for c in iter_classes(db):
+        if c.startswith("java/"):
+            continue
+        h = db.head(c)
+        if h and "abstract" in h.splitlines()[0]:
+            continue
+        try:
+            for m in db.methods(c, code=False):
+                if pat.match(m["desc"]):
+                    hits.append(c)
+                    break
+        except Exception:
+            pass
+    if hits:
+        setf("scatterClass", cls_anchor(hits[0]),
+             "HIGH" if len(hits) == 1 else "MEDIUM",
+             "unique concrete class with a (World, Random, x,y,z...)Z ore"
+             " scatterer method")
+
+    # --- signClass: class persisting NBT 'Text1' ---
+    holders = []
+    for holder, fn, fd in nbt_field_binds(db, "Text1", lambda h: True,
+                                          "Ljava/lang/String;"):
+        if holder not in holders:
+            holders.append(holder)
+    if holders:
+        setf("signClass", cls_anchor(holders[0]),
+             "HIGH" if len(holders) == 1 else "MEDIUM",
+             "class binding NBT 'Text1' to a String field (sign text)")
+    else:
+        # indev/alpha signs persist a String[] instead of String fields,
+        # so the NBT-binding stays empty: the unique class whose constant
+        # pool references 'Text1' is the sign tile entity
+        raw = [c for c in iter_classes(db) if b"Text1" in db.read(c)]
+        if len(raw) == 1:
+            setf("signClass", cls_anchor(raw[0]), "MEDIUM",
+                 "fallback: unique class referencing the 'Text1' NBT key")
+
+    # --- snowCovered: World Z field bound to NBT 'SnowCovered' ---
+    pred = world_holder_pred(db, world_cls)
+    binds = nbt_field_binds(db, "SnowCovered", pred, "Z")
+    binds = [b for b in binds if b[0] == world_cls] or binds
+    if binds:
+        holder, fn, fd = binds[0]
+        setf("snowCovered", fld_anchor(holder, fn, fd), "HIGH",
+             "NBT 'SnowCovered' binds %s.%s:Z" % (holder, fn))
+
+    # --- ctors: mobTnt / itemStack / itemEntity ---
+    tnt = chosen_cls(facets, "mobTnt")
+    if tnt:
+        for shape in ("FFF", "DDD"):
+            hits = [m for m in db.methods(tnt, code=False)
+                    if m["desc"] == "(L%s;%s)V" % (world_cls, shape)]
+            if hits:
+                setf("mobTntCtor", ctor_anchor(tnt, hits[0]), "HIGH",
+                     "primed-TNT constructor (World, %s)V" % shape)
+                break
+    if isc:
+        hits = [m for m in db.methods(isc, code=False)
+                if m["desc"] == "(III)V"
+                and m["name"] == isc.split("/")[-1]]
+        if hits:
+            setf("itemStackCtor", ctor_anchor(isc, hits[0]),
+                 "HIGH" if len(hits) == 1 else "MEDIUM",
+                 "ItemStack constructor (id, count, damage)V")
+        if entity_cls:
+            at = "L%s;" % isc
+            hits = []
+            for c in iter_classes(db):
+                if at.encode() not in db.read(c):
+                    continue
+                try:
+                    ch = db.super_chain(c)
+                except Exception:
+                    continue
+                if entity_cls not in ch or c == entity_cls:
+                    continue
+                if any(d == at and not s for n, d, s in db.fields(c)):
+                    hits.append(c)
+            ctorpat = re.compile(r"^\(L%s;DDDL%s;\)V$"
+                                 % (re.escape(world_cls), re.escape(isc)))
+            withctor = []
+            for c in hits:
+                for m in db.methods(c, code=False):
+                    if ctorpat.match(m["desc"]):
+                        withctor.append((c, m))
+                        break
+            if withctor:
+                c, m = withctor[0]
+                setf("itemEntityClass", cls_anchor(c),
+                     "HIGH" if len(withctor) == 1 else "MEDIUM",
+                     "entity subclass holding an ItemStack field and a"
+                     " (World, x,y,z, ItemStack)V constructor")
+                setf("itemEntityCtor", ctor_anchor(c, m),
+                     "HIGH" if len(withctor) == 1 else "MEDIUM",
+                     "item-entity constructor (World, DDD, ItemStack)V")
+            elif hits:
+                setf("itemEntityClass", cls_anchor(hits[0]), "MEDIUM",
+                     "entity subclass holding an ItemStack field")
+
+    # --- invCount (G1 readable era) ---
+    if family == "G1" and inv_cls:
+        for n, d, s in db.fields(inv_cls):
+            if n == "count" and d == "[I" and not s:
+                setf("invCount", fld_anchor(inv_cls, n, d), "HIGH",
+                     "G1 readable era: Inventory.count [I")
+                break
+
+    # --- fontRendererClass: class loading font.png ---
+    hits = [c for c in iter_classes(db)
+            if b"font.png" in db.read(c)]
+    if hits:
+        setf("fontRendererClass", cls_anchor(hits[0]),
+             "HIGH" if len(hits) == 1 else "MEDIUM",
+             "class referencing the font.png texture resource")
+    else:
+        # pre-beta eras have no font.png string: the font renderer is the
+        # unique class with an IntBuffer + int[] instance state and a
+        # String->int char-width method
+        fr = []
+        for c in iter_classes(db):
+            try:
+                fl = db.fields(c)
+                ms = db.methods(c, code=False)
+            except Exception:
+                continue
+            if not any(not st and d == "Ljava/nio/IntBuffer;"
+                       for n, d, st in fl):
+                continue
+            if not any(not st and d == "[I" for n, d, st in fl):
+                continue
+            if any(m["desc"] == "(Ljava/lang/String;)I" for m in ms):
+                fr.append(c)
+        if len(fr) == 1:
+            setf("fontRendererClass", cls_anchor(fr[0]), "MEDIUM",
+                 "fallback: unique class with IntBuffer + int[] instance"
+                 " fields and a (String)I width method")
+
+    # --- mobSpawnerClass: the remaining TileEntity subclass ---
+    if te_cls:
+        furn = chosen_cls(facets, "furnaceClass")
+        chest = chosen_cls(facets, "chestClass")
+        sign = chosen_cls(facets, "signClass")
+        subs = []
+        for c in iter_classes(db):
+            try:
+                ch = db.super_chain(c)
+            except Exception:
+                continue
+            if te_cls in ch and c != te_cls and c not in (furn, chest, sign):
+                subs.append(c)
+        if len(subs) > 1:
+            narrowed = [c for c in subs if b"EntityId" in db.read(c)]
+            if narrowed:
+                subs = narrowed
+        if len(subs) == 1:
+            setf("mobSpawnerClass", cls_anchor(subs[0]), "HIGH",
+                 "the only TileEntity subclass that is not chest/furnace/"
+                 "sign (mob spawner)")
 
 
 # ---------------------------------------------------------------------------
@@ -1588,6 +2568,10 @@ def compile_jar(jarpath, version_id):
 
         # --- mobs ---
         compile_mobs(db, entity_cls, family, facets, [])
+
+        # --- batch-3 extended facet set ---
+        compile_extended(db, family, world_cls, entity_cls, mc_cls,
+                         facets, version_id)
 
         # blocked facets get explicit records
         for facet, why in BLOCKED.items():
@@ -2102,11 +3086,72 @@ def write_report(rows, path):
         f.write("\n".join(lines))
 
 
+def run_draft(vid, fp_dir, drafts_dir):
+    """full-facet draft table for one version id; writes drafts/<vid>.md,
+    or a SKIP note when the jar is not available locally."""
+    os.makedirs(drafts_dir, exist_ok=True)
+    out = os.path.join(drafts_dir, vid + ".md")
+    jpath = os.path.join(fp_dir, vid + ".json")
+    jdata = {}
+    if os.path.isfile(jpath):
+        with open(jpath, "r", encoding="utf-8") as f:
+            jdata = json.load(f)
+    jarpath = resolve_jar(vid, jdata)
+    if jarpath is None:
+        url = None
+        vj = os.path.normpath(os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "..", "retromcp", "pages", "versions", "versions.json"))
+        try:
+            with open(vj, "r", encoding="utf-8") as f:
+                url = (json.load(f).get(vid) or {}).get("client_url")
+        except Exception:
+            pass
+        lines = ["# %s -- SKIP (no local jar)" % vid, "",
+                 "The client jar is not present locally, so the F1 facet"
+                 " draft could not be compiled."]
+        if url:
+            lines += ["", "- client_url: %s" % url]
+        with open(out, "w", encoding="ascii", errors="replace") as f:
+            f.write("\n".join(lines) + "\n")
+        return "SKIP %s -> %s" % (vid, out)
+    res = compile_jar(jarpath, vid)
+    lines = ["# %s -- F1 draft facet table" % vid, "",
+             "- jar: %s" % jarpath,
+             "- sha1: %s" % sha1_of(jarpath),
+             "- family: %s; World: %s" % (res.get("family"),
+                                          res.get("worldClass")), ""]
+    if res.get("error"):
+        lines.append("- error: %s" % res["error"])
+        lines.append("")
+    lines.append("| facet | class | name | descriptor | confidence |")
+    lines.append("|---|---|---|---|---|")
+    facets = res.get("facets") or {}
+    for facet in FACETS:
+        got = facets.get(facet) or {}
+        chosen = got.get("chosen")
+        conf = got.get("confidence", "ABSENT")
+        if chosen:
+            lines.append("| %s | %s | %s | %s | %s |"
+                         % (facet, chosen.get("class"), chosen.get("name"),
+                            chosen.get("descriptor"), conf))
+        else:
+            why = (got.get("chain") or [""])[0]
+            if len(why) > 100:
+                why = why[:100] + "..."
+            lines.append("| %s | - | - | - | %s: %s |" % (facet, conf, why))
+    with open(out, "w", encoding="ascii", errors="replace") as f:
+        f.write("\n".join(lines) + "\n")
+    return "DRAFT %s -> %s" % (vid, out)
+
+
 def main():
     ap = argparse.ArgumentParser(description="F1 anchor compiler / F5 recon")
     ap.add_argument("--jar")
     ap.add_argument("--version-id")
     ap.add_argument("--recon", action="store_true")
+    ap.add_argument("--draft", metavar="VERSION",
+                    help="full-facet draft table -> drafts/VERSION.md")
     ap.add_argument("--fingerprints-dir",
                     default=os.path.join(os.path.dirname(
                         os.path.abspath(__file__)), "..", "..", "java",
@@ -2120,6 +3165,11 @@ def main():
                          os.path.normpath(args.report))
         n_run = sum(1 for r in rows if r["status"] == "RUN")
         print("recon: %d versions run; report -> %s" % (n_run, args.report))
+        return 0
+    if args.draft:
+        here = os.path.dirname(os.path.abspath(__file__))
+        print(run_draft(args.draft, os.path.normpath(args.fingerprints_dir),
+                        os.path.join(here, "drafts")))
         return 0
     if not args.jar or not args.version_id:
         ap.error("--jar and --version-id required in compile mode")

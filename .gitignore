@@ -2,6 +2,7 @@
 java/agent/out/
 java/storage/out/
 node_modules/
+__pycache__/
 
 # Downloaded dependencies (fetched by java/agent/build.ps1)
 java/agent/libs/*.jar

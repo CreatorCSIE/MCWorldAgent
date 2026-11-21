@@ -27,7 +27,7 @@ Verdicts: MATCH = class+name+descriptor equal; N/A = version has no oracle slot 
 | motZ | M | M | . | M | M | M | M | M | M | M | M |
 | yaw | M | M | . | M | M | M | M | M | M | M | M |
 | pitch | M | M | . | M | M | M | M | M | M | M | M |
-| iframes | B | B | B | B | B | B | B | B | B | B | B |
+| iframes | M | M | . | . | M | M | . | . | M | . | . |
 | entityType | . | . | . | . | . | . | . | . | M | M | M |
 | entityList | M | M | M | M | . | . | M | . | M | M | M |
 | spawnEntity | M | M | M | M | . | . | M | . | M | . | M |
@@ -66,14 +66,65 @@ Verdicts: MATCH = class+name+descriptor equal; N/A = version has no oracle slot 
 | mobGiant | M | M | . | M | M | M | . | . | M | . | M |
 | mobBase | . | . | . | . | . | . | . | . | M | . | . |
 | mobCreatureClass | M | M | . | M | . | . | . | . | . | . | . |
-| scatterClass | B | B | B | B | B | B | B | B | B | B | B |
+| scatterClass | . | . | . | . | . | . | . | . | M | . | . |
+| worldClass | M | M | M | M | . | . | M | M | M | M | M |
+| blockClass | . | . | M | . | . | . | M | M | . | M | M |
+| blockRegistry | . | . | M | . | . | . | M | M | . | M | M |
+| itemClass | M | M | M | M | . | . | . | . | M | M | M |
+| itemRegistry | M | M | M | M | . | . | . | . | M | . | M |
+| biomeClass | . | M | . | M | . | . | . | . | . | . | . |
+| biomeNameField | . | M | . | M | . | . | . | . | . | . | . |
+| biomeAt | . | M | . | M | . | . | . | . | . | . | . |
+| worldChunkManagerClass | . | M | . | M | . | . | . | . | . | . | . |
+| entityListClass | M | M | . | M | . | . | . | . | . | M | M |
+| entityListLookup | M | M | . | M | . | . | . | . | . | M | M |
+| entityPlayerClass | M | M | . | M | . | . | . | . | . | . | . |
+| entityHumanClass | . | . | M | . | . | . | M | M | M | M | M |
+| entityLivingClass | M | M | M | M | . | . | . | M | M | M | M |
+| playerClientClass | . | . | M | . | . | . | . | . | . | . | . |
+| playerField | . | . | . | . | . | . | M | M | M | M | M |
+| playerListField | M | M | . | M | . | . | . | . | . | . | . |
+| thePlayerField | M | M | M | M | . | . | . | M | . | M | . |
+| theWorldField | M | M | M | M | . | . | . | M | . | M | M |
+| ingameGuiField | M | M | . | M | . | . | . | . | . | . | . |
+| health | M | M | . | M | . | . | M | . | M | M | M |
+| getClosestPlayer | . | . | . | . | . | . | . | . | . | . | M |
+| itemEntityClass | M | M | M | M | . | . | . | M | M | M | M |
+| itemEntityCtor | M | M | . | M | . | . | . | . | . | . | . |
+| itemStackCtor | . | . | . | M | . | . | . | . | . | . | . |
+| iInventoryClass | . | . | M | . | . | . | . | . | M | . | M |
+| invCount | . | . | . | . | . | . | M | . | . | . | . |
+| teSet | M | M | M | M | . | . | . | . | . | . | M |
+| signClass | . | . | M | . | . | . | . | . | . | M | M |
+| mobSpawnerClass | . | . | M | . | . | . | . | . | . | . | M |
+| mobChicken | M | M | . | M | . | . | . | . | . | . | . |
+| mobCow | M | M | . | M | . | . | . | . | . | . | . |
+| mobSquid | . | . | . | M | . | . | . | . | . | . | . |
+| mobMonsterClass | . | . | . | . | . | . | . | . | . | . | M |
+| mobTntCtor | M | M | . | M | . | . | . | . | . | . | . |
+| fontRendererClass | . | . | M | . | . | . | . | . | . | M | M |
+| getChunk | . | . | M | . | . | . | . | . | . | . | M |
+| chunkGenHeight | . | . | . | . | . | . | . | . | M | . | M |
+| getBlockIdByte | . | . | . | . | . | . | . | M | . | . | . |
+| light6 | . | . | . | . | . | . | . | . | M | . | . |
+| updateNeighbors | . | . | . | . | . | . | M | . | . | . | . |
+| setBlockSilent | . | . | M | . | . | . | M | M | . | M | M |
+| setBlockNoNotify | M | M | . | M | . | . | . | . | . | . | . |
+| setBlockNet | . | . | . | . | . | . | M | . | . | . | . |
+| setSpawnPos | . | . | . | . | . | . | M | . | . | . | . |
+| observers | . | . | . | . | . | . | . | . | M | . | . |
+| snowCovered | M | . | . | . | . | . | . | . | . | . | . |
+| loadWorld | M | M | . | M | . | . | . | . | . | . | M |
+| saveWorldBody | . | . | . | . | . | . | . | . | . | . | M |
+| progressClass | . | . | . | . | . | . | . | . | . | . | M |
+| worldCtor | M | M | M | M | . | . | . | . | M | . | M |
 
 M=MATCH X=MISS .=N/A B=BLOCKED
 
 ## Summary
 
-- comparable cells: 450, MATCH: 450, MISS: 0, N/A: 199, BLOCKED cells: 33
-- BLOCKED facets: difficulty (no persisted NBT key in legacy eras (global client setting); field-only anchors are usage-based, not static-derivable); iframes (NBT 'HurtTime' binds the EntityLiving persisted field, but the registry pins the Entity damage-gate field; no generalizable static discriminator between them); scatterClass (ore scatterer identifiable only by runtime reversal (verscan te-1); no stable string/call anchor)
+- comparable cells: 627, MATCH: 627, MISS: 0, N/A: 605, BLOCKED cells: 11
+- BLOCKED facets: difficulty (new criterion (unique World int field written by the client tick from the settings object; tie-break by external reader count) identifies the difficulty field in all four legacy slots, but the runtime registry maps difficultyF onto WorldInfo where no such field exists (b1.7.3 ei.q / b1.8.1 rl.v absent); unblocking would emit false MISS, so kept BLOCKED pending oracle fix)
 - MISS/SUSPECT list:
   - none
 - regression note: core facets getBlockId/setBlock/saveWorld keep the batch-1 rules; 0618 saveWorld remains a hook-level SUSPECT (isomorphic bytecode, tables pin different levels) as adjudicated in batch 1.
@@ -136,7 +187,7 @@ M=MATCH X=MISS .=N/A B=BLOCKED
 - **entityClass** verdict=MATCH confidence=HIGH
   - oracle: {"class": "kh", "name": null, "descriptor": "class"}
   - compiled: {"class": "kh", "name": "kh", "descriptor": "class"}
-  - WARN 3 candidates ['ge', 'kh', 'cf']; scored [(7, 'kh'), (0, 'ge'), (0, 'cf')] -> take kh
+  - WARN 3 candidates ['cf', 'ge', 'kh']; scored [(7, 'kh'), (0, 'ge'), (0, 'cf')] -> take kh
 - **setPosRot** verdict=MATCH confidence=MEDIUM
   - oracle: {"class": "kh", "name": "b", "descriptor": "(DDDFF)V"}
   - compiled: {"class": "kh", "name": "b", "descriptor": "(DDDFF)V"}
@@ -173,6 +224,10 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "kh", "name": "ar", "descriptor": "F"}
   - compiled: {"class": "kh", "name": "ar", "descriptor": "F"}
   - see setPosRot/field-graph chain
+- **iframes** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kh", "name": "aW", "descriptor": "I"}
+  - compiled: {"class": "kh", "name": "aW", "descriptor": "I"}
+  - tiny client.tiny: Entity field aW binds to mapping slot heartsLife (the invulnerability window)
 - **entityList** verdict=MATCH confidence=HIGH
   - oracle: {"class": "cn", "name": "i", "descriptor": "()Ljava/util/List;"}
   - compiled: {"class": "cn", "name": "i", "descriptor": "()Ljava/util/List;"}
@@ -291,6 +346,94 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "ek", "name": null, "descriptor": "class"}
   - compiled: {"class": "ek", "name": "ek", "descriptor": "class"}
   - deepest common ancestor of peaceful mobs + creeper
+- **worldClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": null, "descriptor": "class"}
+  - compiled: {"class": "cn", "name": "cn", "descriptor": "class"}
+  - World class from probe+shape scan
+- **itemClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "di", "name": null, "descriptor": "class"}
+  - compiled: {"class": "di", "name": "di", "descriptor": "class"}
+  - static self-array [Ldi; referenced from ItemStack/InventoryPlayer but not World
+- **itemRegistry** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "di", "name": "c", "descriptor": "[Ldi;"}
+  - compiled: {"class": "di", "name": "c", "descriptor": "[Ldi;"}
+  - self-array registry field on item class
+- **entityListClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ew", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ew", "name": "ew", "descriptor": "class"}
+  - holder of the entityList lookup method
+- **entityListLookup** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ew", "name": "b", "descriptor": "(Lkh;)Ljava/lang/String;"}
+  - compiled: {"class": "ew", "name": "b", "descriptor": "(Lkh;)Ljava/lang/String;"}
+  - method mapping kh -> String (entity id name)
+- **entityPlayerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dm", "name": null, "descriptor": "class"}
+  - compiled: {"class": "dm", "name": "dm", "descriptor": "class"}
+  - class holding the InventoryPlayer field
+- **entityLivingClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "ge", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ge", "name": "ge", "descriptor": "class"}
+  - class persisting the Health field
+- **playerListField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "k", "descriptor": "Ljava/util/List;"}
+  - compiled: {"class": "cn", "name": "k", "descriptor": "Ljava/util/List;"}
+  - List field iterated with checkcast to dm (az.a)
+- **thePlayerField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "g", "descriptor": "Lbi;"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "g", "descriptor": "Lbi;"}
+  - Minecraft field typed as an entity subclass (bi)
+- **theWorldField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "e", "descriptor": "Lcn;"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "e", "descriptor": "Lcn;"}
+  - Minecraft field typed as the World class
+- **ingameGuiField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "u", "descriptor": "Llu;"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "u", "descriptor": "Llu;"}
+  - Minecraft field typed as the in-game GUI class
+- **health** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "ge", "name": "E", "descriptor": "I"}
+  - compiled: {"class": "ge", "name": "E", "descriptor": "I"}
+  - NBT 'Health' binds ge.E:I inside the entity hierarchy
+- **itemEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dx", "name": null, "descriptor": "class"}
+  - compiled: {"class": "dx", "name": "dx", "descriptor": "class"}
+  - entity subclass holding an ItemStack field and a (World, x,y,z, ItemStack)V constructor
+- **itemEntityCtor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dx", "name": "<init>", "descriptor": "(Lcn;DDDLev;)V"}
+  - compiled: {"class": "dx", "name": "<init>", "descriptor": "(Lcn;DDDLev;)V"}
+  - item-entity constructor (World, DDD, ItemStack)V
+- **teSet** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "cn", "name": "a", "descriptor": "(IIILic;)V"}
+  - compiled: {"class": "cn", "name": "a", "descriptor": "(IIILic;)V"}
+  - World method installing a TileEntity at (x,y,z)
+- **mobChicken** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "mz", "name": null, "descriptor": "class"}
+  - compiled: {"class": "mz", "name": "mz", "descriptor": "class"}
+  - mob registered as type string 'Chicken' -> class mz
+- **mobCow** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "am", "name": null, "descriptor": "class"}
+  - compiled: {"class": "am", "name": "am", "descriptor": "class"}
+  - mob registered as type string 'Cow' -> class am
+- **mobTntCtor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "jd", "name": "<init>", "descriptor": "(Lcn;FFF)V"}
+  - compiled: {"class": "jd", "name": "<init>", "descriptor": "(Lcn;FFF)V"}
+  - primed-TNT constructor (World, FFF)V
+- **setBlockNoNotify** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "a", "descriptor": "(IIII)Z"}
+  - compiled: {"class": "cn", "name": "a", "descriptor": "(IIII)Z"}
+  - the (IIII)Z core the setBlock wrapper delegates to (alpha/beta era registry name)
+- **snowCovered** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "d", "descriptor": "Z"}
+  - compiled: {"class": "cn", "name": "d", "descriptor": "Z"}
+  - NBT 'SnowCovered' binds cn.d:Z
+- **loadWorld** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "a", "descriptor": "(Lcn;Ljava/lang/String;)V"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "a", "descriptor": "(Lcn;Ljava/lang/String;)V"}
+  - Minecraft method taking (World, String, ...) to enter it
+- **worldCtor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cn", "name": "<init>", "descriptor": "(Ljava/io/File;Ljava/lang/String;)V"}
+  - compiled: {"class": "cn", "name": "<init>", "descriptor": "(Ljava/io/File;Ljava/lang/String;)V"}
+  - World constructor (File, String)
 
 ### a1.2.0 (family G3, World=cu)
 
@@ -348,7 +491,7 @@ M=MATCH X=MISS .=N/A B=BLOCKED
 - **entityClass** verdict=MATCH confidence=HIGH
   - oracle: {"class": "lk", "name": null, "descriptor": "class"}
   - compiled: {"class": "lk", "name": "lk", "descriptor": "class"}
-  - WARN 3 candidates ['lk', 'cl', 'gx']; scored [(7, 'lk'), (0, 'gx'), (0, 'cl')] -> take lk
+  - WARN 3 candidates ['gx', 'lk', 'cl']; scored [(7, 'lk'), (0, 'gx'), (0, 'cl')] -> take lk
 - **setPosRot** verdict=MATCH confidence=MEDIUM
   - oracle: {"class": "lk", "name": "b", "descriptor": "(DDDFF)V"}
   - compiled: {"class": "lk", "name": "b", "descriptor": "(DDDFF)V"}
@@ -385,6 +528,10 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "lk", "name": "aw", "descriptor": "F"}
   - compiled: {"class": "lk", "name": "aw", "descriptor": "F"}
   - see setPosRot/field-graph chain
+- **iframes** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "lk", "name": "aW", "descriptor": "I"}
+  - compiled: {"class": "lk", "name": "aW", "descriptor": "I"}
+  - tiny client.tiny: Entity field aW binds to mapping slot field_9311_be (the invulnerability window)
 - **entityList** verdict=MATCH confidence=HIGH
   - oracle: {"class": "cu", "name": "k", "descriptor": "()Ljava/util/List;"}
   - compiled: {"class": "cu", "name": "k", "descriptor": "()Ljava/util/List;"}
@@ -502,6 +649,106 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "ex", "name": null, "descriptor": "class"}
   - compiled: {"class": "ex", "name": "ex", "descriptor": "class"}
   - deepest common ancestor of peaceful mobs + creeper
+- **worldClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": null, "descriptor": "class"}
+  - compiled: {"class": "cu", "name": "cu", "descriptor": "class"}
+  - World class from probe+shape scan
+- **itemClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dr", "name": null, "descriptor": "class"}
+  - compiled: {"class": "dr", "name": "dr", "descriptor": "class"}
+  - static self-array [Ldr; referenced from ItemStack/InventoryPlayer but not World
+- **itemRegistry** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dr", "name": "c", "descriptor": "[Ldr;"}
+  - compiled: {"class": "dr", "name": "c", "descriptor": "[Ldr;"}
+  - self-array registry field on item class
+- **biomeClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "fy", "name": null, "descriptor": "class"}
+  - compiled: {"class": "fy", "name": "fy", "descriptor": "class"}
+  - self-array class with >=6 static self-typed constants; the [Lfy; instance array lives on pb
+- **biomeNameField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fy", "name": "m", "descriptor": "Ljava/lang/String;"}
+  - compiled: {"class": "fy", "name": "m", "descriptor": "Ljava/lang/String;"}
+  - first instance String field on the biome class
+- **biomeAt** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "pb", "name": "a", "descriptor": "(II)Lfy;"}
+  - compiled: {"class": "pb", "name": "a", "descriptor": "(II)Lfy;"}
+  - (II)Lfy; biome lookup on the chunk-manager class
+- **worldChunkManagerClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "pb", "name": null, "descriptor": "class"}
+  - compiled: {"class": "pb", "name": "pb", "descriptor": "class"}
+  - holder of the instance [Lfy; biome array and its lookup
+- **entityListClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fj", "name": null, "descriptor": "class"}
+  - compiled: {"class": "fj", "name": "fj", "descriptor": "class"}
+  - holder of the entityList lookup method
+- **entityListLookup** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fj", "name": "b", "descriptor": "(Llk;)Ljava/lang/String;"}
+  - compiled: {"class": "fj", "name": "b", "descriptor": "(Llk;)Ljava/lang/String;"}
+  - method mapping lk -> String (entity id name)
+- **entityPlayerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dv", "name": null, "descriptor": "class"}
+  - compiled: {"class": "dv", "name": "dv", "descriptor": "class"}
+  - class holding the InventoryPlayer field
+- **entityLivingClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "gx", "name": null, "descriptor": "class"}
+  - compiled: {"class": "gx", "name": "gx", "descriptor": "class"}
+  - class persisting the Health field
+- **playerListField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "d", "descriptor": "Ljava/util/List;"}
+  - compiled: {"class": "cu", "name": "d", "descriptor": "Ljava/util/List;"}
+  - List field iterated with checkcast to dv (be.a)
+- **thePlayerField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "g", "descriptor": "Lbo;"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "g", "descriptor": "Lbo;"}
+  - Minecraft field typed as an entity subclass (bo)
+- **theWorldField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "e", "descriptor": "Lcu;"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "e", "descriptor": "Lcu;"}
+  - Minecraft field typed as the World class
+- **ingameGuiField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "u", "descriptor": "Lmz;"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "u", "descriptor": "Lmz;"}
+  - Minecraft field typed as the in-game GUI class
+- **health** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "gx", "name": "J", "descriptor": "I"}
+  - compiled: {"class": "gx", "name": "J", "descriptor": "I"}
+  - NBT 'Health' binds gx.J:I inside the entity hierarchy
+- **itemEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ei", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ei", "name": "ei", "descriptor": "class"}
+  - entity subclass holding an ItemStack field and a (World, x,y,z, ItemStack)V constructor
+- **itemEntityCtor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ei", "name": "<init>", "descriptor": "(Lcu;DDDLfi;)V"}
+  - compiled: {"class": "ei", "name": "<init>", "descriptor": "(Lcu;DDDLfi;)V"}
+  - item-entity constructor (World, DDD, ItemStack)V
+- **teSet** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "cu", "name": "a", "descriptor": "(IIILiz;)V"}
+  - compiled: {"class": "cu", "name": "a", "descriptor": "(IIILiz;)V"}
+  - World method installing a TileEntity at (x,y,z)
+- **mobChicken** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "oh", "name": null, "descriptor": "class"}
+  - compiled: {"class": "oh", "name": "oh", "descriptor": "class"}
+  - mob registered as type string 'Chicken' -> class oh
+- **mobCow** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "aq", "name": null, "descriptor": "class"}
+  - compiled: {"class": "aq", "name": "aq", "descriptor": "class"}
+  - mob registered as type string 'Cow' -> class aq
+- **mobTntCtor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kg", "name": "<init>", "descriptor": "(Lcu;FFF)V"}
+  - compiled: {"class": "kg", "name": "<init>", "descriptor": "(Lcu;FFF)V"}
+  - primed-TNT constructor (World, FFF)V
+- **setBlockNoNotify** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "a", "descriptor": "(IIII)Z"}
+  - compiled: {"class": "cu", "name": "a", "descriptor": "(IIII)Z"}
+  - the (IIII)Z core the setBlock wrapper delegates to (alpha/beta era registry name)
+- **loadWorld** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "a", "descriptor": "(Lcu;Ljava/lang/String;Ldv;)V"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "a", "descriptor": "(Lcu;Ljava/lang/String;Ldv;)V"}
+  - Minecraft method taking (World, String, ...) to enter it; delegated-to core overload
+- **worldCtor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cu", "name": "<init>", "descriptor": "(Ljava/io/File;Ljava/lang/String;)V"}
+  - compiled: {"class": "cu", "name": "<init>", "descriptor": "(Ljava/io/File;Ljava/lang/String;)V"}
+  - World constructor (File, String)
 
 ### a1.2.6 (family G3, World=cy)
 
@@ -522,7 +769,7 @@ M=MATCH X=MISS .=N/A B=BLOCKED
 - **entityClass** verdict=MATCH confidence=HIGH
   - oracle: {"class": "lw", "name": null, "descriptor": "class"}
   - compiled: {"class": "lw", "name": "lw", "descriptor": "class"}
-  - WARN 3 candidates ['hf', 'lw', 'co']; scored [(7, 'lw'), (0, 'hf'), (0, 'co')] -> take lw
+  - WARN 3 candidates ['co', 'hf', 'lw']; scored [(7, 'lw'), (0, 'hf'), (0, 'co')] -> take lw
 - **setPosRot** verdict=MATCH confidence=MEDIUM
   - oracle: {"class": "lw", "name": "b", "descriptor": "(DDDFF)V"}
   - compiled: {"class": "lw", "name": "b", "descriptor": "(DDDFF)V"}
@@ -624,6 +871,82 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "nl", "name": "a", "descriptor": "(FZII)V"}
   - compiled: {"class": "nl", "name": "a", "descriptor": "(FZII)V"}
   - class nl loads /gui/gui.png and exposes (FZII)V
+- **worldClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cy", "name": null, "descriptor": "class"}
+  - compiled: {"class": "cy", "name": "cy", "descriptor": "class"}
+  - World class from probe+shape scan
+- **blockClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "nq", "name": null, "descriptor": "class"}
+  - compiled: {"class": "nq", "name": "nq", "descriptor": "class"}
+  - static self-array [Lnq; referenced from World and the item/inventory classes
+- **blockRegistry** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "nq", "name": "m", "descriptor": "[Lnq;"}
+  - compiled: {"class": "nq", "name": "m", "descriptor": "[Lnq;"}
+  - self-array registry field on block class
+- **itemClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dx", "name": null, "descriptor": "class"}
+  - compiled: {"class": "dx", "name": "dx", "descriptor": "class"}
+  - static self-array [Ldx; referenced from ItemStack/InventoryPlayer but not World
+- **itemRegistry** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dx", "name": "c", "descriptor": "[Ldx;"}
+  - compiled: {"class": "dx", "name": "c", "descriptor": "[Ldx;"}
+  - self-array registry field on item class
+- **entityHumanClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "eb", "name": null, "descriptor": "class"}
+  - compiled: {"class": "eb", "name": "eb", "descriptor": "class"}
+  - class holding the InventoryPlayer field
+- **entityLivingClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "hf", "name": null, "descriptor": "class"}
+  - compiled: {"class": "hf", "name": "hf", "descriptor": "class"}
+  - class persisting the Health field
+- **playerClientClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "bq", "name": null, "descriptor": "class"}
+  - compiled: {"class": "bq", "name": "bq", "descriptor": "class"}
+  - type of the Minecraft player field
+- **thePlayerField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "g", "descriptor": "Lbq;"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "g", "descriptor": "Lbq;"}
+  - Minecraft field typed as an entity subclass (bq)
+- **theWorldField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "e", "descriptor": "Lcy;"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "e", "descriptor": "Lcy;"}
+  - Minecraft field typed as the World class
+- **itemEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "eo", "name": null, "descriptor": "class"}
+  - compiled: {"class": "eo", "name": "eo", "descriptor": "class"}
+  - entity subclass holding an ItemStack field and a (World, x,y,z, ItemStack)V constructor
+- **iInventoryClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "hi", "name": null, "descriptor": "class"}
+  - compiled: {"class": "hi", "name": "hi", "descriptor": "class"}
+  - common interface hi of chest+furnace
+- **teSet** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "cy", "name": "a", "descriptor": "(IIILji;)V"}
+  - compiled: {"class": "cy", "name": "a", "descriptor": "(IIILji;)V"}
+  - World method installing a TileEntity at (x,y,z)
+- **signClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "qc", "name": null, "descriptor": "class"}
+  - compiled: {"class": "qc", "name": "qc", "descriptor": "class"}
+  - fallback: unique class referencing the 'Text1' NBT key
+- **mobSpawnerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "bl", "name": null, "descriptor": "class"}
+  - compiled: {"class": "bl", "name": "bl", "descriptor": "class"}
+  - the only TileEntity subclass that is not chest/furnace/sign (mob spawner)
+- **fontRendererClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "ls", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ls", "name": "ls", "descriptor": "class"}
+  - fallback: unique class with IntBuffer + int[] instance fields and a (String)I width method
+- **getChunk** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cy", "name": "b", "descriptor": "(II)Lha;"}
+  - compiled: {"class": "cy", "name": "b", "descriptor": "(II)Lha;"}
+  - World (II)Lha; chunk getter; ha declares byte[] storage
+- **setBlockSilent** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cy", "name": "b", "descriptor": "(IIII)V"}
+  - compiled: {"class": "cy", "name": "b", "descriptor": "(IIII)V"}
+  - silent block write: the (IIII)V core (alpha era) or the (IIII)Z core the setBlock wrapper delegates to (indev)
+- **worldCtor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cy", "name": "<init>", "descriptor": "(Ljava/io/File;Ljava/lang/String;)V"}
+  - compiled: {"class": "cy", "name": "<init>", "descriptor": "(Ljava/io/File;Ljava/lang/String;)V"}
+  - World constructor (File, String)
 
 ### b1.2_02 (family G3, World=dn)
 
@@ -835,6 +1158,114 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "fz", "name": null, "descriptor": "class"}
   - compiled: {"class": "fz", "name": "fz", "descriptor": "class"}
   - deepest common ancestor of peaceful mobs + creeper
+- **worldClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": null, "descriptor": "class"}
+  - compiled: {"class": "dn", "name": "dn", "descriptor": "class"}
+  - World class from probe+shape scan
+- **itemClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "eo", "name": null, "descriptor": "class"}
+  - compiled: {"class": "eo", "name": "eo", "descriptor": "class"}
+  - static self-array [Leo; referenced from ItemStack/InventoryPlayer but not World
+- **itemRegistry** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "eo", "name": "c", "descriptor": "[Leo;"}
+  - compiled: {"class": "eo", "name": "c", "descriptor": "[Leo;"}
+  - self-array registry field on item class
+- **biomeClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "hf", "name": null, "descriptor": "class"}
+  - compiled: {"class": "hf", "name": "hf", "descriptor": "class"}
+  - self-array class with >=6 static self-typed constants; the [Lhf; instance array lives on ro
+- **biomeNameField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "hf", "name": "m", "descriptor": "Ljava/lang/String;"}
+  - compiled: {"class": "hf", "name": "m", "descriptor": "Ljava/lang/String;"}
+  - first instance String field on the biome class
+- **biomeAt** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "ro", "name": "a", "descriptor": "(II)Lhf;"}
+  - compiled: {"class": "ro", "name": "a", "descriptor": "(II)Lhf;"}
+  - (II)Lhf; biome lookup on the chunk-manager class
+- **worldChunkManagerClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "ro", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ro", "name": "ro", "descriptor": "class"}
+  - holder of the instance [Lhf; biome array and its lookup
+- **entityListClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gn", "name": null, "descriptor": "class"}
+  - compiled: {"class": "gn", "name": "gn", "descriptor": "class"}
+  - holder of the entityList lookup method
+- **entityListLookup** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gn", "name": "b", "descriptor": "(Lnl;)Ljava/lang/String;"}
+  - compiled: {"class": "gn", "name": "b", "descriptor": "(Lnl;)Ljava/lang/String;"}
+  - method mapping nl -> String (entity id name)
+- **entityPlayerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "eu", "name": null, "descriptor": "class"}
+  - compiled: {"class": "eu", "name": "eu", "descriptor": "class"}
+  - class holding the InventoryPlayer field
+- **entityLivingClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "ig", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ig", "name": "ig", "descriptor": "class"}
+  - class persisting the Health field
+- **playerListField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "d", "descriptor": "Ljava/util/List;"}
+  - compiled: {"class": "dn", "name": "d", "descriptor": "Ljava/util/List;"}
+  - List field iterated with checkcast to eu (bp.a)
+- **thePlayerField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "g", "descriptor": "Lbz;"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "g", "descriptor": "Lbz;"}
+  - Minecraft field typed as an entity subclass (bz)
+- **theWorldField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "e", "descriptor": "Ldn;"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "e", "descriptor": "Ldn;"}
+  - Minecraft field typed as the World class
+- **ingameGuiField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "u", "descriptor": "Lpe;"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "u", "descriptor": "Lpe;"}
+  - Minecraft field typed as the in-game GUI class
+- **health** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "ig", "name": "S", "descriptor": "I"}
+  - compiled: {"class": "ig", "name": "S", "descriptor": "I"}
+  - NBT 'Health' binds ig.S:I inside the entity hierarchy
+- **itemEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fh", "name": null, "descriptor": "class"}
+  - compiled: {"class": "fh", "name": "fh", "descriptor": "class"}
+  - entity subclass holding an ItemStack field and a (World, x,y,z, ItemStack)V constructor
+- **itemEntityCtor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fh", "name": "<init>", "descriptor": "(Ldn;DDDLgm;)V"}
+  - compiled: {"class": "fh", "name": "<init>", "descriptor": "(Ldn;DDDLgm;)V"}
+  - item-entity constructor (World, DDD, ItemStack)V
+- **itemStackCtor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gm", "name": "<init>", "descriptor": "(III)V"}
+  - compiled: {"class": "gm", "name": "<init>", "descriptor": "(III)V"}
+  - ItemStack constructor (id, count, damage)V
+- **teSet** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "dn", "name": "a", "descriptor": "(IIILkp;)V"}
+  - compiled: {"class": "dn", "name": "a", "descriptor": "(IIILkp;)V"}
+  - World method installing a TileEntity at (x,y,z)
+- **mobChicken** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "qs", "name": null, "descriptor": "class"}
+  - compiled: {"class": "qs", "name": "qs", "descriptor": "class"}
+  - mob registered as type string 'Chicken' -> class qs
+- **mobCow** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "bb", "name": null, "descriptor": "class"}
+  - compiled: {"class": "bb", "name": "bb", "descriptor": "class"}
+  - mob registered as type string 'Cow' -> class bb
+- **mobSquid** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "rm", "name": null, "descriptor": "class"}
+  - compiled: {"class": "rm", "name": "rm", "descriptor": "class"}
+  - mob registered as type string 'Squid' -> class rm
+- **mobTntCtor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "mb", "name": "<init>", "descriptor": "(Ldn;DDD)V"}
+  - compiled: {"class": "mb", "name": "<init>", "descriptor": "(Ldn;DDD)V"}
+  - primed-TNT constructor (World, DDD)V
+- **setBlockNoNotify** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "b", "descriptor": "(IIII)Z"}
+  - compiled: {"class": "dn", "name": "b", "descriptor": "(IIII)Z"}
+  - the (IIII)Z core the setBlock wrapper delegates to (alpha/beta era registry name)
+- **loadWorld** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/client/Minecraft", "name": "a", "descriptor": "(Ldn;Ljava/lang/String;Leu;)V"}
+  - compiled: {"class": "net/minecraft/client/Minecraft", "name": "a", "descriptor": "(Ldn;Ljava/lang/String;Leu;)V"}
+  - Minecraft method taking (World, String, ...) to enter it; delegated-to core overload
+- **worldCtor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "dn", "name": "<init>", "descriptor": "(Ljava/io/File;Ljava/lang/String;)V"}
+  - compiled: {"class": "dn", "name": "<init>", "descriptor": "(Ljava/io/File;Ljava/lang/String;)V"}
+  - World constructor (File, String)
 
 ### b1.7.3 (family G3, World=fd)
 
@@ -892,7 +1323,7 @@ M=MATCH X=MISS .=N/A B=BLOCKED
 - **entityClass** verdict=MATCH confidence=HIGH
   - oracle: {"class": "sn", "name": "sn", "descriptor": "class"}
   - compiled: {"class": "sn", "name": "sn", "descriptor": "class"}
-  - WARN 4 candidates ['gs', 'ls', 'sn', 'eq']; scored [(7, 'sn'), (3, 'gs'), (2, 'ls'), (0, 'eq')] -> take sn
+  - WARN 4 candidates ['sn', 'gs', 'ls', 'eq']; scored [(7, 'sn'), (3, 'gs'), (2, 'ls'), (0, 'eq')] -> take sn
 - **setPosRot** verdict=MATCH confidence=MEDIUM
   - oracle: {"class": "sn", "name": "b", "descriptor": "(DDDFF)V"}
   - compiled: {"class": "sn", "name": "b", "descriptor": "(DDDFF)V"}
@@ -929,6 +1360,10 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "sn", "name": "aT", "descriptor": "F"}
   - compiled: {"class": "sn", "name": "aT", "descriptor": "F"}
   - see setPosRot/field-graph chain
+- **iframes** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "sn", "name": "by", "descriptor": "I"}
+  - compiled: {"class": "sn", "name": "by", "descriptor": "I"}
+  - tiny client.tiny: Entity field by binds to mapping slot heartsLife (the invulnerability window)
 - **playSound** verdict=MATCH confidence=HIGH
   - oracle: {"class": "fd", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
   - compiled: {"class": "fd", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
@@ -1034,7 +1469,7 @@ M=MATCH X=MISS .=N/A B=BLOCKED
 - **entityClass** verdict=MATCH confidence=HIGH
   - oracle: {"class": "kj", "name": "kj", "descriptor": "class"}
   - compiled: {"class": "kj", "name": "kj", "descriptor": "class"}
-  - WARN 4 candidates ['rp', 'sz', 'wd', 'kj']; scored [(7, 'kj'), (3, 'sz'), (2, 'wd'), (0, 'rp')] -> take kj
+  - WARN 4 candidates ['rp', 'kj', 'sz', 'wd']; scored [(7, 'kj'), (3, 'sz'), (2, 'wd'), (0, 'rp')] -> take kj
 - **setPosRot** verdict=MATCH confidence=MEDIUM
   - oracle: {"class": "kj", "name": "b", "descriptor": "(DDDFF)V"}
   - compiled: {"class": "kj", "name": "b", "descriptor": "(DDDFF)V"}
@@ -1071,6 +1506,10 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "kj", "name": "v", "descriptor": "F"}
   - compiled: {"class": "kj", "name": "v", "descriptor": "F"}
   - see setPosRot/field-graph chain
+- **iframes** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "kj", "name": "aa", "descriptor": "I"}
+  - compiled: {"class": "kj", "name": "aa", "descriptor": "I"}
+  - tiny client.tiny: Entity field aa binds to mapping slot heartsLife (the invulnerability window)
 - **playSound** verdict=MATCH confidence=HIGH
   - oracle: {"class": "rv", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
   - compiled: {"class": "rv", "name": "a", "descriptor": "(DDDLjava/lang/String;FF)V"}
@@ -1233,6 +1672,50 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "com/mojang/minecraft/e/m", "name": "a", "descriptor": "(FZII)V"}
   - compiled: {"class": "com/mojang/minecraft/e/m", "name": "a", "descriptor": "(FZII)V"}
   - class com/mojang/minecraft/e/m loads /gui/gui.png and exposes (FZII)V
+- **worldClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/level/Level", "name": null, "descriptor": "class"}
+  - compiled: {"class": "com/mojang/minecraft/level/Level", "name": "Level", "descriptor": "class"}
+  - World class from probe+shape scan
+- **blockClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/level/tile/a", "name": null, "descriptor": "class"}
+  - compiled: {"class": "com/mojang/minecraft/level/tile/a", "name": "a", "descriptor": "class"}
+  - static self-array [Lcom/mojang/minecraft/level/tile/a; referenced from World and the item/inventory classes
+- **blockRegistry** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/level/tile/a", "name": "b", "descriptor": "[Lcom/mojang/minecraft/level/tile/a;"}
+  - compiled: {"class": "com/mojang/minecraft/level/tile/a", "name": "b", "descriptor": "[Lcom/mojang/minecraft/level/tile/a;"}
+  - self-array registry field on block class
+- **entityHumanClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/player/Player", "name": null, "descriptor": "class"}
+  - compiled: {"class": "com/mojang/minecraft/player/Player", "name": "Player", "descriptor": "class"}
+  - G1 readable era: Player class
+- **playerField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/level/Level", "name": "player", "descriptor": "Lcom/mojang/minecraft/Entity;"}
+  - compiled: {"class": "com/mojang/minecraft/level/Level", "name": "player", "descriptor": "Lcom/mojang/minecraft/Entity;"}
+  - World field typed as an entity subclass
+- **health** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/mob/Mob", "name": "health", "descriptor": "I"}
+  - compiled: {"class": "com/mojang/minecraft/mob/Mob", "name": "health", "descriptor": "I"}
+  - G1 readable era: Mob.health
+- **invCount** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/player/Inventory", "name": "count", "descriptor": "[I"}
+  - compiled: {"class": "com/mojang/minecraft/player/Inventory", "name": "count", "descriptor": "[I"}
+  - G1 readable era: Inventory.count [I
+- **updateNeighbors** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/level/Level", "name": "updateNeighborsAt", "descriptor": "(IIII)V"}
+  - compiled: {"class": "com/mojang/minecraft/level/Level", "name": "updateNeighborsAt", "descriptor": "(IIII)V"}
+  - public (IIII)V dispatching >=6 sibling (IIII)V neighbour/light updates
+- **setBlockSilent** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/level/Level", "name": "setTileNoUpdate", "descriptor": "(IIII)Z"}
+  - compiled: {"class": "com/mojang/minecraft/level/Level", "name": "setTileNoUpdate", "descriptor": "(IIII)Z"}
+  - G1 readable era: setTileNoUpdate
+- **setBlockNet** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/level/Level", "name": "netSetTile", "descriptor": "(IIII)Z"}
+  - compiled: {"class": "com/mojang/minecraft/level/Level", "name": "netSetTile", "descriptor": "(IIII)Z"}
+  - G1 readable era: netSetTile
+- **setSpawnPos** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "com/mojang/minecraft/level/Level", "name": "setSpawnPos", "descriptor": "(IIIF)V"}
+  - compiled: {"class": "com/mojang/minecraft/level/Level", "name": "setSpawnPos", "descriptor": "(IIIF)V"}
+  - public (IIIF)V spawn placement method on World
 
 ### in-20100223 (family G2, World=net/minecraft/a/a/g)
 
@@ -1382,6 +1865,50 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "net/minecraft/client/c/l", "name": "a", "descriptor": "(F)V"}
   - compiled: {"class": "net/minecraft/client/c/l", "name": "a", "descriptor": "(F)V"}
   - class net/minecraft/client/c/l loads /gui/gui.png and exposes (F)V
+- **worldClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "g", "descriptor": "class"}
+  - World class from probe+shape scan
+- **blockClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/x", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/b/x", "name": "x", "descriptor": "class"}
+  - static self-array [Lnet/minecraft/a/a/b/x; referenced from World and the item/inventory classes
+- **blockRegistry** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/x", "name": "c", "descriptor": "[Lnet/minecraft/a/a/b/x;"}
+  - compiled: {"class": "net/minecraft/a/a/b/x", "name": "c", "descriptor": "[Lnet/minecraft/a/a/b/x;"}
+  - self-array registry field on block class
+- **entityHumanClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/a", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/e/a", "name": "a", "descriptor": "class"}
+  - class holding the InventoryPlayer field
+- **entityLivingClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/e", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/e", "name": "e", "descriptor": "class"}
+  - class persisting the Health field
+- **playerField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "y", "descriptor": "Lnet/minecraft/a/c/e;"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "y", "descriptor": "Lnet/minecraft/a/c/e;"}
+  - World field typed as an entity subclass
+- **thePlayerField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/d", "name": "f", "descriptor": "Lnet/minecraft/client/g/a;"}
+  - compiled: {"class": "net/minecraft/client/d", "name": "f", "descriptor": "Lnet/minecraft/client/g/a;"}
+  - Minecraft field typed as an entity subclass (net/minecraft/client/g/a)
+- **theWorldField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/d", "name": "d", "descriptor": "Lnet/minecraft/a/a/g;"}
+  - compiled: {"class": "net/minecraft/client/d", "name": "d", "descriptor": "Lnet/minecraft/a/a/g;"}
+  - Minecraft field typed as the World class
+- **itemEntityClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/c/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/c/b", "name": "b", "descriptor": "class"}
+  - entity subclass holding an ItemStack field
+- **getBlockIdByte** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "d", "descriptor": "(III)B"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "d", "descriptor": "(III)B"}
+  - public (III)B byte-id accessor distinct from getMeta
+- **setBlockSilent** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "a", "descriptor": "(IIII)Z"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "a", "descriptor": "(IIII)Z"}
+  - silent block write: the (IIII)V core (alpha era) or the (IIII)Z core the setBlock wrapper delegates to (indev)
 
 ### inf-20100327 (family G2, World=net/minecraft/a/a/f)
 
@@ -1439,7 +1966,7 @@ M=MATCH X=MISS .=N/A B=BLOCKED
 - **entityClass** verdict=MATCH confidence=HIGH
   - oracle: {"class": "net/minecraft/a/c/b", "name": null, "descriptor": "class"}
   - compiled: {"class": "net/minecraft/a/c/b", "name": "b", "descriptor": "class"}
-  - WARN 2 candidates ['net/minecraft/a/c/b', 'net/minecraft/a/d/b']; scored [(7, 'net/minecraft/a/c/b'), (4, 'net/minecraft/a/d/b')] -> take net/minecraft/a/c/b
+  - WARN 2 candidates ['net/minecraft/a/d/b', 'net/minecraft/a/c/b']; scored [(7, 'net/minecraft/a/c/b'), (4, 'net/minecraft/a/d/b')] -> take net/minecraft/a/c/b
 - **setPosRot** verdict=MATCH confidence=MEDIUM
   - oracle: {"class": "net/minecraft/a/c/b", "name": "b", "descriptor": "(DDDFF)V"}
   - compiled: {"class": "net/minecraft/a/c/b", "name": "b", "descriptor": "(DDDFF)V"}
@@ -1476,6 +2003,10 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "net/minecraft/a/c/b", "name": "n", "descriptor": "F"}
   - compiled: {"class": "net/minecraft/a/c/b", "name": "n", "descriptor": "F"}
   - see setPosRot/field-graph chain
+- **iframes** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/b", "name": "K", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/c/b", "name": "K", "descriptor": "I"}
+  - tiny client.tiny: Entity field K binds to mapping slot heartsLife (the invulnerability window)
 - **entityType** verdict=MATCH confidence=MEDIUM
   - oracle: {"class": "net/minecraft/a/c/b", "name": "a", "descriptor": "()Ljava/lang/String;"}
   - compiled: {"class": "net/minecraft/a/c/b", "name": "a", "descriptor": "()Ljava/lang/String;"}
@@ -1624,6 +2155,62 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "net/minecraft/a/c/c", "name": null, "descriptor": "class"}
   - compiled: {"class": "net/minecraft/a/c/c", "name": "c", "descriptor": "class"}
   - deepest common ancestor of hostile mobs
+- **scatterClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/c/b/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/c/b/b", "name": "b", "descriptor": "class"}
+  - unique concrete class with a (World, Random, x,y,z...)Z ore scatterer method
+- **worldClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "f", "descriptor": "class"}
+  - World class from probe+shape scan
+- **itemClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/i", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/b/i", "name": "i", "descriptor": "class"}
+  - static self-array [Lnet/minecraft/a/b/i; referenced from ItemStack/InventoryPlayer but not World
+- **itemRegistry** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/i", "name": "b", "descriptor": "[Lnet/minecraft/a/b/i;"}
+  - compiled: {"class": "net/minecraft/a/b/i", "name": "b", "descriptor": "[Lnet/minecraft/a/b/i;"}
+  - self-array registry field on item class
+- **entityHumanClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/a", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/e/a", "name": "a", "descriptor": "class"}
+  - class holding the InventoryPlayer field
+- **entityLivingClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/e", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/e", "name": "e", "descriptor": "class"}
+  - class persisting the Health field
+- **playerField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "c", "descriptor": "Lnet/minecraft/a/c/b;"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "c", "descriptor": "Lnet/minecraft/a/c/b;"}
+  - World field typed as an entity subclass
+- **health** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/e", "name": "W", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/c/e", "name": "W", "descriptor": "I"}
+  - NBT 'Health' binds net/minecraft/a/c/e.W:I inside the entity hierarchy
+- **itemEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/c/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/c/b", "name": "b", "descriptor": "class"}
+  - entity subclass holding an ItemStack field and a (World, x,y,z, ItemStack)V constructor
+- **iInventoryClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/b", "name": "b", "descriptor": "class"}
+  - common interface net/minecraft/a/b of chest+furnace
+- **chunkGenHeight** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/a/e/d", "name": "a", "descriptor": "()V"}
+  - compiled: {"class": "net/minecraft/a/a/e/d", "name": "a", "descriptor": "()V"}
+  - unique non-static ()V on the chunk class (height/terrain pass)
+- **light6** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "e", "descriptor": "(IIII)V"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "e", "descriptor": "(IIII)V"}
+  - public (IIII)V dispatching >=6 sibling (IIII)V neighbour/light updates
+- **observers** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "u", "descriptor": "Ljava/util/List;"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "u", "descriptor": "Ljava/util/List;"}
+  - fallback: World List field referenced by an add/remove method pair on the same non-java type
+- **worldCtor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/f", "name": "<init>", "descriptor": "(Ljava/io/File;Ljava/lang/String;)V"}
+  - compiled: {"class": "net/minecraft/a/a/f", "name": "<init>", "descriptor": "(Ljava/io/File;Ljava/lang/String;)V"}
+  - World constructor (File, String)
 
 ### inf-20100618 (family G2, World=net/minecraft/a/a/g)
 
@@ -1777,6 +2364,70 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "net/minecraft/client/c/m", "name": "a", "descriptor": "(F)V"}
   - compiled: {"class": "net/minecraft/client/c/m", "name": "a", "descriptor": "(F)V"}
   - class net/minecraft/client/c/m loads /gui/gui.png and exposes (F)V
+- **worldClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "g", "descriptor": "class"}
+  - World class from probe+shape scan
+- **blockClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/aa", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/b/aa", "name": "aa", "descriptor": "class"}
+  - static self-array [Lnet/minecraft/a/a/b/aa; referenced from World and the item/inventory classes
+- **blockRegistry** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/b/aa", "name": "b", "descriptor": "[Lnet/minecraft/a/a/b/aa;"}
+  - compiled: {"class": "net/minecraft/a/a/b/aa", "name": "b", "descriptor": "[Lnet/minecraft/a/a/b/aa;"}
+  - self-array registry field on block class
+- **itemClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/b/k", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/b/k", "name": "k", "descriptor": "class"}
+  - static self-array [Lnet/minecraft/a/b/k; referenced from ItemStack/InventoryPlayer but not World
+- **entityListClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/e", "name": "e", "descriptor": "class"}
+  - holder of the entityList lookup method
+- **entityListLookup** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e", "name": "a", "descriptor": "(Lnet/minecraft/a/c/b;)Ljava/lang/String;"}
+  - compiled: {"class": "net/minecraft/a/c/e", "name": "a", "descriptor": "(Lnet/minecraft/a/c/b;)Ljava/lang/String;"}
+  - method mapping net/minecraft/a/c/b -> String (entity id name)
+- **entityHumanClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/e/a", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/e/a", "name": "a", "descriptor": "class"}
+  - class holding the InventoryPlayer field
+- **entityLivingClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/f", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/f", "name": "f", "descriptor": "class"}
+  - class persisting the Health field
+- **playerField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "e", "descriptor": "Lnet/minecraft/a/c/b;"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "e", "descriptor": "Lnet/minecraft/a/c/b;"}
+  - World field typed as an entity subclass
+- **thePlayerField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/d", "name": "f", "descriptor": "Lnet/minecraft/client/g/a;"}
+  - compiled: {"class": "net/minecraft/client/d", "name": "f", "descriptor": "Lnet/minecraft/client/g/a;"}
+  - Minecraft field typed as an entity subclass (net/minecraft/client/g/a)
+- **theWorldField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/client/d", "name": "d", "descriptor": "Lnet/minecraft/a/a/g;"}
+  - compiled: {"class": "net/minecraft/client/d", "name": "d", "descriptor": "Lnet/minecraft/a/a/g;"}
+  - Minecraft field typed as the World class
+- **health** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/c/f", "name": "Z", "descriptor": "I"}
+  - compiled: {"class": "net/minecraft/a/c/f", "name": "Z", "descriptor": "I"}
+  - NBT 'Health' binds net/minecraft/a/c/f.Z:I inside the entity hierarchy
+- **itemEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/c/c/b", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/c/c/b", "name": "b", "descriptor": "class"}
+  - entity subclass holding an ItemStack field and a (World, x,y,z, ItemStack)V constructor
+- **signClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/a/a/b/a/d", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/a/a/b/a/d", "name": "d", "descriptor": "class"}
+  - fallback: unique class referencing the 'Text1' NBT key
+- **fontRendererClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "net/minecraft/client/c/k", "name": null, "descriptor": "class"}
+  - compiled: {"class": "net/minecraft/client/c/k", "name": "k", "descriptor": "class"}
+  - fallback: unique class with IntBuffer + int[] instance fields and a (String)I width method
+- **setBlockSilent** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "net/minecraft/a/a/g", "name": "a", "descriptor": "(IIII)Z"}
+  - compiled: {"class": "net/minecraft/a/a/g", "name": "a", "descriptor": "(IIII)Z"}
+  - silent block write: the (IIII)V core (alpha era) or the (IIII)Z core the setBlock wrapper delegates to (indev)
 
 ### inf-20100629 (family G3, World=ez)
 
@@ -1822,7 +2473,7 @@ M=MATCH X=MISS .=N/A B=BLOCKED
 - **entityClass** verdict=MATCH confidence=HIGH
   - oracle: {"class": "em", "name": null, "descriptor": "class"}
   - compiled: {"class": "em", "name": "em", "descriptor": "class"}
-  - WARN 2 candidates ['ej', 'em']; scored [(7, 'em'), (0, 'ej')] -> take em
+  - WARN 2 candidates ['em', 'ej']; scored [(7, 'em'), (0, 'ej')] -> take em
 - **setPosRot** verdict=MATCH confidence=MEDIUM
   - oracle: {"class": "em", "name": "b", "descriptor": "(DDDFF)V"}
   - compiled: {"class": "em", "name": "b", "descriptor": "(DDDFF)V"}
@@ -1984,3 +2635,111 @@ M=MATCH X=MISS .=N/A B=BLOCKED
   - oracle: {"class": "aa", "name": null, "descriptor": "class"}
   - compiled: {"class": "aa", "name": "aa", "descriptor": "class"}
   - mob registered as type string 'Giant' -> class aa
+- **worldClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ez", "name": "ez", "descriptor": "class"}
+  - World class from probe+shape scan
+- **blockClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gk", "name": null, "descriptor": "class"}
+  - compiled: {"class": "gk", "name": "gk", "descriptor": "class"}
+  - static self-array [Lgk; referenced from World and the item/inventory classes
+- **blockRegistry** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gk", "name": "b", "descriptor": "[Lgk;"}
+  - compiled: {"class": "gk", "name": "b", "descriptor": "[Lgk;"}
+  - self-array registry field on block class
+- **itemClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fz", "name": null, "descriptor": "class"}
+  - compiled: {"class": "fz", "name": "fz", "descriptor": "class"}
+  - static self-array [Lfz; referenced from ItemStack/InventoryPlayer but not World
+- **itemRegistry** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "fz", "name": "b", "descriptor": "[Lfz;"}
+  - compiled: {"class": "fz", "name": "b", "descriptor": "[Lfz;"}
+  - self-array registry field on item class
+- **entityListClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ht", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ht", "name": "ht", "descriptor": "class"}
+  - holder of the entityList lookup method
+- **entityListLookup** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ht", "name": "a", "descriptor": "(Lem;)Ljava/lang/String;"}
+  - compiled: {"class": "ht", "name": "a", "descriptor": "(Lem;)Ljava/lang/String;"}
+  - method mapping em -> String (entity id name)
+- **entityHumanClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gc", "name": null, "descriptor": "class"}
+  - compiled: {"class": "gc", "name": "gc", "descriptor": "class"}
+  - class holding the InventoryPlayer field
+- **entityLivingClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "jv", "name": null, "descriptor": "class"}
+  - compiled: {"class": "jv", "name": "jv", "descriptor": "class"}
+  - class persisting the Health field
+- **playerField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "f", "descriptor": "Lem;"}
+  - compiled: {"class": "ez", "name": "f", "descriptor": "Lem;"}
+  - World field typed as an entity subclass
+- **theWorldField** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "at", "name": "d", "descriptor": "Lez;"}
+  - compiled: {"class": "at", "name": "d", "descriptor": "Lez;"}
+  - Minecraft field typed as the World class
+- **health** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "jv", "name": "ab", "descriptor": "I"}
+  - compiled: {"class": "jv", "name": "ab", "descriptor": "I"}
+  - NBT 'Health' binds jv.ab:I inside the entity hierarchy
+- **getClosestPlayer** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "e", "descriptor": "()Lem;"}
+  - compiled: {"class": "ez", "name": "e", "descriptor": "()Lem;"}
+  - World method returning the nearest entity (em)
+- **itemEntityClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "gt", "name": null, "descriptor": "class"}
+  - compiled: {"class": "gt", "name": "gt", "descriptor": "class"}
+  - entity subclass holding an ItemStack field and a (World, x,y,z, ItemStack)V constructor
+- **iInventoryClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "jy", "name": null, "descriptor": "class"}
+  - compiled: {"class": "jy", "name": "jy", "descriptor": "class"}
+  - common interface jy of chest+furnace
+- **teSet** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "a", "descriptor": "(IIILbf;)V"}
+  - compiled: {"class": "ez", "name": "a", "descriptor": "(IIILbf;)V"}
+  - World method installing a TileEntity at (x,y,z)
+- **signClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "ji", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ji", "name": "ji", "descriptor": "class"}
+  - fallback: unique class referencing the 'Text1' NBT key
+- **mobSpawnerClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "cp", "name": null, "descriptor": "class"}
+  - compiled: {"class": "cp", "name": "cp", "descriptor": "class"}
+  - the only TileEntity subclass that is not chest/furnace/sign (mob spawner)
+- **mobMonsterClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "gl", "name": null, "descriptor": "class"}
+  - compiled: {"class": "gl", "name": "gl", "descriptor": "class"}
+  - deepest common ancestor of hostile mobs only
+- **fontRendererClass** verdict=MATCH confidence=MEDIUM
+  - oracle: {"class": "ef", "name": null, "descriptor": "class"}
+  - compiled: {"class": "ef", "name": "ef", "descriptor": "class"}
+  - fallback: unique class with IntBuffer + int[] instance fields and a (String)I width method
+- **getChunk** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "a", "descriptor": "(II)Ljr;"}
+  - compiled: {"class": "ez", "name": "a", "descriptor": "(II)Ljr;"}
+  - World (II)Ljr; chunk getter; jr declares byte[] storage
+- **chunkGenHeight** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "jr", "name": "a", "descriptor": "()V"}
+  - compiled: {"class": "jr", "name": "a", "descriptor": "()V"}
+  - unique non-static ()V on the chunk class (height/terrain pass)
+- **setBlockSilent** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "b", "descriptor": "(IIII)V"}
+  - compiled: {"class": "ez", "name": "b", "descriptor": "(IIII)V"}
+  - silent block write: the (IIII)V core (alpha era) or the (IIII)Z core the setBlock wrapper delegates to (indev)
+- **loadWorld** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "at", "name": "a", "descriptor": "(Lez;Ljava/lang/String;)V"}
+  - compiled: {"class": "at", "name": "a", "descriptor": "(Lez;Ljava/lang/String;)V"}
+  - Minecraft method taking (World, String, ...) to enter it
+- **saveWorldBody** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "a", "descriptor": "(ZLiw;)V"}
+  - compiled: {"class": "ez", "name": "a", "descriptor": "(ZLiw;)V"}
+  - World save core (Z, iw)V reached from the saveWorld wrapper
+- **progressClass** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "iw", "name": null, "descriptor": "class"}
+  - compiled: {"class": "iw", "name": "iw", "descriptor": "class"}
+  - progress/save context class passed to the save core
+- **worldCtor** verdict=MATCH confidence=HIGH
+  - oracle: {"class": "ez", "name": "<init>", "descriptor": "(Ljava/io/File;Ljava/lang/String;)V"}
+  - compiled: {"class": "ez", "name": "<init>", "descriptor": "(Ljava/io/File;Ljava/lang/String;)V"}
+  - World constructor (File, String)
