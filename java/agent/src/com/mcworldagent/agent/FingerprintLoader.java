@@ -22,7 +22,8 @@ import java.util.jar.JarFile;
  * 无头测试以 classes 目录运行 → 目录枚举。读取一律 getResourceAsStream 之外的
  * 枚举路径（ClassLoader 无法枚举资源名，jar/目录枚举=唯一零硬编码清单方案）。
  * 协议纪律（MiniJson 整数子集）：运行时 JSON 无 null（缺槽=键缺席=表值 null，
- * 档位一形态）、嵌套≤1 层（mobs/hooks 平铺字符串值）、全文≤4096 字符。
+ * 档位一形态）、嵌套≤1 层（mobs/hooks 平铺字符串值）、全文≤4096 字符、
+ * 单个解码字符串≤256（MiniJson MAX_STRING，provenance 补记勿超长，详账进提交消息）。
  * 容错纪律：锚库旧 schema 文件（无 mca-runtime-v1 标记）静默跳过（数据档案，
  * 非运行时件）；带标记但解析/校验失败=响亮跳过（VERSION-JSON-SKIP 日志），
  * 绝不让数据错误崩 premain。ops 键名=VersionTable 字段名，未知键=文件作废
