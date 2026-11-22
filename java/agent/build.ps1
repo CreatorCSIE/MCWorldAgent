@@ -29,6 +29,13 @@ $files = Get-ChildItem -Recurse -Filter *.java $src | ForEach-Object { $_.FullNa
 & (Join-Path $JDK8 'javac.exe') -encoding UTF-8 -cp $asm -d $classes $files
 if ($LASTEXITCODE -ne 0) { throw 'javac failed' }
 
+# --- B5 runtime fingerprint resources (fingerprints/*.json -> jar resources) ---
+$fpSrc = Join-Path $root 'registry\fingerprints'
+$fpDst = Join-Path $classes 'fingerprints'
+New-Item -ItemType Directory -Force $fpDst | Out-Null
+Copy-Item (Join-Path $fpSrc '*.json') $fpDst -Force
+Write-Host "fingerprint resources: $((Get-ChildItem $fpDst -Filter *.json).Count) json -> jar"
+
 # --- jar with Premain-Class manifest ---
 $manifest = Join-Path $out 'MANIFEST.MF'
 @(

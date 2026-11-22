@@ -972,3 +972,32 @@ The following circumstances may justify changing the plan:
 Changes should be documented in the relevant architecture, research or UI notes.
 
 **The actual implementation and verified compatibility take precedence over this initial plan.**
+
+---
+
+## 14. Current Status and Decision Queue (2026-11-22)
+
+This section supersedes the §11 open-questions table as the live status board. Detailed ledgers live in `docs/` (architecture/, research/, compatibility/); commit history carries per-batch verdicts.
+
+### 14.1 Where the agent is
+
+| Layer | Status |
+|---|---|
+| Command channel v1 | Live and hardened: file-queue protocol (protocolVersion 1, tmp/inbox/processed/outbox), tick-boundary execution, 36 ops (place…grow/clear/getbiome), save-policy table, targetGeneration, listops self-surface with shell echo diff-check |
+| Version coverage | 11 fingerprint anchor JSONs; 5 lines live-verified (0327, a1.2.0, b1.2_02, b1.7.3, b1.8.1); c0.30-c/0629/0618/0223/a1.1.2_01/a1.2.6 anchored offline |
+| Industrialization | P1/P2/P3/F4/F1×2/F6-eval all closed: F1 compiler covers 113 facets, F5 matrix 627/627 green, F4 verdict = cliff structure (obfuscation dictionaries regenerate per version; 86 effective tables; anchors cannot cross versions → compiler is the only scalable forensics route); 13 cluster-representative anchor drafts pending promotion |
+| Desktop shell | T1 command panel implemented and live-run passed (shorthand translator + dual-source polling + kill×save race UI); T2 (Editor registry + Three.js real render) and T3 (split/drag/palette/persistence) queued per workbench-model.md |
+| Launcher integration | Attic sidecar `launch` path verified (game start channel); kill/stop semantics deliberately out of shell v1 |
+
+### 14.2 Decision queue (next steps, ordering = user's call)
+
+| # | Item | Nature |
+|---|---|---|
+| D1 | F6 retirement execution batch: superseded annotations + 7 open-case writebacks + gap routing (hooks schema unification, era-break verdicts → pilot ledger) + b1.8 table→JSON transcription | Offline |
+| D2 | Draft promotion first wave: 2-3 cluster representatives per live boot (live harness scripting via Attic sidecar can compress manual-in-loop) | Live |
+| D3 | Version-expansion pilot version pick: 0330 (free anchor reuse via F4 implicit borrowing) vs Classic c0.28 cluster (4 versions / 1 anchor) | Mixed |
+| D4 | T2 kickoff: Editor registry research + chunk export agent batch (read-only hard constraints) + listops v2 capability-metadata batch (T2 prerequisite per workbench-model §6) | Frontend+agent |
+| D5 | Shell alias table small batch (8 modern-name aliases + clear-trap ruling, per channel ledger §6.1) | Offline |
+| D6 | Follow-up ledger: difficulty BLOCKED new criterion, b1.2.zip missing-6-classes borrow-side list, 21 desc-drift items, a1.2.6 headless fixture vs real-jar note | Offline |
+
+Disciplines unchanged: live runs require per-batch user approval; evidence chains archived per run; protocol evolution goes through channel ledger only ("panel follows protocol"); no implicit world generation on read paths.

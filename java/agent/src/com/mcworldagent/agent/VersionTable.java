@@ -118,4 +118,9 @@ public final class VersionTable {
 
     /** spawn 白名单：kind→实体类全名（含 tnt/giant/mob 特例）。 */
     public final Map<String, String> mobClasses = new HashMap<String, String>();
+
+    /** B5 织入锚数据（JSON hooks 段原样入表，key=钩名 SAVE_WORLD 等，
+     *  value=class|name|desc|access|expectedHits|injectMode 平铺六元组）；
+     *  HookTargets.activate 对无硬编码钩组的 JSON 版消费本表（硬编码优先）。 */
+    public final Map<String, String> hookSpecs = new HashMap<String, String>();
 }

@@ -129,12 +129,17 @@ public final class HookTargets {
      * HUD_RENDER 曾列"access 未钉"，A3 后续补钉（见下）：javap 全量反汇编实锤
      * GuiIngame=client.c.m a(F)V public final 0x0011 与 0327 同形，且调用点
      * 441: invokevirtual c.m.a:(F)V 在渲染路径（非 hud-1 误钩的计时类）。
+     * SAVE_WORLD 对齐 F1 裁决 2026-11-21（锚库 inf-20100618.json provenance
+     * "F1 批层级统一"）：包装 f()V→core b(Z)V（javap 实锤：g.b(boolean) 唯一
+     * (Z)V 重载 private，体写 level.dat/RandomSeed NBT；构造器尾 468 iconst_0
+     * 直调+周期检查 i()V 124 处 iconst_0 直调+f()V 壳 iconst_1——core 钩三径
+     * 全汇，0327 把手①同配方；0618 无在册活体线，phase2-0618 历史集成件为
+     * 旧 f()V 形态）。
      */
     public static final Target[] TARGETS_0618 = {
-        // World.saveWorld()V public final（verscan §9；A3 实跑已验：退世界触发，
-        // indirect=false）。InjectMV 按 desc 分支：()V→ALOAD 0+ICONST_0（无布尔参）。
-        new Target("net/minecraft/a/a/g", "f", "()V",
-                0x0011, 1, ENTRY, SAVE_WORLD, "World.saveWorld()"),
+        // World.saveWorld(boolean) private core（F1 裁决统一 core (Z)V，0327 先例同型）。
+        new Target("net/minecraft/a/a/g", "b", "(Z)V",
+                0x0002, 1, ENTRY, SAVE_WORLD, "World.saveWorld(boolean) core"),
         // Minecraft 换世界流程 a(World,String) 入口：slot1=活体 World（a3-0618-1 字节码实锤）。
         new Target("net/minecraft/client/d", "a", "(Lnet/minecraft/a/a/g;Ljava/lang/String;)V",
                 0x0002, 1, ENTRY, LOAD_WORLD, "Minecraft.loadWorld(World,String)"),
@@ -353,10 +358,80 @@ public final class HookTargets {
         return m;
     }
 
-    /** premain 期版本激活（未知 id=保持 0327 组=现行为零变化；A2 后按 GROUPS 表扩展）。 */
+    /** premain 期版本激活（未知 id=保持 0327 组=现行为零变化；A2 后按 GROUPS 表扩展。
+     *  B5：GROUPS 未收录且激活表带 JSON hookSpecs=数据驱动组（0624/a1.0.3 起）；
+     *  硬编码 8 组命中路径零改动。 */
     public static synchronized void activate(String versionId) {
         Target[] group = GROUPS.get(versionId);
+        if (group == null) {
+            group = fromTable(VersionRegistry.byVersionId(versionId));
+        }
         BY_CLASS = index(group == null ? TARGETS_0327 : group);
+    }
+
+    /** JSON hookSpecs→钩组（class|name|desc|access|hits|mode 六元组逐条解析，
+     *  key 升序=确定性）。NEW_CTOR 拒收（六元组无 superOwner 面）；任何违例=
+     *  响亮跳过整组返回 null（回退 0327=改前行为）。 */
+    static Target[] fromTable(VersionTable t) {
+        if (t == null || t.hookSpecs.isEmpty()) {
+            return null;
+        }
+        String[] keys = t.hookSpecs.keySet().toArray(new String[0]);
+        java.util.Arrays.sort(keys);
+        List<Target> out = new ArrayList<Target>();
+        for (int i = 0; i < keys.length; i++) {
+            String key = keys[i];
+            String spec = t.hookSpecs.get(key);
+            String[] p = spec.split("\\|", -1);
+            String hookId = hookIdOf(key);
+            int mode;
+            int access;
+            int hits;
+            try {
+                if (hookId == null || p.length != 6) {
+                    throw new IllegalArgumentException("bad key/arity");
+                }
+                mode = modeOf(p[5]);
+                if (mode < 0 || mode == NEW_CTOR) {
+                    throw new IllegalArgumentException("mode '" + p[5] + "' unsupported from JSON");
+                }
+                access = Integer.parseInt(p[3]);
+                hits = Integer.parseInt(p[4]);
+            } catch (RuntimeException bad) {
+                MCWorldAgent.logTransform("HOOK-JSON-SKIP " + t.versionId + " " + key
+                        + " " + bad + " -> fallback group");
+                return null;
+            }
+            out.add(new Target(p[0], p[1], p[2], access, hits, mode, hookId,
+                    "json:" + t.versionId + ":" + key));
+        }
+        return out.toArray(new Target[0]);
+    }
+
+    /** 钩名 key→hookId 常量白名单（与注入 dispatch 面同名，零特判版本）。 */
+    static String hookIdOf(String key) {
+        if ("SAVE_WORLD".equals(key)) return SAVE_WORLD;
+        if ("WORLD_CTOR".equals(key)) return WORLD_CTOR;
+        if ("LOAD_WORLD".equals(key)) return LOAD_WORLD;
+        if ("RUN_TICK".equals(key)) return RUN_TICK;
+        if ("LOAD_CHUNK".equals(key)) return LOAD_CHUNK;
+        if ("GEN_HEIGHT".equals(key)) return GEN_HEIGHT;
+        if ("GIANT_CTOR".equals(key)) return GIANT_CTOR;
+        if ("HUD_RENDER".equals(key)) return HUD_RENDER;
+        return null;
+    }
+
+    static boolean isKnownHookKey(String key) {
+        return hookIdOf(key) != null;
+    }
+
+    /** 注入位名→常量；未知=-1（装载校验拒收）。 */
+    static int modeOf(String mode) {
+        if ("ENTRY".equals(mode)) return ENTRY;
+        if ("ENTRY_AND_RESULT".equals(mode)) return ENTRY_AND_RESULT;
+        if ("NEW_CTOR".equals(mode)) return NEW_CTOR;
+        if ("EXIT".equals(mode)) return EXIT;
+        return -1;
     }
 
     public static Target[] forClass(String internalName) {

@@ -1,6 +1,7 @@
 package com.mcworldagent.agent;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -21,7 +22,8 @@ import java.util.Map;
  *   tileentity              = tileentity-batch 案卷
  *   meta/getlight/genscatter = meta 轮（含翻案记录）
  * 后续批：A2=0618 表接入（含方法缺失/签名差异/语义差异三档建模）；
- * B5/F6=JSON 装载替换本硬编码工厂（锚库见 java/agent/registry/fingerprints/）。
+ * B5/F6=JSON 装载替换本硬编码工厂（锚库见 java/agent/registry/fingerprints/；
+ * B5 已落地=JSON 并存装载见 static 块尾注，硬编码优先，8 表行为零变化）。
  */
 public final class VersionRegistry {
 
@@ -56,6 +58,22 @@ public final class VersionRegistry {
         // 同表；游戏类表同形已由借 b1.2 tiny 15/15 classlist 核验+方法级对榫实锤，
         // 活体冒烟 el1202-* 复核。
         BY_SHA1.put("093f371e1a05d89664cfb8068d607953687d5d94", T_1202);
+        // B5：JSON 运行时装载（agent 资源 fingerprints/*.json，schema=mca-runtime-v1，
+        // 见 FingerprintLoader）。硬编码优先——已有硬编码表的 versionId/SHA1 不采纳
+        // JSON 表（防回归）；未知版行为不变（无表=activate false→回退默认）。
+        List<VersionTable> json = FingerprintLoader.loadAll();
+        for (int i = 0; i < json.size(); i++) {
+            VersionTable t = json.get(i);
+            if (BY_ID.containsKey(t.versionId) || BY_SHA1.containsKey(t.jarSha1)) {
+                MCWorldAgent.logTransform("VERSION-JSON-SKIP id=" + t.versionId
+                        + " hardcoded-wins");
+                continue;
+            }
+            BY_ID.put(t.versionId, t);
+            BY_SHA1.put(t.jarSha1, t);
+            MCWorldAgent.logTransform("VERSION-JSON-LOADED id=" + t.versionId
+                    + " sha=" + t.jarSha1);
+        }
     }
 
     /** 激活表（premain 前默认 0327=现行为零变化；VersionResolver 命中后切换）。 */
@@ -82,6 +100,11 @@ public final class VersionRegistry {
     /** 按原始 jar SHA1 查表（戒律 14 严格指纹；无匹配=null）。 */
     public static VersionTable byJarSha1(String sha1LowerHex) {
         return sha1LowerHex == null ? null : BY_SHA1.get(sha1LowerHex);
+    }
+
+    /** B5：按版本 id 查表（HookTargets JSON 钩组构造消费；无表=null）。 */
+    public static VersionTable byVersionId(String versionId) {
+        return versionId == null ? null : BY_ID.get(versionId);
     }
 
     private static VersionTable build0327() {
@@ -205,8 +228,11 @@ public final class VersionRegistry {
         t.setBlockM = "c";        // (IIII)Z=setBlockWithNotify 等价（a(IIII)Z+h(IIII)V 通知）
         t.getBlockM = "a";        // (III)I
         t.getMetaM = "d";         // (III)I getBlockData
-        t.saveWorldM = "f";       // ()V public final（candidate；与 0327 a(Z)V 不同型=档位二）
-        t.saveWorldDesc = "()V";
+        t.saveWorldM = "b";       // private b(Z)V core——对齐 F1 裁决 2026-11-21（0618 与 0327
+        t.saveWorldDesc = "(Z)V"; //  saveWorld 调用图同型，统一 core (Z)V 从 0327 先例；javap
+        //  实锤 g.b(boolean) 唯一 (Z)V 重载，体写 level.dat/RandomSeed；构造器尾 468 处
+        //  iconst_0 直调=0327 把手①同配方。0618 无在册活体线，phase2-0618 历史集成件为
+        //  旧包装 f()V 形态。ops 传 false=游戏自身构造尾同参，语义无破坏）
         t.worldTimeF = "b";       // long=time
         t.randSeedF = "m";        // long=seed
         t.spawnXF = "i";          // i/j/k=spawn（⚠️ 与 teGetM=i 方法同名合法——Java 字段/方法分命名空间）
@@ -216,9 +242,9 @@ public final class VersionRegistry {
         t.teGetM = "i";           // (III)ITE（a.a.b.a.a 基类）
 
         // 实体定位面（verscan §3；pos=h/i/j ⚠️ 非 0327 g/h/i，独立钉）
-        t.setPosRotM = "a";       // setPosition (DDD)V（candidate）直写 h/i/j——
-                                  // setPositionAndRotation 面未钉，槽位取 tp 主入口（档位二+三）
-        t.setPosRotDesc = "(DDD)V";
+        t.setPosRotM = "b";       // setPositionAndRotation b(DDDFF)V public final——对齐 F1 扩面
+        t.setPosRotDesc = "(DDDFF)V"; // 翻案 2026-11-20（原钉 a(DDD)V 纯 setPosition，与 a1.2.6
+                                      // 同型重载错位；javap 实锤 b(DDDFF)V 唯一 5 参重载）
         t.posXF = "h";
         t.posYF = "i";
         t.posZF = "j";
