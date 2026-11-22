@@ -1,0 +1,1 @@
+public class eu { public ev[] a = new ev[37]; public ev[] b = new ev[4]; public ev[] c = new ev[4]; public int d; public boolean a(ev s){ for(int i=0;i<a.length;i++){ if(a[i]==null){ a[i]=s; return true; } } return false; } }

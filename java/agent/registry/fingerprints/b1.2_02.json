@@ -118,7 +118,7 @@
     "playerField": "null=档位三（同族：World 无玩家直字段，走 playerEntities 列表回退）",
     "playerListField": "verscan §2 tiny playerEntities=d:List ✓同字母",
     "entityClass": "verscan §1/§3 Entity=nl abstract（implements…；pos aF/aG/aH ⚠️a1.2.0=ap/aq/ar 整体断代）",
-    "explode": "verscan §2 a(Lnl;DDDF)V ✓tiny createExplosion 同字母",
+    "explode": "verscan §2 a(Lnl;DDDF)V→Lmc;（c11b777 翻案，注记滞后修正）tiny createExplosion 同字母",
     "spawnEntity": "verscan §2 a(Lnl;)Z entityJoinedWorld ✓同字母（返回 boolean，getMethod 忽略）",
     "setEntityDead": "verscan §2 d(Lnl;)V 实例 public ✓（Entity 本类 setEntityDead=I()V→**F()V** 断代留档）",
     "entityList": "verscan §2 l()List getLoadedEntityList（⚠️a1.2.0=k）",

@@ -1,0 +1,1 @@
+public class em { public double g,h,i,j,k,l; public double m,n,o; public float p,q,r,s; public boolean dead; public final void b(double x,double y,double z,float ya,float pi){ g=x;h=y;i=z;j=x;k=y;l=z;p=ya;q=pi; } public String r(){ return null; } }

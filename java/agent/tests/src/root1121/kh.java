@@ -1,0 +1,1 @@
+public class kh { public double ah,ai,aj; public double ak,al,am; public double an,ao,ap; public float aq,ar; public int aW; public boolean dead; public cn ag; public void b(double x,double y,double z,float ya,float pi){ ah=ak;ai=al;aj=am; ak=x;al=y;am=z; aq=ya;ar=pi; } }

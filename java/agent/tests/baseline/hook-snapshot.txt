@@ -1,0 +1,111 @@
+== inf-20100327
+gen-height|net/minecraft/a/a/e/d|a|()V|17|1|1|Chunk.generateHeightMap()|null
+giant-ctor|net/minecraft/a/c/a/a|<init>|(Lnet/minecraft/a/a/f;)V|1|0|3|EntityGiant.<init>(World) resurrect|net/minecraft/a/c/a/e
+hud-render|net/minecraft/client/c/m|a|(F)V|17|1|4|GuiIngame.renderGameOverlay(float)|null
+load-chunk|net/minecraft/a/a/e/c|d|(II)Lnet/minecraft/a/a/e/d;|2|1|2|ChunkProviderLoadOrGenerate.loadChunk(int,int)|null
+run-tick|net/minecraft/client/d|h|()V|2|1|1|Minecraft.runTick()|null
+save-world|net/minecraft/a/a/f|a|(Z)V|2|1|1|World.saveWorld(boolean)|null
+world-ctor|net/minecraft/a/a/f|<init>|(Ljava/io/File;Ljava/lang/String;)V|1|1|1|World.<init>(File,String)|null
+  forClass net/minecraft/a/a/e/c n=1
+    load-chunk|net/minecraft/a/a/e/c|d|(II)Lnet/minecraft/a/a/e/d;|2|1|2|ChunkProviderLoadOrGenerate.loadChunk(int,int)|null
+  forClass net/minecraft/a/a/e/d n=1
+    gen-height|net/minecraft/a/a/e/d|a|()V|17|1|1|Chunk.generateHeightMap()|null
+  forClass net/minecraft/a/a/f n=2
+    save-world|net/minecraft/a/a/f|a|(Z)V|2|1|1|World.saveWorld(boolean)|null
+    world-ctor|net/minecraft/a/a/f|<init>|(Ljava/io/File;Ljava/lang/String;)V|1|1|1|World.<init>(File,String)|null
+  forClass net/minecraft/a/c/a/a n=1
+    giant-ctor|net/minecraft/a/c/a/a|<init>|(Lnet/minecraft/a/a/f;)V|1|0|3|EntityGiant.<init>(World) resurrect|net/minecraft/a/c/a/e
+  forClass net/minecraft/client/c/m n=1
+    hud-render|net/minecraft/client/c/m|a|(F)V|17|1|4|GuiIngame.renderGameOverlay(float)|null
+  forClass net/minecraft/client/d n=1
+    run-tick|net/minecraft/client/d|h|()V|2|1|1|Minecraft.runTick()|null
+== inf-20100618
+hud-render|net/minecraft/client/c/m|a|(F)V|17|1|4|GuiIngame.renderGameOverlay(float)|null
+load-world|net/minecraft/client/d|a|(Lnet/minecraft/a/a/g;Ljava/lang/String;)V|2|1|1|Minecraft.loadWorld(World,String)|null
+run-tick|net/minecraft/client/d|l|()V|2|1|1|Minecraft.runTick()|null
+save-world|net/minecraft/a/a/g|b|(Z)V|2|1|1|World.saveWorld(boolean) core|null
+  forClass net/minecraft/a/a/g n=1
+    save-world|net/minecraft/a/a/g|b|(Z)V|2|1|1|World.saveWorld(boolean) core|null
+  forClass net/minecraft/client/c/m n=1
+    hud-render|net/minecraft/client/c/m|a|(F)V|17|1|4|GuiIngame.renderGameOverlay(float)|null
+  forClass net/minecraft/client/d n=2
+    load-world|net/minecraft/client/d|a|(Lnet/minecraft/a/a/g;Ljava/lang/String;)V|2|1|1|Minecraft.loadWorld(World,String)|null
+    run-tick|net/minecraft/client/d|l|()V|2|1|1|Minecraft.runTick()|null
+== inf-20100629
+hud-render|gf|a|(F)V|17|1|4|GuiIngame.renderGameOverlay(float)|null
+load-world|at|a|(Lez;Ljava/lang/String;)V|2|1|1|Minecraft.loadWorld(World,String)|null
+run-tick|at|m|()V|2|1|1|Minecraft.runTick()|null
+save-world|ez|a|(Liw;)V|17|1|1|World.saveWorld(progress) public wrapper|null
+  forClass at n=2
+    load-world|at|a|(Lez;Ljava/lang/String;)V|2|1|1|Minecraft.loadWorld(World,String)|null
+    run-tick|at|m|()V|2|1|1|Minecraft.runTick()|null
+  forClass ez n=1
+    save-world|ez|a|(Liw;)V|17|1|1|World.saveWorld(progress) public wrapper|null
+  forClass gf n=1
+    hud-render|gf|a|(F)V|17|1|4|GuiIngame.renderGameOverlay(float)|null
+== a1.1.2_01
+hud-render|lu|a|(FZII)V|1|1|4|GuiIngame.renderGameOverlay(float,boolean,int,int)|null
+load-world|net/minecraft/client/Minecraft|a|(Lcn;Ljava/lang/String;)V|1|1|1|Minecraft.loadWorld(World,String)|null
+run-tick|net/minecraft/client/Minecraft|i|()V|1|1|1|Minecraft.runTick()|null
+save-world|cn|a|(Lnu;)V|1|1|1|World.saveWorld(progress) public wrapper|null
+world-ctor|cn|<init>|(Ljava/io/File;Ljava/lang/String;)V|1|1|1|World.<init>(File,String)|null
+  forClass cn n=2
+    save-world|cn|a|(Lnu;)V|1|1|1|World.saveWorld(progress) public wrapper|null
+    world-ctor|cn|<init>|(Ljava/io/File;Ljava/lang/String;)V|1|1|1|World.<init>(File,String)|null
+  forClass lu n=1
+    hud-render|lu|a|(FZII)V|1|1|4|GuiIngame.renderGameOverlay(float,boolean,int,int)|null
+  forClass net/minecraft/client/Minecraft n=2
+    load-world|net/minecraft/client/Minecraft|a|(Lcn;Ljava/lang/String;)V|1|1|1|Minecraft.loadWorld(World,String)|null
+    run-tick|net/minecraft/client/Minecraft|i|()V|1|1|1|Minecraft.runTick()|null
+== a1.2.0
+hud-render|mz|a|(FZII)V|1|1|4|GuiIngame.renderGameOverlay(float,boolean,int,int)|null
+load-world|net/minecraft/client/Minecraft|a|(Lcu;Ljava/lang/String;Ldv;)V|1|1|4|Minecraft.changeWorld(World,String,Entity)|null
+run-tick|net/minecraft/client/Minecraft|i|()V|1|1|1|Minecraft.runTick()|null
+save-world|cu|a|(Lph;)V|1|1|1|World.saveWorld(progress) public wrapper|null
+world-ctor|cu|<init>|(Ljava/io/File;Ljava/lang/String;)V|1|1|1|World.<init>(File,String)|null
+  forClass cu n=2
+    save-world|cu|a|(Lph;)V|1|1|1|World.saveWorld(progress) public wrapper|null
+    world-ctor|cu|<init>|(Ljava/io/File;Ljava/lang/String;)V|1|1|1|World.<init>(File,String)|null
+  forClass mz n=1
+    hud-render|mz|a|(FZII)V|1|1|4|GuiIngame.renderGameOverlay(float,boolean,int,int)|null
+  forClass net/minecraft/client/Minecraft n=2
+    load-world|net/minecraft/client/Minecraft|a|(Lcu;Ljava/lang/String;Ldv;)V|1|1|4|Minecraft.changeWorld(World,String,Entity)|null
+    run-tick|net/minecraft/client/Minecraft|i|()V|1|1|1|Minecraft.runTick()|null
+== b1.2_02
+hud-render|pe|a|(FZII)V|1|1|4|GuiIngame.renderGameOverlay(float,boolean,int,int)|null
+load-world|net/minecraft/client/Minecraft|a|(Ldn;Ljava/lang/String;Leu;)V|1|1|4|Minecraft.changeWorld(World,String,Entity)|null
+run-tick|net/minecraft/client/Minecraft|i|()V|1|1|1|Minecraft.runTick()|null
+save-world|dn|a|(Lru;)V|1|1|1|World.saveWorld(progress) public wrapper|null
+world-ctor|dn|<init>|(Ljava/io/File;Ljava/lang/String;)V|1|1|1|World.<init>(File,String)|null
+  forClass dn n=2
+    save-world|dn|a|(Lru;)V|1|1|1|World.saveWorld(progress) public wrapper|null
+    world-ctor|dn|<init>|(Ljava/io/File;Ljava/lang/String;)V|1|1|1|World.<init>(File,String)|null
+  forClass net/minecraft/client/Minecraft n=2
+    load-world|net/minecraft/client/Minecraft|a|(Ldn;Ljava/lang/String;Leu;)V|1|1|4|Minecraft.changeWorld(World,String,Entity)|null
+    run-tick|net/minecraft/client/Minecraft|i|()V|1|1|1|Minecraft.runTick()|null
+  forClass pe n=1
+    hud-render|pe|a|(FZII)V|1|1|4|GuiIngame.renderGameOverlay(float,boolean,int,int)|null
+== b1.7.3
+hud-render|uq|a|(FZII)V|1|1|4|GuiIngame.renderGameOverlay(float,boolean,int,int)|null
+load-world|net/minecraft/client/Minecraft|a|(Lfd;Ljava/lang/String;Lgs;)V|1|1|4|Minecraft.changeWorld(World,String,Entity)|null
+run-tick|net/minecraft/client/Minecraft|k|()V|1|1|1|Minecraft.runTick()|null
+save-world|fd|a|(Lyb;)V|1|1|1|World.saveWorld(progress) public wrapper|null
+  forClass fd n=1
+    save-world|fd|a|(Lyb;)V|1|1|1|World.saveWorld(progress) public wrapper|null
+  forClass net/minecraft/client/Minecraft n=2
+    load-world|net/minecraft/client/Minecraft|a|(Lfd;Ljava/lang/String;Lgs;)V|1|1|4|Minecraft.changeWorld(World,String,Entity)|null
+    run-tick|net/minecraft/client/Minecraft|k|()V|1|1|1|Minecraft.runTick()|null
+  forClass uq n=1
+    hud-render|uq|a|(FZII)V|1|1|4|GuiIngame.renderGameOverlay(float,boolean,int,int)|null
+== b1.8.1
+hud-render|abj|a|(FZII)V|1|1|4|GuiIngame.renderGameOverlay(float,boolean,int,int)|null
+load-world|net/minecraft/client/Minecraft|a|(Lrv;Ljava/lang/String;Lsz;)V|1|1|4|Minecraft.changeWorld(World,String,Entity)|null
+run-tick|net/minecraft/client/Minecraft|k|()V|1|1|1|Minecraft.runTick()|null
+save-world|rv|a|(Lny;)V|1|1|1|World.saveWorld(progress) public wrapper|null
+  forClass abj n=1
+    hud-render|abj|a|(FZII)V|1|1|4|GuiIngame.renderGameOverlay(float,boolean,int,int)|null
+  forClass net/minecraft/client/Minecraft n=2
+    load-world|net/minecraft/client/Minecraft|a|(Lrv;Ljava/lang/String;Lsz;)V|1|1|4|Minecraft.changeWorld(World,String,Entity)|null
+    run-tick|net/minecraft/client/Minecraft|k|()V|1|1|1|Minecraft.runTick()|null
+  forClass rv n=1
+    save-world|rv|a|(Lny;)V|1|1|1|World.saveWorld(progress) public wrapper|null

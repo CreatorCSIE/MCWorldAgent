@@ -672,7 +672,7 @@ public final class VersionRegistry {
         t.itemEntityG = "fh";     // EntityItem (dn,DDD,gm)V ✓（gm 无 (II)V 构造——newStack 走 (III)V）
 
         // 实体/世界事件面（详表 §2/§4）
-        t.explodeM = "a";         // a(Lnl;DDDF)V ✓tiny createExplosion
+        t.explodeM = "a";         // a(Lnl;DDDF)→Explosion（c11b777 翻案 V→Lmc;，返回值不消费）✓tiny
         t.spawnEntityM = "a";     // a(Lnl;)Z entityJoinedWorld ✓
         t.setEntityDeadM = "d";   // d(Lnl;)V 实例 ✓
         t.entityListM = "l";      // l()List getLoadedEntityList（⚠️a1.2.0=k）

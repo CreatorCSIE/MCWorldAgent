@@ -1,0 +1,236 @@
+// [B5-ARCHIVE 2026-11-22] headless test archived from %TEMP%\mcaut (source batch: B b1.8.1); run via java/agent/tests/run.ps1
+package com.mcworldagent.agent;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.List;
+
+/**
+ * b1.8.1 假件 ops 全链实跑（WorldOps 真代码 × root181 假件实形）。
+ * 漂移槽全翻译（详表 §2 vs b1.7.3）：World=rv/Entity=kj/EntityLiving=wd/
+ * EntityPlayer=sz(as=inventory)/InventoryPlayer=ui/ItemStack=ul/Item=sv(f 注册表)/
+ * EntityList=um/WorldInfo=rl/IProgressUpdate=ny/TileEntity=ij/EntityItem=ee/
+ * EntityCreature=tz/pig=mx/sheep=bx/tnt=ze/giant=hv；playerEntities d→i、
+ * loadedEntityList b→g、difficulty q→v、pos aM-aO→o/p/q、mot→r/s/t、look→u/v、
+ * health Y→bz、iframes by→aa、entityJoinedWorld b→a（回漂）、setEntityDead e→b（回漂）。
+ */
+public class FakeOps181Test {
+
+    static int checks = 0;
+
+    static void ok(boolean c, String msg) {
+        checks++;
+        if (!c) {
+            throw new AssertionError(msg);
+        }
+    }
+
+    static void set(Object o, String f, Object v) throws Exception {
+        Field fd = o.getClass().getField(f);
+        fd.setAccessible(true);
+        fd.set(o, v);
+    }
+
+    static Object getv(Object o, String f) throws Exception {
+        Field fd = o.getClass().getField(f);
+        fd.setAccessible(true);
+        return fd.get(o);
+    }
+
+    // rl 私有面直读（WorldInfo 分支对账通道=与 WorldOps 同配方 getDeclaredField+setAccessible）
+    static Object pri(Object o, String f) throws Exception {
+        Field fd = o.getClass().getDeclaredField(f);
+        fd.setAccessible(true);
+        return fd.get(o);
+    }
+
+    interface RunnableEx {
+        void run() throws Exception;
+    }
+
+    static void unsupported(String op, RunnableEx r, String slot) {
+        checks++;
+        try {
+            r.run();
+            throw new AssertionError(op + " should UnsupportedOp(" + slot + ")");
+        } catch (WorldOps.UnsupportedOp u) {
+            String m = u.getMessage();
+            if (!m.contains("slot " + slot) || !m.contains("b1.8.1")) {
+                throw new AssertionError(op + " msg=" + m);
+            }
+        } catch (Exception e) {
+            throw new AssertionError(op + " wrong: " + e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void main(String[] a) throws Exception {
+        ok(VersionRegistry.activate("b1.8.1"), "activate 181");
+        HookTargets.activate("b1.8.1");
+
+        // ---- 布景：rv 玩家面=字段 i=playerEntities；玩家 sz 构造 (rv)V ----
+        Class<?> wc = Class.forName("rv");
+        Object w = wc.getConstructor().newInstance();
+        Object player = Class.forName("sz").getConstructor(wc).newInstance(w);
+        ((List<Object>) getv(w, "i")).add(player);
+        ok(((List<Object>) getv(w, "i")).size() == 1, "playerEntities i 首件=活体玩家");
+        WorldOps.resolve(wc);
+
+        // ---- 写读面（主写面断代=g(IIII)Z，裸 d/e 同形陷阱群留档假件）----
+        ok(WorldOps.setBlock(w, 5, 64, 5, 1), "place g(IIII)Z");
+        ok(WorldOps.getBlockId(w, 5, 64, 5) == 1, "getblock a(III)I");
+        WorldOps.setBlock(w, 5, 64, 5, 0);
+        ok(WorldOps.getBlockId(w, 5, 64, 5) == 0, "dig");
+        ok(WorldOps.getblocks(w, 0, 1, 0, 1, 2, 1).startsWith("getblocks 2x2x2 rle="), "getblocks");
+        ok(WorldOps.getMeta(w, 5, 64, 5) == 0, "getmeta e(III)I");
+
+        // ---- tp：i.get(0) 回退 + b(DDDFF)V 双写 o/p/q（pos 断代面 aM-aO→o/p/q）----
+        ok(WorldOps.tp(w, 10, 20, 30).startsWith("teleported"), "tp via i.get(0)");
+        ok(((Double) getv(player, "o")).doubleValue() == 10.5
+                && ((Double) getv(player, "p")).doubleValue() == 20.0
+                && ((Double) getv(player, "q")).doubleValue() == 30.5, "tp pos o/p/q");
+        ok(((Double) getv(player, "r")).doubleValue() == 0.0
+                && ((Double) getv(player, "s")).doubleValue() == 0.0
+                && ((Double) getv(player, "t")).doubleValue() == 0.0, "tp mot r/s/t zeroed");
+
+        // ---- setlook/setmotion（u/v、r/s/t 直写）----
+        ok(WorldOps.setLook(w, 90, -10).startsWith("look yaw"), "setlook");
+        ok(((Float) getv(player, "u")).floatValue() == 90f
+                && ((Float) getv(player, "v")).floatValue() == -10f, "setlook u/v");
+        WorldOps.setMotion(w, 500, 1000, -500);
+        ok(((Double) getv(player, "r")).doubleValue() == 0.5
+                && ((Double) getv(player, "s")).doubleValue() == 1.0
+                && ((Double) getv(player, "t")).doubleValue() == -0.5, "setmotion r/s/t");
+
+        // ---- WorldInfo 链重点：settime/setspawn 经 rv.x()Lrl 五 private 槽读写 ----
+        WorldOps.setTime(w, 1000L);
+        Object info = wc.getMethod("x").invoke(w);
+        ok(info.getClass().getName().equals("rl"), "rv.x() 返回 rl（=ei 复刻）");
+        ok(((Long) pri(info, "e")).longValue() == 1000L, "settime 写 rl.e private 经 setAccessible");
+        WorldOps.setSpawn(w, 8, 64, 8);
+        ok(((Integer) pri(info, "b")) == 8 && ((Integer) pri(info, "c")) == 64
+                && ((Integer) pri(info, "d")) == 8, "setspawn 写 rl.b/c/d");
+        ok(pri(info, "a") instanceof Long && ((Long) pri(info, "a")).longValue() == 0L,
+                "seed=rl.a 非 rv 面");
+
+        // ---- getinfo（同走 timeHolder=WorldInfo 对象；difficulty v 断代）----
+        set(w, "v", 2);
+        String got = WorldOps.getInfo(w);
+        ok(got.equals("time=1000 spawnX=8 spawnY=64 spawnZ=8 seed=0 difficulty=2"),
+                "getinfo 全串对账 " + got);
+
+        // ---- getlight n(III)I ----
+        ok(WorldOps.getLightValue(w, 5, 64, 5) == 15, "getlight n(III)I");
+
+        // ---- saveWorld：a(Lny;)V 传 null（IProgressUpdate yb→ny 断代，null 守卫五连用）----
+        WorldOps.saveWorld(w);
+        ok((Integer) getv(w, "saveCalls") == 1, "save via a(Lny;)V wrapper->body");
+        ok((Integer) getv(w, "levelSaves") == 1, "body 调 saveLevel r()V");
+
+        // ---- getbiome：rv.a()Lnu -> nu.a(II)Lvh -> vh.l 三锚链（全断代）----
+        String b1 = WorldOps.biomeAt(w, 100, 100);
+        String b2 = WorldOps.biomeAt(w, -100, -100);
+        String b3 = WorldOps.biomeAt(w, 0, 0);
+        ok(b1 != null && b1.length() > 0, "getbiome 非空串 " + b1);
+        ok("Desert".equals(b1), "getbiome (100,100)=Desert got " + b1);
+        ok("Ice Desert".equals(b2), "getbiome (-100,-100)=Ice Desert got " + b2);
+        ok("Plains".equals(b3), "getbiome (0,0)=Plains got " + b3);
+
+        // ---- 物品栏面（sz.as→ui；ul.d public 本版无 private 断代）----
+        Object inv = getv(player, "as");
+        Object[] mainArr = (Object[]) getv(inv, "a");
+        ok(mainArr.length == 36, "invMain ul[36]");
+        Constructor<?> isCtor3 = Class.forName("ul").getConstructor(int.class, int.class, int.class);
+        mainArr[3] = isCtor3.newInstance(5, 1, 0);
+        ok(WorldOps.inv(w).equals("3=1x5 cur=0"), "inv via i.get(0)");
+        // give dmg=0：ul 无 (II)V——newStack 走 (III)V 等价配方
+        Object[] reg = (Object[]) Class.forName("sv").getField("f").get(null);
+        Constructor<?> svCtor = Class.forName("sv").getDeclaredConstructor(int.class);
+        svCtor.setAccessible(true);
+        reg[5] = svCtor.newInstance(5);
+        ok(WorldOps.give(w, 5, 2, 0).startsWith("gave"), "give via newStack (III)V");
+        ok("gave 5 x1 dmg=3".equals(WorldOps.give(w, 5, 1, 3)), "give dmg=3");
+        ok(WorldOps.inv(w).contains(" d3"), "inv reads ul.d");
+        ok(WorldOps.clearInv(w).startsWith("cleared 36+4"), "clearinv 36+4");
+
+        // ---- health 面（wd.bz 消费，Y→bz 断代）----
+        ok(WorldOps.getPlayer(w).contains("health=10"), "getplayer");
+        ok("health 10 -> 15".equals(WorldOps.setHealth(w, 15)), "sethealth");
+        ok((Integer) getv(player, "bz") == 15, "sethealth 直写 bz");
+
+        // ---- invulnerable（iframesF=aa——kj.aa 直写，by→aa 断代）----
+        ok("iframes 0 -> 100".equals(WorldOps.invulnerable(w, 100)), "invulnerable via kj.aa");
+        ok((Integer) getv(player, "aa") == 100, "invulnerable 直写 aa");
+
+        // ---- entitylist 双轨：um.b(kj) 查表 + 类简名保底 + [h=] 条件段（ze 非 wd 系）----
+        Class<?> umCls = Class.forName("um");
+        java.util.Map<Object, Object> names =
+                (java.util.Map<Object, Object>) umCls.getField("names").get(null);
+        names.put(Class.forName("mx"), "Pig");
+        names.put(Class.forName("ze"), "PrimedTnt");
+        Object pig = Class.forName("mx").getConstructor(wc).newInstance(w);
+        set(pig, "o", 1.2); set(pig, "p", 64.0); set(pig, "q", 2.7);
+        Object tnt = Class.forName("ze").getConstructor(wc, double.class, double.class, double.class)
+                .newInstance(w, 0.0, 0.0, 0.0);
+        // ghost=sn（Creeper 具体件；tz=abstract 不可实例化——el181-1 断代判决）未注册→类简名保底
+        Object ghost = Class.forName("sn").getConstructor(wc).newInstance(w);
+        Method addE = wc.getMethod("a", Class.forName("kj")); // entityJoinedWorld a(Lkj;)Z 回漂
+        addE.invoke(w, pig);
+        addE.invoke(w, tnt);
+        addE.invoke(w, ghost);
+        String el = WorldOps.entityList(w);
+        ok(el.contains("Pig@1.2,64.0,2.7[h=10]"), "entitylist 查表+health 段 " + el);
+        ok(el.contains("PrimedTnt@0.0,0.0,0.0") && !el.contains("PrimedTnt@0.0,0.0,0.0[h="),
+                "entitylist tnt 无 h 段（ze 非 wd 系）");
+        ok(el.contains("sn@"), "entitylist 类简名保底 sn");
+
+        // ---- spawn/drop/explode/playsound/clear ----
+        String sp = WorldOps.spawn(w, "sheep", 1, 64, 1);
+        ok(sp.startsWith("spawned sheep"), "spawn " + sp);
+        List<?> pList = (List<?>) getv(w, "g");
+        ok(pList.size() == 4, "spawn 入列 loadedEntityList g（p()List 同表）");
+        // mob 槽已摘（el181-1 判决：真 tz=EntityCreature abstract，b1.8+ 无泛用可实例化 mob 基类）
+        try {
+            WorldOps.spawn(w, "mob", 1, 64, 1);
+            ok(false, "spawn mob must reject (slot removed)");
+        } catch (WorldOps.Rejected r) {
+            ok(String.valueOf(r.getMessage()).contains("bad-kind: mob"), "spawn mob=REJECTED bad-kind");
+        }
+        ok(WorldOps.spawn(w, "giant", 1, 64, 1).startsWith("spawned giant"), "spawn giant=hv 构造健在");
+        // tnt 重点：FFF miss→DDD fallback（断代延续）
+        ok(WorldOps.spawn(w, "tnt", 1, 64, 1).startsWith("spawned tnt"), "spawn tnt=ze DDD fallback");
+        ok(WorldOps.drop(w, 5, 1, 0, 1, 64, 1).startsWith("dropped"), "drop ee");
+        Object item = pList.get(pList.size() - 1);
+        ok(item.getClass().getName().equals("ee"), "drop 实体=ee");
+        names.put(Class.forName("ee"), "Item");
+        ok(WorldOps.entityList(w).contains("Item@"), "entitylist Item=ee 注册名");
+        // explode：返回 zf 对象但 invoke 面不消费返回值（V→zf 断代留档）
+        ok(WorldOps.explode(w, 1, 64, 1, 1).startsWith("exploded"), "explode");
+        ok((Integer) getv(w, "expl") == 1, "explode 调用面 a(Lkj;DDDF)Lzf");
+        ok(WorldOps.playSound(w, 1, 64, 1, "random.fizz", 5, 10).startsWith("played"), "playsound");
+        ok((Integer) getv(w, "snd") == 1, "playsound 调用面 a(DDD,String,FF)V");
+        // clear 核心：setEntityDead=实例 b(Lkj)V 回漂——置 G=dead
+        ok(WorldOps.clearGroundItems(w, null, null, null, null).startsWith("cleared 1"),
+                "clear ee 实体（loaded 仅 ee 命中）");
+        ok((Boolean) getv(item, "G"), "setEntityDead 实例 b(Lkj)V 置 G=dead");
+        ok((Integer) getv(w, "killCalls") == 1, "clear 收 world 调用（实例版对账）");
+
+        // ---- UNSUPPORTED 响亮（6 件；同 b1.7.3 判决）----
+        set(w, "teStore", Class.forName("ij").getConstructor().newInstance());
+        unsupported("setmeta", new RunnableEx() {
+            public void run() throws Exception { WorldOps.setMeta(w, 1, 64, 1, 1); } }, "observersF");
+        unsupported("grow", new RunnableEx() {
+            public void run() throws Exception { WorldOps.growCrops(w, 1, 64, 1); } }, "idCrops");
+        unsupported("getchest", new RunnableEx() {
+            public void run() throws Exception { WorldOps.getInv(w, 1, 64, 1); } }, "invSizeM");
+        unsupported("setchest", new RunnableEx() {
+            public void run() throws Exception { WorldOps.setInv(w, 1, 64, 1, 0, 5, 1, 0, false); } }, "invSizeM");
+        unsupported("getfurnace", new RunnableEx() {
+            public void run() throws Exception { WorldOps.getFurnace(w, 1, 64, 1); } }, "teBurnF");
+        unsupported("genscatter", new RunnableEx() {
+            public void run() throws Exception { WorldOps.genScatter(w, 14, 1, 64, 1, null); } }, "scatterClassG");
+
+        System.out.println("FakeOps181Test PASS (" + checks + " checks)");
+    }
+}
