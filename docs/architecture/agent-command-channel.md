@@ -151,9 +151,9 @@ save 策略（评审采纳，按操作类型）：
 |---|---|---|---|
 | kill（实体） | 可做 | — | **零新取证**（chair-1 setEntityDead 泛化，去 instanceof EntityItem 过滤；补 spawn 无撤销的洞） |
 | clone（区域复制含 meta） | 可做 | — | **零新取证**（getblocks+place/setmeta 纯组合，cap 4096 同 fill；fixture 构建直接削活体批成本） |
-| particle（可视标记） | 待验 | — | 需新取证（0327 Effect/加粒子入口） |
+| particle（可视标记） | **可做**（用户钉"有接口"+2026-11-23 javap 实锤） | 0327 起全线（名字集逐版增长） | **零新取证**：入口=Level `a.a.f.a(Ljava/lang/String;DDDDDD)V`（spawnParticle，public final，与已钉 playsound `a(DDD,String,FF)V` 同 Level 邻位）；分发=观察者接口 `a.a.a`（Level u=observers 已钉面）→客户端实现 `client.a.b`；0327 名字集 7=**bubble/smoke/explode/flame/lava/splash/largesmoke**（switch 字面量抠出）；纯反射调用零新注入面 |
 | setdifficulty | 可做 | — | 字段已钉（GameSettings.difficulty 客户端全局，**不进 level.dat** 语义须标清） |
-| weather | 待验 | **b1.5+ 确认存在**（用户钉） | 0327 有无 raining 字段待 javap |
+| weather | **不存在**（2026-11-23 javap 全 jar 零命中结案，terrain.png 子串假阳性已剔） | **b1.5+ 确认存在**（用户钉） | **取证已够（b1.7.3 旁证，用户钉+verscan 在档）**：World `rainingStrength=j:F`/`thunderingStrength=l:F` 浮值面 + 布尔/时间键在 WorldInfo（level.dat）=两层分工；biome enableRain/enableSnow 管降水类型。**b1.7.3/b1.8.1 线在册活体→weather 可作门控 op 首发实装，不必等 b1.5 扩线**（b1.5 版线后补时按 F4 同家族借表） |
 | gamemode | 不存在 | **b1.8+**（creative 旗标） | 版本门控候选 |
 | xp | 不存在 | **b1.8+**（经验字段，getplayer 同族） | 版本门控候选 |
 | effect | 不存在 | **b1.9-pre2+**（MobEffect 挂 EntityLiving；与 invulnerable=hurtResistantTime 不同面不互替） | 版本门控候选 |
