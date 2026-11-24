@@ -18,6 +18,8 @@ public class fd {
     public List d;              // playerEntities
     public List e;              // 其余 List 面留档
     public int q;               // difficultySetting
+    public float j;             // rainingStrength（D8 weather，verscan b1.7.3 锚）
+    public float l;             // thunderingStrength
     private long H;             // 留档 private 面（访问位=钉表实形）
     private long I;
 

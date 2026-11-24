@@ -49,7 +49,9 @@ public final class CommandChannel {
                     "explode", "spawn", "drop", "invulnerable",
                     "getchest", "setchest", "getfurnace",
                     "entitylist", "playsound", "setarmor", "clearinv", "replace",
-                    "grow", "clear", "getbiome"));
+                    "grow", "clear", "getbiome",
+                    // D8 无头半壁（案卷 §6.1 零取证四连+门控首发）
+                    "kill", "clone", "setdifficulty", "weather"));
 
     /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。包内可见=守卫批一致性直测面。 */
     static final String LISTOPS =
@@ -75,6 +77,10 @@ public final class CommandChannel {
           + "replace(x1,y1,z1,x2,y2,z2,oldId,newId)w[cap4096];"
           + "grow(x,y,z)w[crops59-only;sapling=UNSUPPORTED-Beta1.2];"
           + "clear([x,y,z,r0..64])t[EntityItem-only];"
+          + "kill(x,y,z,r0..64)w[all-but-player;Alpha+ entities persist via save];"
+          + "clone(x1,y1,z1,x2,y2,z2,tx,ty,tz)w[cap4096;meta silent|id-only per slots];"
+          + "setdifficulty(level0..3)w[level-side;gameplay gate=client GameSettings];"
+          + "weather(raining,thunder bool)w[b1.5+ gated capWeather;World floats];"
           + "getbiome(x,z)r[a1.2.0+;beta 前版本 UNSUPPORTED]";
 
     private static String cmdDirArg;
@@ -514,6 +520,39 @@ public final class CommandChannel {
             return WorldOps.clearGroundItems(world, Integer.valueOf(x), Integer.valueOf(y),
                     Integer.valueOf(z), Integer.valueOf(r));
         }
+        // D8 无头半壁四 op（案卷 §6.1）：kill=clear 泛化（Alpha+ 实体随 save 落盘=写侧）；
+        // clone=已钉面纯组合；setdifficulty=World 字段面（语义标清 level-side）；
+        // weather=门控首发（capWeather 未真→UNSUPPORTED 响亮，L0 线不静默）。
+        if ("kill".equals(c.op)) {
+            int x = intArg(a, "x");
+            int y = intArg(a, "y");
+            int z = intArg(a, "z");
+            int r = intArg(a, "r");
+            return WorldOps.killEntities(world, Integer.valueOf(x), Integer.valueOf(y),
+                    Integer.valueOf(z), Integer.valueOf(r)) + saveSuffix(world, c);
+        }
+        if ("clone".equals(c.op)) {
+            int x1 = intArg(a, "x1");
+            int y1 = intArg(a, "y1");
+            int z1 = intArg(a, "z1");
+            int x2 = intArg(a, "x2");
+            int y2 = intArg(a, "y2");
+            int z2 = intArg(a, "z2");
+            int tx = intArg(a, "tx");
+            int ty = intArg(a, "ty");
+            int tz = intArg(a, "tz");
+            return WorldOps.cloneRegion(world, x1, y1, z1, x2, y2, z2, tx, ty, tz)
+                    + saveSuffix(world, c);
+        }
+        if ("setdifficulty".equals(c.op)) {
+            int level = intArg(a, "level");
+            return WorldOps.setDifficulty(world, level) + saveSuffix(world, c);
+        }
+        if ("weather".equals(c.op)) {
+            boolean raining = boolArg(a, "raining");
+            boolean thunder = optionalBoolArg(a, "thunder", false);
+            return WorldOps.weather(world, raining, thunder) + saveSuffix(world, c);
+        }
         if ("listops".equals(c.op)) {
             return LISTOPS; // agent 侧自省，零游戏调用（世界未捕获仍 not-ready——v1 从简）
         }
@@ -621,6 +660,27 @@ public final class CommandChannel {
             throw new WorldOps.Rejected("arg '" + k + "' must be string");
         }
         return (String) v;
+    }
+
+    /** 布尔参数（weather.raining，D8）：MiniJson 布尔子集原生支持。 */
+    private static boolean boolArg(Map<String, Object> a, String k) throws WorldOps.Rejected {
+        Object v = a == null ? null : a.get(k);
+        if (!(v instanceof Boolean)) {
+            throw new WorldOps.Rejected("arg '" + k + "' must be boolean");
+        }
+        return ((Boolean) v).booleanValue();
+    }
+
+    private static boolean optionalBoolArg(Map<String, Object> a, String k, boolean def)
+            throws WorldOps.Rejected {
+        Object v = a == null ? null : a.get(k);
+        if (v == null) {
+            return def;
+        }
+        if (!(v instanceof Boolean)) {
+            throw new WorldOps.Rejected("arg '" + k + "' must be boolean");
+        }
+        return ((Boolean) v).booleanValue();
     }
 
     /** 写操作默认存盘（§3：save=false 显式关闭），返回 detail 后缀。 */

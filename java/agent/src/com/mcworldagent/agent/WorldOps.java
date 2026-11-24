@@ -134,6 +134,10 @@ public final class WorldOps {
     private static final String M_GET_LIGHT = T.getLightM;
     private static final String F_OBSERVERS = T.observersF;
     private static final String F_DIFFICULTY = T.difficultyF;
+    // D8（案卷 §6.1）：weather 门控首发=capWeather Boolean 槽；浮值面槽名+能力闸
+    private static final Boolean CAP_WEATHER = T.capWeather;
+    private static final String F_RAIN_STR = T.rainStrF;
+    private static final String F_THUNDER_STR = T.thunderStrF;
     private static final String G_SCATTER_CLASS = T.scatterClassG;
 
     // biome 面（a1.2.0 首版；读回链三锚 verscan/a1.2.0_02.md §8：World.a()Lpb;→pb.a(II)Lfy;
@@ -198,6 +202,8 @@ public final class WorldOps {
     private static volatile Method getLight;
     private static volatile Field observers;  // World.u private List
     private static volatile Field difficulty; // World.d public int
+    private static volatile Field rainStr;    // World.rainingStrength F（weather，173=j）
+    private static volatile Field thunderStr; // World.thunderingStrength F（173=l）
     private static volatile Method biomeWcm;  // World.a()Lpb;（resolve 期钉，槽 null=跳过）
     /** A2 档位一：resolve 逐槽跳 null 后，缓存判据不能再用单槽非空（用完成标志）。 */
     private static volatile boolean resolved;
@@ -326,6 +332,12 @@ public final class WorldOps {
             }
             if (F_DIFFICULTY != null) {
                 difficulty = wc.getField(F_DIFFICULTY);
+            }
+            if (F_RAIN_STR != null) {
+                rainStr = wc.getField(F_RAIN_STR);
+            }
+            if (F_THUNDER_STR != null) {
+                thunderStr = wc.getField(F_THUNDER_STR);
             }
             if (M_BIOME_WCM != null) {
                 biomeWcm = wc.getMethod(M_BIOME_WCM);
@@ -852,6 +864,8 @@ public final class WorldOps {
      * （加入即活，主循环每 tick 遍历）；**0327 实体不落盘=恒临时态**（存退即失，save 忽略）。
      */
     public static String spawn(Object world, String kind, int x, int y, int z) throws Exception {
+        // D8 kind 大小写归一化（"Pig"→"pig"；表键恒 lowercase）
+        kind = kind.trim().toLowerCase(java.util.Locale.ROOT);
         require("spawnEntityM", M_SPAWN_ENTITY); // 0618 未钉→UNSUPPORTED（spec §3）
         if (MOB_CLASSES.isEmpty()) {
             // 空表=版本面无实体表（档位一），非参数错——响亮报槽名不报 bad-kind
@@ -1466,6 +1480,154 @@ public final class WorldOps {
         return "cleared " + n + " ground items"
                 + (radius ? " within r=" + rad.intValue() + " of "
                         + cx.intValue() + "," + cy.intValue() + "," + cz.intValue() : "");
+    }
+
+    /**
+     * 实体击杀（op=kill，案卷 §6.1 零取证四连第①条）：clear 同链路去
+     * EntityItem 过滤（chair-1 setEntityDead 面），活体玩家按身份豁免
+     * （自杀面≠命令语义）。圆柱过滤/档位二 static/instance 两面与 clear 全同。
+     * Alpha+ 实体随 save 落盘（0327 不写实体=旧世代特性，账目归 save 字段）。
+     */
+    public static String killEntities(Object world, Integer cx, Integer cy, Integer cz,
+                                      Integer rad) throws Exception {
+        require("setEntityDeadM", M_SET_ENTITY_DEAD);
+        require("entityListM", M_ENTITY_LIST);
+        Method kill = setEntityDeadM;
+        if (kill == null) {
+            try {
+                kill = world.getClass().getMethod(M_SET_ENTITY_DEAD, entityClass);
+            } catch (NoSuchMethodException e) {
+                throw new UnsupportedOp("setEntityDead: " + e);
+            }
+            setEntityDeadM = kill;
+        }
+        boolean radius = cx != null;
+        if (radius) {
+            if (cy == null || cz == null || rad == null) {
+                throw new Rejected("x/y/z/r must come together");
+            }
+            validateCoords(cx.intValue(), cy.intValue(), cz.intValue());
+            if (rad.intValue() < 0 || rad.intValue() > 64) {
+                throw new Rejected("r-out-of-range [0,64]: " + rad.intValue());
+            }
+        }
+        Method listM = entityListM;
+        if (listM == null) {
+            try {
+                listM = world.getClass().getMethod(M_ENTITY_LIST);
+            } catch (NoSuchMethodException e) {
+                throw new UnsupportedOp("entity list: " + e);
+            }
+            entityListM = listM;
+        }
+        List<?> es = (List<?>) listM.invoke(world);
+        Object player = worldPlayer(world);
+        int n = 0;
+        for (Object e : es) {
+            if (e == player) {
+                continue; // 活体玩家豁免
+            }
+            if (radius) {
+                double dx = ePosX.getDouble(e) - (cx.intValue() + 0.5);
+                double dy = ePosY.getDouble(e) - cy.intValue();
+                double dz = ePosZ.getDouble(e) - (cz.intValue() + 0.5);
+                double horiz = Math.sqrt(dx * dx + dz * dz);
+                if (horiz > rad.doubleValue() || Math.abs(dy) > rad.doubleValue()) {
+                    continue;
+                }
+            }
+            kill.invoke(java.lang.reflect.Modifier.isStatic(kill.getModifiers()) ? null : world, e);
+            n++;
+        }
+        if (n == 0) {
+            throw new NoChange("killed 0");
+        }
+        return "killed " + n + " entities"
+                + (radius ? " within r=" + rad.intValue() + " of "
+                        + cx.intValue() + "," + cy.intValue() + "," + cz.intValue() : "");
+    }
+
+    /**
+     * 天气控制（op=weather，D8 门控首发，案卷 §6.1：b1.5+）。门=capWeather
+     * Boolean 槽（null/FALSE=响亮 UNSUPPORTED，不猜版本）；写面=World 浮值
+     * （1.0/0.0 满值，不模拟游戏渐变坡道）；level.dat 布尔键由游戏存盘侧写。
+     */
+    public static String weather(Object world, boolean raining, boolean thunder) throws Exception {
+        if (!Boolean.TRUE.equals(CAP_WEATHER)) {
+            throw new UnsupportedOp("weather: version-gated b1.5+ (capWeather unset for "
+                    + T.versionId + ")");
+        }
+        require("rainStrF", F_RAIN_STR);
+        require("thunderStrF", F_THUNDER_STR);
+        rainStr.setFloat(world, raining ? 1.0F : 0.0F);
+        thunderStr.setFloat(world, thunder ? 1.0F : 0.0F);
+        return "weather raining=" + raining + " thunder=" + thunder
+                + " (World float face; level.dat keys via game save)";
+    }
+
+    /**
+     * 难度写（op=setdifficulty，案卷 §6.1 零取证四连第④条）。写面=World 难度
+     * 字段（difficultyF 槽已钉，getinfo 同面）；⚠️ 语义标清：游戏性难度闸在
+     * 客户端 GameSettings 侧，本字段写=level.dat 面（meta 轮取证：写不改变
+     * 游戏行为）。GameSettings 面需 Minecraft 实例取证=后续批。
+     */
+    public static String setDifficulty(Object world, int level) throws Exception {
+        require("difficultyF", F_DIFFICULTY);
+        if (level < 0 || level > 3) {
+            throw new Rejected("difficulty-out-of-range [0,3]: " + level);
+        }
+        int old = difficulty.getInt(world);
+        difficulty.setInt(world, level);
+        return "difficulty " + old + " -> " + level + " (level-side; gameplay gate=client"
+                + " GameSettings, World-field write ineffective per meta round)";
+    }
+
+    /**
+     * 区域复制（op=clone，案卷 §6.1 零取证四连第②条）：getBlockId+getMeta ×
+     * setBlockWithNotify 纯组合，cap 4096 同 fill。meta 面=setMetaSilent 静默
+     * 写（整区重写逐块 notify 是浪费，渲染延迟到下次 notify）；槽未钉版本=
+     * id-only 复制（detail 标注 meta-skipped）。零变更→NoChange。
+     */
+    public static String cloneRegion(Object world, int x1, int y1, int z1, int x2, int y2, int z2,
+                                     int tx, int ty, int tz) throws Exception {
+        int[] r = normalizeRegion(x1, y1, z1, x2, y2, z2);
+        int dx = tx - r[0];
+        int dy = ty - r[1];
+        int dz = tz - r[2];
+        validateCoords(r[0] + dx, r[1] + dy, r[2] + dz);
+        validateCoords(r[3] + dx, r[4] + dy, r[5] + dz);
+        boolean metaFace = setMetaSilent != null && getMeta != null;
+        int changed = 0;
+        for (int x = r[0]; x <= r[3]; x++) {
+            for (int y = r[1]; y <= r[4]; y++) {
+                for (int z = r[2]; z <= r[5]; z++) {
+                    int id = getBlockId(world, x, y, z);
+                    int m = metaFace ? getMeta(world, x, y, z) : 0;
+                    int nx = x + dx;
+                    int ny = y + dy;
+                    int nz = z + dz;
+                    boolean ch = false;
+                    if (getBlockId(world, nx, ny, nz) != id) {
+                        setBlock(world, nx, ny, nz, id);
+                        ch = true;
+                    }
+                    if (metaFace && getMeta(world, nx, ny, nz) != m) {
+                        setMetaSilent.invoke(world, Integer.valueOf(nx), Integer.valueOf(ny),
+                                Integer.valueOf(nz), Integer.valueOf(m));
+                        ch = true;
+                    }
+                    if (ch) {
+                        changed++;
+                    }
+                }
+            }
+        }
+        if (changed == 0) {
+            throw new NoChange("cloned 0 changed");
+        }
+        return "cloned " + (r[3] - r[0] + 1) + "x" + (r[4] - r[1] + 1) + "x" + (r[5] - r[2] + 1)
+                + " -> " + tx + "," + ty + "," + tz + " changed=" + changed
+                + (metaFace ? "" : " meta-skipped");
     }
 
     /**

@@ -116,6 +116,15 @@ public final class VersionTable {
     public Integer idSapling;
     public Integer cropsRipeMeta;
 
+    // D8 门控能力槽（案卷 §6.1 逐版权益候选表；Boolean null=未宣告=op 响亮
+    // UNSUPPORTED，TRUE=已取证放行；JSON ops 段 Boolean 分支 B5 schema 原生支持）
+    public Boolean capWeather;      // b1.5+（verscan b1.7.3：World 浮值面+WorldInfo 布尔键两层）
+    public Boolean capGamemode;     // b1.8+（creative 旗标）——op 未实装，槽先行
+    public Boolean capXp;           // b1.8+（经验字段，getplayer 同族）——op 未实装，槽先行
+    public Boolean capEffect;       // b1.9-pre2+（MobEffect 挂 EntityLiving）——op 未实装，槽先行
+    public String rainStrF;         // World.rainingStrength float（b1.7.3=j，verscan 在档）
+    public String thunderStrF;      // World.thunderingStrength float（b1.7.3=l）
+
     /** spawn 白名单：kind→实体类全名（含 tnt/giant/mob 特例）。 */
     public final Map<String, String> mobClasses = new HashMap<String, String>();
 

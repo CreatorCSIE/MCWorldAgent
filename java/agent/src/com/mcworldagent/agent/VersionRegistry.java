@@ -809,6 +809,13 @@ public final class VersionRegistry {
         // getinfo 面
         t.difficultyF = "q";      // fd public int q=difficultySetting（⚠️b1.2_02=k）
 
+        // D8 门控首发（案卷 §6.1：weather=b1.5+，b1.7.3 verscan 取证在档——
+        // World rainingStrength=j:F/thunderingStrength=l:F 浮值面；WorldInfo
+        // 布尔键由游戏存盘侧写，op 只动运行时浮值）
+        t.capWeather = Boolean.TRUE;
+        t.rainStrF = "j";         // verscan b1.7.3 §0-§11 浮值面
+        t.thunderStrF = "l";
+
         // spawn 白名单（jc 注册表+javap 构造器 (fd)V 逐个实锤；tnt=qw
         // (fd,DDD)V DDD 断代延续 b1.2_02——WorldOps fallback；giant=nt 构造健在；
         // mob=ii=EntityCreature（⚠️b1.2_02=fz））

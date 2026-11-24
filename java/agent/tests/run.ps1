@@ -69,6 +69,7 @@ Compile-Trio '181' @('A2Table181Test', 'FakeOps181Test', 'InjectSmoke181Test')
 # ---- B5 loader + snapshot tools + guard batch ----
 & "$J\javac.exe" -encoding UTF-8 -cp 'out\classes;libs\asm-9.7.jar' -d "$O\b5out" `
   "$T\src\com\mcworldagent\agent\B5LoaderTest.java" "$T\src\com\mcworldagent\agent\GuardTest.java" `
+  "$T\src\com\mcworldagent\agent\D8GateTest.java" `
   "$T\src\com\mcworldagent\agent\HookSnapshot.java"
 if ($LASTEXITCODE -ne 0) { throw 'b5 test javac failed' }
 Write-Host 'COMPILE OK'
@@ -124,6 +125,9 @@ Invoke-Test 'B5LoaderTest(dir)' "$O\b5out;out\classes;libs\asm-9.7.jar" 'com.mcw
 Invoke-Test 'B5LoaderTest(jar)' "$O\b5out;$jar;libs\asm-9.7.jar" 'com.mcworldagent.agent.B5LoaderTest' @($jar)
 # guard batch (strict loader + 13-JSON gate + MiniJson edges + envelope fuzz)
 Invoke-Test 'GuardTest' "$O\b5out;out\classes;libs\asm-9.7.jar" 'com.mcworldagent.agent.GuardTest' @("$agent\registry\fingerprints")
+# D8 gate: weather must UNSUPPORTED loudly on L0 lines (own JVMs, static T bind)
+Invoke-Test 'D8GateTest(0624)' "$O\b5out;out\classes;libs\asm-9.7.jar" 'com.mcworldagent.agent.D8GateTest' @('inf-20100624')
+Invoke-Test 'D8GateTest(a1.0.3)' "$O\b5out;out\classes;libs\asm-9.7.jar" 'com.mcworldagent.agent.D8GateTest' @('a1.0.3')
 
 # HookSnapshot regression: byte-compare vs archived baseline
 $snap = & "$J\java.exe" -cp "$O\b5out;out\classes;libs\asm-9.7.jar" com.mcworldagent.agent.HookSnapshot 2>&1

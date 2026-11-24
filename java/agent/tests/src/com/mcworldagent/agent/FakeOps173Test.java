@@ -200,6 +200,63 @@ public class FakeOps173Test {
         ok((Boolean) get(item, "be"), "setEntityDead 实例 e(Lsn)V 置 be=dead");
         ok((Integer) get(w, "killCalls") == 1, "clear 收 world 调用（实例版对账）");
 
+        // ---- D8 无头半壁（案卷 §6.1 零取证四连+门控首发）----
+        // weather：capWeather=TRUE（build173 verscan 锚）+ j/l 浮值面满值写
+        String wx = WorldOps.weather(w, true, false);
+        ok(wx.contains("raining=true") && wx.contains("thunder=false"), "weather " + wx);
+        ok(((Float) get(w, "j")).floatValue() == 1.0F, "rainingStrength=1.0 满值");
+        ok(((Float) get(w, "l")).floatValue() == 0.0F, "thunderingStrength=0.0");
+        // kill：clear 泛化=全表除玩家（gs 在 d 玩家列不在 b 实体表，身份豁免双保险）
+        int alive = pList.size();
+        String kl = WorldOps.killEntities(w, null, null, null, null);
+        ok(kl.startsWith("killed " + alive), "kill 全表 " + kl);
+        ok((Integer) get(w, "killCalls") == 1 + alive, "kill 调用面=setEntityDead 同 clear");
+        // kill 圆柱过滤：r=0 中心 (9,64,9) 无实体→killed 0 不可能（全表已死仍计数）——
+        // 改验半径拒参：缺 r→Rejected
+        boolean rej = false;
+        try {
+            WorldOps.killEntities(w, Integer.valueOf(9), Integer.valueOf(64),
+                    Integer.valueOf(9), null);
+        } catch (WorldOps.Rejected rj) {
+            rej = true;
+        }
+        ok(rej, "kill(x,y,z)缺 r→Rejected");
+        // clone：2x1x1 源（石+气）→目标 (3,64,3)；石改 1 格，气对气零改
+        WorldOps.setBlock(w, 1, 64, 1, 1);
+        WorldOps.setBlock(w, 2, 64, 1, 0);
+        String cl = WorldOps.cloneRegion(w, 1, 64, 1, 2, 64, 1, 3, 64, 3);
+        ok(cl.contains("changed=1") && cl.contains("2x1x1"), "clone " + cl);
+        ok(WorldOps.getBlockId(w, 3, 64, 3) == 1, "clone 目标=石（setBlockWithNotify 面）");
+        boolean nc = false;
+        try {
+            WorldOps.cloneRegion(w, 1, 64, 1, 1, 64, 1, 1, 64, 1);
+        } catch (WorldOps.NoChange e) {
+            nc = true;
+        }
+        ok(nc, "clone 原位零变更→NoChange");
+        // clone 越界目标角→Rejected（validateCoords 面）
+        rej = false;
+        try {
+            WorldOps.cloneRegion(w, 0, 0, 0, 1, 1, 1, 128, 128, 128);
+        } catch (WorldOps.Rejected rj) {
+            rej = true;
+        }
+        ok(rej, "clone 目标越界→Rejected");
+        // setdifficulty：q 字段面+语义标注（level-side，游戏闸在客户端）
+        String sd = WorldOps.setDifficulty(w, 3);
+        ok(((Integer) get(w, "q")) == 3, "setdifficulty q=3");
+        ok(sd.contains("level-side") && sd.contains("GameSettings"), "setdifficulty 语义标清");
+        rej = false;
+        try {
+            WorldOps.setDifficulty(w, 4);
+        } catch (WorldOps.Rejected rj) {
+            rej = true;
+        }
+        ok(rej, "difficulty 越界 [0,3]→Rejected");
+        // kind 大小写归一化（"Pig"→pig 表键）
+        ok(WorldOps.spawn(w, "Pig", 1, 64, 1).startsWith("spawned pig"), "kind 归一化");
+        ok(WorldOps.spawn(w, " TnT ", 1, 64, 1).startsWith("spawned tnt"), "kind trim+归一");
+
         // ---- 档位一 UNSUPPORTED 响亮（6 件；invulnerable 已复活不在此列）----
         set(w, "teStore", Class.forName("ow").getConstructor().newInstance());
         unsupported("setmeta", new RunnableEx() {

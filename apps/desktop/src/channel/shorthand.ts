@@ -21,7 +21,7 @@ export interface OpSpec {
   save: SaveMode
 }
 
-/** 35 op 全量（KNOWN_OPS 对榫）。 */
+/** 39 op 全量（KNOWN_OPS 对榫；D8 批 +4）。 */
 export const OPS: OpSpec[] = [
   { name: 'place', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }, { key: 'blockId', kind: 'int' }], save: 'true' },
   { name: 'dig', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }], save: 'true' },
@@ -58,6 +58,30 @@ export const OPS: OpSpec[] = [
   { name: 'clear', args: [{ key: 'x', kind: 'int', optional: true }, { key: 'y', kind: 'int', optional: true }, { key: 'z', kind: 'int', optional: true }, { key: 'r', kind: 'int', optional: true }], save: 'ignore' },
   { name: 'save', args: [], save: 'true' },
   { name: 'listops', args: [], save: 'ignore' },
+  // D8 无头半壁四 op（agent CommandChannel KNOWN_OPS 同步在册，案卷 §6.1）
+  { name: 'kill', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }, { key: 'r', kind: 'int' }], save: 'true' },
+  { name: 'clone', args: [{ key: 'x1', kind: 'int' }, { key: 'y1', kind: 'int' }, { key: 'z1', kind: 'int' }, { key: 'x2', kind: 'int' }, { key: 'y2', kind: 'int' }, { key: 'z2', kind: 'int' }, { key: 'tx', kind: 'int' }, { key: 'ty', kind: 'int' }, { key: 'tz', kind: 'int' }], save: 'true' },
+  { name: 'setdifficulty', args: [{ key: 'level', kind: 'int' }], save: 'true' },
+  { name: 'weather', args: [{ key: 'raining', kind: 'flag' }, { key: 'thunder', kind: 'flag', optional: true }], save: 'true' },
+]
+
+/**
+ * D5 壳别名表（案卷 §6.1 判决：速记翻译器体验层，零协议——信封恒 canonical op）。
+ * ⚠️ 陷阱在案：clear ≠ clearinv（清地面物 vs 清玩家背包），绝不互为别名。
+ */
+const ALIAS_ONE: Record<string, string> = {
+  setblock: 'place',
+  summon: 'spawn',
+  spawnpoint: 'setspawn',
+  teleport: 'tp',
+  rotate: 'setlook',
+  'save-all': 'save',
+}
+
+/** 双词前缀别名（现代两段式）：`time set <n>`→settime；`data get <x y z>`→getblock。 */
+const ALIAS_PREFIX: Array<{ head: [string, string]; op: string }> = [
+  { head: ['time', 'set'], op: 'settime' },
+  { head: ['data', 'get'], op: 'getblock' },
 ]
 
 const OP_MAP = new Map<string, OpSpec>()
@@ -94,6 +118,16 @@ export function parseShorthand(line: string): ParseResult {
   const tokens = line.trim().split(/\s+/).filter((t) => t.length > 0)
   if (tokens.length === 0) {
     return { ok: false, error: 'empty command' }
+  }
+  // D5 别名归一（体验层，零协议）：两段式前缀优先，再单词别名；信封恒 canonical op
+  for (const al of ALIAS_PREFIX) {
+    if (tokens[0] === al.head[0] && tokens[1] === al.head[1]) {
+      tokens.splice(0, 2, al.op)
+      break
+    }
+  }
+  if (ALIAS_ONE[tokens[0]] !== undefined) {
+    tokens[0] = ALIAS_ONE[tokens[0]]
   }
   const name = tokens[0]
   const spec = OP_MAP.get(name)
@@ -133,6 +167,11 @@ export function parseShorthand(line: string): ParseResult {
     const a = spec.args[i]
     if (a.kind === 'str') {
       args[a.key] = rest[i]
+    } else if (a.kind === 'flag') {
+      if (rest[i] !== 'true' && rest[i] !== 'false') {
+        return { ok: false, error: `bad-${a.key}: "${rest[i]}" not true/false` }
+      }
+      args[a.key] = rest[i] === 'true'
     } else {
       const v = parseInt(rest[i], a.key)
       if (typeof v === 'string') return { ok: false, error: v }
