@@ -3,6 +3,7 @@ package storage;
 
 import com.mcworldagent.storage.ChunkExport;
 import com.mcworldagent.storage.NbtReader;
+import com.mcworldagent.storage.NbtWriter;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -235,6 +236,136 @@ public class StorageTest {
         dat.delete(); dat.getParentFile().delete();
     }
 
+    // ---- D7 NbtWriter 段（生产写入器：往返纪律+响亮拒绝+真盘 level.dat） ----
+
+    /** 深相等：树模型=LinkedHashMap/ArrayList/标装箱/byte[]/int[]，逐型递归。 */
+    static boolean deepEquals(Object a, Object b) {
+        if (a == null || b == null) {
+            return a == b;
+        }
+        if (a instanceof Map && b instanceof Map) {
+            Map<?, ?> ma = (Map<?, ?>) a;
+            Map<?, ?> mb = (Map<?, ?>) b;
+            if (ma.size() != mb.size()) {
+                return false;
+            }
+            for (Map.Entry<?, ?> e : ma.entrySet()) {
+                if (!mb.containsKey(e.getKey()) || !deepEquals(e.getValue(), mb.get(e.getKey()))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (a instanceof List && b instanceof List) {
+            List<?> la = (List<?>) a;
+            List<?> lb = (List<?>) b;
+            if (la.size() != lb.size()) {
+                return false;
+            }
+            for (int i = 0; i < la.size(); i++) {
+                if (!deepEquals(la.get(i), lb.get(i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        if (a instanceof byte[]) {
+            return b instanceof byte[] && java.util.Arrays.equals((byte[]) a, (byte[]) b);
+        }
+        if (a instanceof int[]) {
+            return b instanceof int[] && java.util.Arrays.equals((int[]) a, (int[]) b);
+        }
+        return a.getClass() == b.getClass() && a.equals(b);
+    }
+
+    void testWriterRoundtrip() throws Exception {
+        LinkedHashMap<String, Object> root = new LinkedHashMap<String, Object>();
+        root.put("b", (byte) -7);
+        root.put("s", (short) 300);
+        root.put("i", 70000);
+        root.put("l", 5000000000L);
+        root.put("f", 1.5f);
+        root.put("d", 2.25);
+        root.put("ba", new byte[]{1, 2, 3});
+        root.put("st", "hello 中文");
+        root.put("ia", new int[]{5, -5});
+        LinkedHashMap<String, Object> sub = new LinkedHashMap<String, Object>();
+        sub.put("k", 1);
+        LinkedHashMap<String, Object> sub2 = new LinkedHashMap<String, Object>();
+        sub2.put("k", 2);
+        java.util.List<Object> li = new java.util.ArrayList<Object>();
+        li.add(sub);
+        li.add(sub2);
+        root.put("li", li);
+        java.util.List<Object> ints = new java.util.ArrayList<Object>();
+        ints.add(10);
+        ints.add(20);
+        root.put("ints", ints);
+        root.put("empty", new java.util.ArrayList<Object>());
+        byte[] gz = NbtWriter.writeGz("", root);
+        Map<String, Object> back = NbtReader.readGz(gz);
+        ok(deepEquals(root, back), "NbtWriter full-12-tag tree roundtrip");
+        // 未压缩形态同样可被 readRaw 全消费（完整性纪律=reader 内置）
+        Map<String, Object> back2 = NbtReader.readRaw(NbtWriter.writeRaw("root", root));
+        ok(deepEquals(root, back2), "writeRaw/readRaw roundtrip with named root");
+    }
+
+    void testWriterLoudRejects() {
+        LinkedHashMap<String, Object> r1 = new LinkedHashMap<String, Object>();
+        java.util.List<Object> mixed = new java.util.ArrayList<Object>();
+        mixed.add(1);
+        mixed.add("x");
+        r1.put("bad", mixed);
+        boolean threw = false;
+        try {
+            NbtWriter.writeRaw("", r1);
+        } catch (IOException e) {
+            threw = true;
+        }
+        ok(threw, "heterogeneous list -> IOException");
+        LinkedHashMap<String, Object> r2 = new LinkedHashMap<String, Object>();
+        r2.put("nul", null);
+        threw = false;
+        try {
+            NbtWriter.writeRaw("", r2);
+        } catch (IOException e) {
+            threw = true;
+        }
+        ok(threw, "null value -> IOException");
+        LinkedHashMap<String, Object> r3 = new LinkedHashMap<String, Object>();
+        r3.put("bool", Boolean.TRUE);
+        threw = false;
+        try {
+            NbtWriter.writeRaw("", r3);
+        } catch (IOException e) {
+            threw = true;
+        }
+        ok(threw, "unknown type (Boolean) -> IOException");
+    }
+
+    void testWriterRealLevelDat() throws Exception {
+        // 真盘样本：attic（Classic/Infdev 代）+ betacraft（Beta 代）各一，存在才验，缺=记 skip 绿
+        String[] paths = {
+                System.getProperty("user.home") + "\\AppData\\Roaming\\.attic\\default instance\\saves\\W173\\level.dat",
+                System.getProperty("user.home") + "\\AppData\\Roaming\\.betacraft\\default instance\\saves\\New World\\level.dat",
+        };
+        int tested = 0;
+        for (String p : paths) {
+            File f = new File(p);
+            if (!f.isFile()) {
+                ok(true, "real level.dat absent, skip: " + f.getName());
+                continue;
+            }
+            byte[] gz = java.nio.file.Files.readAllBytes(f.toPath());
+            Map<String, Object> t1 = NbtReader.readGz(gz);
+            byte[] rewritten = NbtWriter.writeGz("", t1);
+            Map<String, Object> t2 = NbtReader.readGz(rewritten);
+            ok(deepEquals(t1, t2), "real level.dat read->write->read structure-equal: " + p);
+            tested++;
+        }
+        ok(tested >= 1, "at least one real level.dat tested (found=" + tested + ")");
+    }
+
     public static void main(String[] args) throws Exception {
         StorageTest t = new StorageTest();
         t.testAllTagTypes();
@@ -244,6 +375,9 @@ public class StorageTest {
         t.testB36Path();
         t.testPresentFalse();
         t.testFullChunkExport();
+        t.testWriterRoundtrip();
+        t.testWriterLoudRejects();
+        t.testWriterRealLevelDat();
         System.out.println("TOTAL pass=" + pass + " fail=" + fail);
         if (fail > 0) {
             System.exit(1);
