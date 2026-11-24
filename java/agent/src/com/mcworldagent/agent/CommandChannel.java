@@ -40,7 +40,7 @@ public final class CommandChannel {
     private static final int MAX_BACKLOG = 64;
     private static final long POLL_MS = 250; // 20TPS 下约每 5 tick
 
-    private static final Set<String> KNOWN_OPS = new HashSet<String>(
+    static final Set<String> KNOWN_OPS = new HashSet<String>(
             Arrays.asList("place", "dig", "getblock", "getinfo", "settime", "setspawn", "tp",
                     "save", "fill", "getblocks", "getplayer",
                     "getmeta", "setmeta", "genscatter", "listops",
@@ -51,8 +51,8 @@ public final class CommandChannel {
                     "entitylist", "playsound", "setarmor", "clearinv", "replace",
                     "grow", "clear", "getbiome"));
 
-    /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。 */
-    private static final String LISTOPS =
+    /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。包内可见=守卫批一致性直测面。 */
+    static final String LISTOPS =
             "ops=place(x,y,z,blockId)w;dig(x,y,z)w;getblock(x,y,z)r;getinfo r;settime(time)w;"
           + "setspawn(x,y,z)w;tp(x,y,z)w[save-default-false];save w[explicit];"
           + "fill(x1,y1,z1,x2,y2,z2,blockId)w[cap4096];getblocks(x1,y1,z1,x2,y2,z2)r[cap4096];"
@@ -632,8 +632,8 @@ public final class CommandChannel {
         return "";
     }
 
-    /** 信封校验：protocolVersion==1、id 形态、op 已知、targetGeneration（可选）为整数。返回 null=通过，否则=拒绝原因。 */
-    private static String validate(Map<String, Object> env) {
+    /** 信封校验：protocolVersion==1、id 形态、op 已知、targetGeneration（可选）为整数。返回 null=通过，否则=拒绝原因。包内可见=守卫批 fuzz 直测面。 */
+    static String validate(Map<String, Object> env) {
         Object pv = env.get("protocolVersion");
         if (!(pv instanceof Long)) {
             return "protocolVersion must be integer";

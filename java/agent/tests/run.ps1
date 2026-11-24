@@ -66,9 +66,10 @@ Compile-Trio '1202' @('A2Table1202Test', 'FakeOps1202Test', 'InjectSmoke1202Test
 Compile-Trio '173' @('A2Table173Test', 'FakeOps173Test', 'InjectSmoke173Test')
 Compile-Trio '181' @('A2Table181Test', 'FakeOps181Test', 'InjectSmoke181Test')
 
-# ---- B5 loader + snapshot tools ----
+# ---- B5 loader + snapshot tools + guard batch ----
 & "$J\javac.exe" -encoding UTF-8 -cp 'out\classes;libs\asm-9.7.jar' -d "$O\b5out" `
-  "$T\src\com\mcworldagent\agent\B5LoaderTest.java" "$T\src\com\mcworldagent\agent\HookSnapshot.java"
+  "$T\src\com\mcworldagent\agent\B5LoaderTest.java" "$T\src\com\mcworldagent\agent\GuardTest.java" `
+  "$T\src\com\mcworldagent\agent\HookSnapshot.java"
 if ($LASTEXITCODE -ne 0) { throw 'b5 test javac failed' }
 Write-Host 'COMPILE OK'
 
@@ -121,6 +122,8 @@ foreach ($vtag in @('120', '1202', '173', '181')) {
 # B5 loader: dir branch + jar branch
 Invoke-Test 'B5LoaderTest(dir)' "$O\b5out;out\classes;libs\asm-9.7.jar" 'com.mcworldagent.agent.B5LoaderTest' @($jar)
 Invoke-Test 'B5LoaderTest(jar)' "$O\b5out;$jar;libs\asm-9.7.jar" 'com.mcworldagent.agent.B5LoaderTest' @($jar)
+# guard batch (strict loader + 13-JSON gate + MiniJson edges + envelope fuzz)
+Invoke-Test 'GuardTest' "$O\b5out;out\classes;libs\asm-9.7.jar" 'com.mcworldagent.agent.GuardTest' @("$agent\registry\fingerprints")
 
 # HookSnapshot regression: byte-compare vs archived baseline
 $snap = & "$J\java.exe" -cp "$O\b5out;out\classes;libs\asm-9.7.jar" com.mcworldagent.agent.HookSnapshot 2>&1

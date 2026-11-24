@@ -43,6 +43,19 @@ public final class FingerprintLoader {
 
     /** 装载全部运行时指纹表（资源名升序=确定性顺序）。单件失败只跳过不抛。 */
     public static List<VersionTable> loadAll() {
+        return load(false);
+    }
+
+    /**
+     * 守卫批 strict 入口（2026-11-25 守卫案）：与 loadAll 同扫描面，但任何
+     * "带标记文件被静默吞掉"的异常（读取失败/解析失败/校验失败）直接抛出——
+     * 生产路径保持宽容（绝不让数据错误崩 premain），测试路径必须响亮。
+     */
+    public static List<VersionTable> loadAllStrict() {
+        return load(true);
+    }
+
+    private static List<VersionTable> load(boolean strict) {
         List<VersionTable> out = new ArrayList<VersionTable>();
         try {
             URL loc = FingerprintLoader.class.getProtectionDomain().getCodeSource().getLocation();
@@ -51,17 +64,19 @@ public final class FingerprintLoader {
                 return out;
             }
             if (base.isFile() && base.getName().toLowerCase().endsWith(".jar")) {
-                loadFromJar(base, out);
+                loadFromJar(base, out, strict);
             } else if (base.isDirectory()) {
-                loadFromDir(base, out);
+                loadFromDir(base, out, strict);
             }
+        } catch (RuntimeException re) {
+            throw re; // strict 判决异常原样上抛
         } catch (Throwable t) {
             MCWorldAgent.logTransform("VERSION-JSON-LOAD-ERROR " + t);
         }
         return out;
     }
 
-    private static void loadFromJar(File jarFile, List<VersionTable> out) {
+    private static void loadFromJar(File jarFile, List<VersionTable> out, boolean strict) {
         JarFile jar = null;
         try {
             jar = new JarFile(jarFile);
@@ -78,11 +93,18 @@ public final class FingerprintLoader {
             for (int i = 0; i < sorted.length; i++) {
                 try {
                     String text = readResource(jar.getInputStream(jar.getEntry(sorted[i])));
-                    addIfRuntime(text, sorted[i], out);
+                    addIfRuntime(text, sorted[i], out, strict);
+                } catch (RuntimeException re) {
+                    throw re;
                 } catch (Throwable perFile) {
+                    if (strict) {
+                        throw new IllegalStateException("strict: read fail " + sorted[i], perFile);
+                    }
                     MCWorldAgent.logTransform("VERSION-JSON-SKIP " + sorted[i] + " read=" + perFile);
                 }
             }
+        } catch (RuntimeException re) {
+            throw re; // strict 判决不被 jar 级容错吞掉
         } catch (Throwable t) {
             MCWorldAgent.logTransform("VERSION-JSON-LOAD-ERROR jar=" + jarFile + " " + t);
         } finally {
@@ -95,7 +117,7 @@ public final class FingerprintLoader {
         }
     }
 
-    private static void loadFromDir(File classesDir, List<VersionTable> out) {
+    private static void loadFromDir(File classesDir, List<VersionTable> out, boolean strict) {
         File dir = new File(classesDir, RES_DIR);
         File[] fs = dir.listFiles();
         if (fs == null) {
@@ -115,16 +137,26 @@ public final class FingerprintLoader {
                 } finally {
                     in.close();
                 }
-                addIfRuntime(text, RES_DIR + "/" + f.getName(), out);
+                addIfRuntime(text, RES_DIR + "/" + f.getName(), out, strict);
+            } catch (RuntimeException re) {
+                throw re;
             } catch (Throwable t) {
+                if (strict) {
+                    throw new IllegalStateException("strict: read fail " + f.getName(), t);
+                }
                 MCWorldAgent.logTransform("VERSION-JSON-SKIP " + f.getName() + " read=" + t);
             }
         }
     }
 
-    /** 文本含运行时标记才解析；锚库档案件静默过，坏件响亮跳过。 */
-    private static void addIfRuntime(String text, String srcName, List<VersionTable> out) {
+    /** 文本含运行时标记才解析；锚库档案件静默过，坏件响亮跳过。strict=坏件直接抛。 */
+    private static void addIfRuntime(String text, String srcName, List<VersionTable> out,
+            boolean strict) {
         if (text == null || text.indexOf(RUNTIME_SCHEMA) < 0) {
+            return;
+        }
+        if (strict) {
+            out.add(buildOrThrow(srcName, text));
             return;
         }
         VersionTable t = buildTable(srcName, text);
@@ -134,96 +166,105 @@ public final class FingerprintLoader {
     }
 
     /** JSON 文本→表。任何协议/校验违例=响亮跳过返回 null。包内可见=无头直测面。 */
-    @SuppressWarnings("unchecked")
     static VersionTable buildTable(String srcName, String text) {
-        Map<String, Object> m;
         try {
-            m = MiniJson.parse(text);
-            if (!RUNTIME_SCHEMA.equals(m.get("schema"))) {
-                throw new IllegalArgumentException("schema mismatch");
-            }
-            String versionId = reqStr(m, "versionId");
-            String jarSha1 = reqStr(m, "jarSha1");
-            if (!jarSha1.matches("[0-9a-f]{40}")) {
-                throw new IllegalArgumentException("jarSha1 not 40-hex-lower");
-            }
-            if (!srcName.endsWith(versionId + ".json")) {
-                throw new IllegalArgumentException("resource name != versionId");
-            }
-            VersionTable t = new VersionTable();
-            t.versionId = versionId;
-            t.family = reqStr(m, "family");
-            t.jarSha1 = jarSha1;
-            Map<String, Object> ops = (Map<String, Object>) m.get("ops");
-            if (ops == null) {
-                throw new IllegalArgumentException("ops missing");
-            }
-            for (Map.Entry<String, Object> e : ops.entrySet()) {
-                String key = e.getKey();
-                if (key.equals("versionId") || key.equals("family") || key.equals("jarSha1")) {
-                    throw new IllegalArgumentException("identity slot duplicated in ops");
-                }
-                Field f;
-                try {
-                    f = VersionTable.class.getField(key);
-                } catch (NoSuchFieldException nf) {
-                    throw new IllegalArgumentException("unknown slot '" + key + "'");
-                }
-                Object v = e.getValue();
-                Class<?> ft = f.getType();
-                if (ft == String.class) {
-                    if (!(v instanceof String)) {
-                        throw new IllegalArgumentException("slot '" + key + "' wants string");
-                    }
-                } else if (ft == Integer.class) {
-                    if (!(v instanceof Long)) {
-                        throw new IllegalArgumentException("slot '" + key + "' wants int");
-                    }
-                    v = Integer.valueOf(((Long) v).intValue());
-                } else if (ft == Boolean.class) {
-                    if (!(v instanceof Boolean)) {
-                        throw new IllegalArgumentException("slot '" + key + "' wants boolean");
-                    }
-                } else {
-                    throw new IllegalArgumentException("slot '" + key + "' type unsupported");
-                }
-                f.set(t, v);
-            }
-            Map<String, Object> mobs = (Map<String, Object>) m.get("mobs");
-            if (mobs != null) {
-                for (Map.Entry<String, Object> e : mobs.entrySet()) {
-                    if (!(e.getValue() instanceof String)) {
-                        throw new IllegalArgumentException("mob '" + e.getKey() + "' wants string");
-                    }
-                    t.mobClasses.put(e.getKey(), (String) e.getValue());
-                }
-            }
-            Map<String, Object> hooks = (Map<String, Object>) m.get("hooks");
-            if (hooks != null) {
-                for (Map.Entry<String, Object> e : hooks.entrySet()) {
-                    String v = (String) e.getValue();
-                    if (v == null || v.split("\\|", -1).length != 6) {
-                        throw new IllegalArgumentException("hook '" + e.getKey()
-                                + "' wants class|name|desc|access|hits|mode");
-                    }
-                    String[] p = v.split("\\|", -1);
-                    Integer.parseInt(p[3]); // access 十进制
-                    Integer.parseInt(p[4]); // expectedHits 十进制
-                    if (!HookTargets.isKnownHookKey(e.getKey())) {
-                        throw new IllegalArgumentException("hook '" + e.getKey() + "' unknown");
-                    }
-                    if (HookTargets.modeOf(p[5]) < 0) {
-                        throw new IllegalArgumentException("hook '" + e.getKey()
-                                + "' bad mode '" + p[5] + "'");
-                    }
-                    t.hookSpecs.put(e.getKey(), v);
-                }
-            }
-            return t;
+            return buildOrThrow(srcName, text);
         } catch (Throwable bad) {
             MCWorldAgent.logTransform("VERSION-JSON-SKIP " + srcName + " " + bad);
             return null;
         }
+    }
+
+    /** 校验唯一实现：违例抛 IllegalArgumentException（strict 路径与守卫负例直测面）。 */
+    @SuppressWarnings("unchecked")
+    static VersionTable buildOrThrow(String srcName, String text) {
+        Map<String, Object> m;
+        m = MiniJson.parse(text);
+        if (!RUNTIME_SCHEMA.equals(m.get("schema"))) {
+            throw new IllegalArgumentException("schema mismatch");
+        }
+        String versionId = reqStr(m, "versionId");
+        String jarSha1 = reqStr(m, "jarSha1");
+        if (!jarSha1.matches("[0-9a-f]{40}")) {
+            throw new IllegalArgumentException("jarSha1 not 40-hex-lower");
+        }
+        if (!srcName.endsWith(versionId + ".json")) {
+            throw new IllegalArgumentException("resource name != versionId");
+        }
+        VersionTable t = new VersionTable();
+        t.versionId = versionId;
+        t.family = reqStr(m, "family");
+        t.jarSha1 = jarSha1;
+        Map<String, Object> ops = (Map<String, Object>) m.get("ops");
+        if (ops == null) {
+            throw new IllegalArgumentException("ops missing");
+        }
+        for (Map.Entry<String, Object> e : ops.entrySet()) {
+            String key = e.getKey();
+            if (key.equals("versionId") || key.equals("family") || key.equals("jarSha1")) {
+                throw new IllegalArgumentException("identity slot duplicated in ops");
+            }
+            Field f;
+            try {
+                f = VersionTable.class.getField(key);
+            } catch (NoSuchFieldException nf) {
+                throw new IllegalArgumentException("unknown slot '" + key + "'");
+            }
+            Object v = e.getValue();
+            Class<?> ft = f.getType();
+            if (ft == String.class) {
+                if (!(v instanceof String)) {
+                    throw new IllegalArgumentException("slot '" + key + "' wants string");
+                }
+            } else if (ft == Integer.class) {
+                if (!(v instanceof Long)) {
+                    throw new IllegalArgumentException("slot '" + key + "' wants int");
+                }
+                v = Integer.valueOf(((Long) v).intValue());
+            } else if (ft == Boolean.class) {
+                if (!(v instanceof Boolean)) {
+                    throw new IllegalArgumentException("slot '" + key + "' wants boolean");
+                }
+            } else {
+                throw new IllegalArgumentException("slot '" + key + "' type unsupported");
+            }
+            try {
+                f.set(t, v);
+            } catch (IllegalAccessException ia) {
+                throw new IllegalArgumentException("slot '" + key + "' set failed", ia);
+            }
+        }
+        Map<String, Object> mobs = (Map<String, Object>) m.get("mobs");
+        if (mobs != null) {
+            for (Map.Entry<String, Object> e : mobs.entrySet()) {
+                if (!(e.getValue() instanceof String)) {
+                    throw new IllegalArgumentException("mob '" + e.getKey() + "' wants string");
+                }
+                t.mobClasses.put(e.getKey(), (String) e.getValue());
+            }
+        }
+        Map<String, Object> hooks = (Map<String, Object>) m.get("hooks");
+        if (hooks != null) {
+            for (Map.Entry<String, Object> e : hooks.entrySet()) {
+                String v = (String) e.getValue();
+                if (v == null || v.split("\\|", -1).length != 6) {
+                    throw new IllegalArgumentException("hook '" + e.getKey()
+                            + "' wants class|name|desc|access|hits|mode");
+                }
+                String[] p = v.split("\\|", -1);
+                Integer.parseInt(p[3]); // access 十进制
+                Integer.parseInt(p[4]); // expectedHits 十进制
+                if (!HookTargets.isKnownHookKey(e.getKey())) {
+                    throw new IllegalArgumentException("hook '" + e.getKey() + "' unknown");
+                }
+                if (HookTargets.modeOf(p[5]) < 0) {
+                    throw new IllegalArgumentException("hook '" + e.getKey()
+                            + "' bad mode '" + p[5] + "'");
+                }
+                t.hookSpecs.put(e.getKey(), v);
+            }
+        }
+        return t;
     }
 
     private static String reqStr(Map<String, Object> m, String key) {
