@@ -140,6 +140,21 @@ public final class WorldOps {
     private static final String F_THUNDER_STR = T.thunderStrF;
     private static final String G_SCATTER_CLASS = T.scatterClassG;
 
+    // D10 XP/效果面（表值；取证见 VersionRegistry.build181 D10 段注释——b1.8.1 树直读，
+    // ⚠️ 跨版本字母严禁互抄）。能力闸=capXp/capEffect Boolean 槽，null=响亮 UNSUPPORTED。
+    private static final Boolean CAP_XP = T.capXp;
+    private static final String F_XP = T.xpF;
+    private static final String F_XP_LEVEL = T.xpLevelF;
+    private static final String F_XP_TOTAL = T.playerLevelF;   // NBT XpTotal 载体（键名见表注）
+    private static final String F_SCORE = T.scoreF;
+    private static final String F_XP_COOLDOWN = T.xpCooldownF;
+    private static final Boolean CAP_EFFECT = T.capEffect;
+    private static final String M_ADD_EFFECT = T.addEffectM;
+    private static final String D_ADD_EFFECT = T.addEffectDesc;
+    private static final String M_REMOVE_EFFECT = T.removeEffectM;
+    private static final String G_POTION_EFFECT = T.potionEffectClassG;
+    private static final String D_PE_CTOR = T.potionEffectCtorDesc;
+
     // biome 面（a1.2.0 首版；读回链三锚 verscan/a1.2.0_02.md §8：World.a()Lpb;→pb.a(II)Lfy;
     // →fy.m:String 全 public；WCM 大方法纯读（噪声器现算 temp/hum→4096 查找表），零副作用
     // 零 chunk 加载依赖——未加载坐标亦返回。beta 前版本槽 null=require 响亮 UNSUPPORTED）
@@ -205,6 +220,10 @@ public final class WorldOps {
     private static volatile Field rainStr;    // World.rainingStrength F（weather，173=j）
     private static volatile Field thunderStr; // World.thunderingStrength F（173=l）
     private static volatile Method biomeWcm;  // World.a()Lpb;（resolve 期钉，槽 null=跳过）
+    // D10 XP/效果面惰性缓存（按玩家实例类解析，eHealth 同模式；仅游戏线程访问）
+    private static volatile Field xpField, xpLevelField, xpTotalField, scoreField, xpCooldownField;
+    private static volatile Method addEffectM, removeEffectM;
+    private static volatile Constructor<?> potionEffectCtor;
     /** A2 档位一：resolve 逐槽跳 null 后，缓存判据不能再用单槽非空（用完成标志）。 */
     private static volatile boolean resolved;
 
@@ -1580,6 +1599,149 @@ public final class WorldOps {
         difficulty.setInt(world, level);
         return "difficulty " + old + " -> " + level + " (level-side; gameplay gate=client"
                 + " GameSettings, World-field write ineffective per meta round)";
+    }
+
+    /**
+     * 经验直写（op=setxp，D10 门控，案卷 §6.1：b1.8+）。门=capXp Boolean 槽
+     * （null/FALSE=响亮 UNSUPPORTED，不猜版本）。写面=EntityPlayer 三 int 字段
+     * （Xp/XpLevel/XpTotal，b1.8.1 树 NBT 写读配对实锤）——直写复刻"重进世界恢复"
+     * 同路径，不依赖 addExperience 方法（b1.8.1 无独立方法，内联 L1050）。
+     * 协议：level∈[0,30000]、xp∈[0,100000]（防溢出/荒谬值 Rejected）；xpCooldown 写 0
+     * （立即可再拾，避免游戏 tick 递减吞掉刚写进度）。返回旧值供回滚。
+     */
+    public static String setXp(Object world, int level, int xp) throws Exception {
+        if (!Boolean.TRUE.equals(CAP_XP)) {
+            throw new UnsupportedOp("setxp: version-gated b1.8+ (capXp unset for "
+                    + T.versionId + ")");
+        }
+        require("xpF", F_XP);
+        require("xpLevelF", F_XP_LEVEL);
+        if (level < 0 || level > 30000) {
+            throw new Rejected("level-out-of-range [0,30000]: " + level);
+        }
+        if (xp < 0 || xp > 100000) {
+            throw new Rejected("xp-out-of-range [0,100000]: " + xp);
+        }
+        Object p = worldPlayer(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        resolveXpFace(p);
+        int oldLevel = xpLevelField.getInt(p);
+        int oldXp = xpField.getInt(p);
+        xpLevelField.setInt(p, level);
+        xpField.setInt(p, xp);
+        if (xpTotalField != null) {
+            xpTotalField.setInt(p, level * 10 + xp); // 粗略对账：XpTotal≈等级经验+进度（非权威，仅存盘一致）
+        }
+        if (xpCooldownField != null) {
+            xpCooldownField.setInt(p, 0);
+        }
+        return "xp level " + oldLevel + " -> " + level + " xp " + oldXp + " -> " + xp;
+    }
+
+    /**
+     * 给予效果（op=giveeffect，D10 门控，案卷 §6.1：b1.8+ MobEffect 挂 EntityLiving）。
+     * 门=capEffect。配方=反射 Class.forName(potionEffectClassG).getConstructor(int,int,int)
+     * .newInstance(id,duration,amplifier) → EntityLiving.addEffectM(effect)（b1.8.1 树
+     * func_35165_a L1007 合并/新增双分支实锤）。id∈[1,31]（0 无效果、>31 越界原版 Potion
+     * 表）Rejected；duration/amplifier 非负。addEffectM 重载群按 ade 参型消歧（getMethod）。
+     */
+    public static String giveEffect(Object world, int id, int duration, int amplifier)
+            throws Exception {
+        if (!Boolean.TRUE.equals(CAP_EFFECT)) {
+            throw new UnsupportedOp("giveeffect: version-gated b1.8+ (capEffect unset for "
+                    + T.versionId + ")");
+        }
+        require("addEffectM", M_ADD_EFFECT);
+        require("potionEffectClassG", G_POTION_EFFECT);
+        require("potionEffectCtorDesc", D_PE_CTOR);
+        if (id < 1 || id > 31) {
+            throw new Rejected("effect-id-out-of-range [1,31]: " + id);
+        }
+        if (duration < 0 || amplifier < 0 || amplifier > 255) {
+            throw new Rejected("duration/amplifier invalid: " + duration + "/" + amplifier);
+        }
+        Object p = worldPlayer(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        resolveEffectFace(p);
+        Object eff = potionEffectCtor.newInstance(Integer.valueOf(id), Integer.valueOf(duration),
+                Integer.valueOf(amplifier));
+        addEffectM.invoke(p, eff);
+        return "giveeffect id=" + id + " duration=" + duration + " amplifier=" + amplifier;
+    }
+
+    /**
+     * 移除效果（op=removeeffect，D10 门控）。门=capEffect。配方=EntityLiving.removeEffectM
+     * (int)（b1.8.1 树 damageEntity(I)V=MCP 误名实为 removePotionEffect L1019 bR.remove
+     * 实锤，javap 字母 f）。id∈[1,31] 同 give。无清空面（clearEffectsM null）——逐 id 移除。
+     */
+    public static String removeEffect(Object world, int id) throws Exception {
+        if (!Boolean.TRUE.equals(CAP_EFFECT)) {
+            throw new UnsupportedOp("removeeffect: version-gated b1.8+ (capEffect unset for "
+                    + T.versionId + ")");
+        }
+        require("removeEffectM", M_REMOVE_EFFECT);
+        if (id < 1 || id > 31) {
+            throw new Rejected("effect-id-out-of-range [1,31]: " + id);
+        }
+        Object p = worldPlayer(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        resolveEffectFace(p);
+        removeEffectM.invoke(p, Integer.valueOf(id));
+        return "removeeffect id=" + id;
+    }
+
+    /** XP 面惰性解析（setxp 首用；EntityPlayer 三 int 字段 public，按实例类 getField。
+     *  playerLevelF/scoreF/xpCooldownF 槽 null=跳过（档位一），不连坐 xpF/xpLevelF 主面）。 */
+    private static void resolveXpFace(Object p) throws UnsupportedOp {
+        if (xpField != null && xpLevelField != null) {
+            return;
+        }
+        try {
+            Class<?> pc = p.getClass();
+            xpField = pc.getField(F_XP);
+            xpLevelField = pc.getField(F_XP_LEVEL);
+            if (F_XP_TOTAL != null) {
+                xpTotalField = pc.getField(F_XP_TOTAL);
+            }
+            if (F_SCORE != null) {
+                scoreField = pc.getField(F_SCORE);
+            }
+            if (F_XP_COOLDOWN != null) {
+                xpCooldownField = pc.getField(F_XP_COOLDOWN);
+            }
+        } catch (NoSuchFieldException e) {
+            throw new UnsupportedOp("xp fields: " + e);
+        }
+    }
+
+    /** 效果面惰性解析（giveeffect/removeeffect 首用）。addEffectM 按 ade 参型消歧
+     *  （wd 段 a 重载群）；removeEffectM (I)V；PotionEffect 构造 (III)V。 */
+    private static void resolveEffectFace(Object p) throws UnsupportedOp {
+        if (addEffectM != null && removeEffectM != null && potionEffectCtor != null) {
+            return;
+        }
+        try {
+            Class<?> pe = Class.forName(G_POTION_EFFECT);
+            if (addEffectM == null && M_ADD_EFFECT != null) {
+                addEffectM = p.getClass().getMethod(M_ADD_EFFECT, pe);
+            }
+            if (removeEffectM == null && M_REMOVE_EFFECT != null) {
+                removeEffectM = p.getClass().getMethod(M_REMOVE_EFFECT, int.class);
+            }
+            if (potionEffectCtor == null && D_PE_CTOR != null) {
+                potionEffectCtor = pe.getConstructor(int.class, int.class, int.class);
+            }
+        } catch (ClassNotFoundException e) {
+            throw new UnsupportedOp("PotionEffect class " + G_POTION_EFFECT + ": " + e);
+        } catch (NoSuchMethodException e) {
+            throw new UnsupportedOp("effect signatures: " + e);
+        }
     }
 
     /**

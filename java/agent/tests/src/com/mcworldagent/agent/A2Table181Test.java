@@ -138,7 +138,7 @@ public class A2Table181Test {
             ok(mobs[i][1].equals(A2TableTest.str(mobJson.get(mobs[i][0]))), "mob json " + mobs[i][0]);
         }
 
-        // capabilities：28 OK / 7 UNSUPPORTED（b1.7.3 同判决——旁证直转零增删）
+        // capabilities：31 OK / 7 UNSUPPORTED（D10 批 +setxp/giveeffect/removeeffect=OK）
         Map caps = A2TableTest.obj(j.get("capabilities"));
         int okN = 0;
         int unN = 0;
@@ -148,7 +148,7 @@ public class A2Table181Test {
             else if ("UNSUPPORTED".equals(s)) { unN++; }
             else { throw new RuntimeException("bad cap value " + s); }
         }
-        ok(okN == 28, "caps 28 OK got " + okN);
+        ok(okN == 31, "caps 31 OK got " + okN);
         ok(unN == 7, "caps 7 UNSUPPORTED got " + unN);
         String[][] unPairs = {
             {"setmeta", "observersF"}, {"grow", "idCrops"}, {"genscatter", "scatterClassG"},

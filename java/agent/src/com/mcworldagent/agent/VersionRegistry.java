@@ -957,6 +957,50 @@ public final class VersionRegistry {
         t.biomeAtM = "a";         // nu.a(II)Lvh; getBiomeGenAt ✓
         t.biomeNameF = "l";       // vh.l=biomeName public String（⚠️b1.7.3=kd.n）
 
+        // D10 XP 面（b1.8.1 首版实装——setxp 消费；取证=src-minecraft-beta-1.8.1 树
+        // EntityPlayer.java 直读，字段全 public int，L464-487 NBT 三键写读配对实锤：
+        // aX="Xp"/aY="XpLevel"/aZ="XpTotal"/aG="XpCooldown"（L21 默认 0，L124 tick 递减守卫）、
+        // ay=score。bb(field_35213_bb F) 系拾取动画系数非进度权威（全树唯一赋值=初始化
+        // 0.02F，L315-318 仅读作 bw 平滑增量）——XP 条显示直读 aX/func_35193_as()，不写 bb。
+        // addXpM null 判决：b1.8.1 无独立 addExperience 方法，加经验循环内联 L1050
+        // （aX+=i1;aZ+=i1;while aX>=as(){aX-=as();ab()}）——setxp 走直写三字段面，
+        // 不依赖该方法。increaseLevelM=ab（func_35206_ab L1065 ++aY）留档不入消费链。
+        // ⚠️ 与 b1.9-pre2 锚件字母整体不同（19pre2 xpF=aW/xpLevelF=aY/playerLevelF=aX/
+        // xpCooldownF=aF/scoreF=ax），互抄即错。
+        t.capXp = Boolean.TRUE;
+        t.xpF = "aX";             // NBT "Xp"（当前级内进度经验）
+        t.xpLevelF = "aY";        // NBT "XpLevel"（等级）
+        t.playerLevelF = "aZ";    // NBT "XpTotal"（累计总经验，键名沿用 MCP 混淆位）
+        t.scoreF = "ay";          // NBT "Score"
+        t.xpCooldownF = "aG";     // NBT "XpCooldown"（写 0=立即可再拾）
+        t.addXpM = null;          // b1.8.1 无独立方法（内联 L1050，见上注）
+        t.increaseLevelM = "ab";  // func_35206_ab()V（留档，setxp 直写字段不消费）
+
+        // D10 效果面（b1.8.1 首版实装——giveeffect/removeeffect 消费；取证=
+        // src-minecraft-beta-1.8.1 树 EntityLiving.java 直读：func_35165_a(Lade;)V
+        // =addPotionEffect（L1007-1016 合并/新增双分支，bR.put+回调 func_35164_b）、
+        // damageEntity(I)V=MCP 误名实为 removePotionEffect（L1019 bR.remove(i1)，
+        // javap 字母 f）、func_35160_a(Lud;)Z=isPotionActive（L1000 bR.containsKey）、
+        // func_35167_b(Lud;)Lade;=getPotionEffect（L1004 bR.get）、
+        // field_35170_bR:HashMap=activePotionsMap（L51 protected，键=Potion.field_35670_H
+        // 即效果 id）。ade 构造 (III)V（PotionEffect.java L8 field_35805_a=id）对榫
+        // 19pre2 形态。⚠️ clearEffectsM null 判决：b1.8.1 全树无 bR.clear()/
+        // clearActivePotions 面（dropFewItems L986 逐键 iterator.remove 非清空）——
+        // removeeffect 逐 id 移除已足，clear 面待 19pre2 转正再启用。
+        // isActive/getActive 参类=Potion(ud) 非 int id（与 19pre2 同形态，留档不消费）。
+        t.capEffect = Boolean.TRUE;
+        t.addEffectM = "a";       // wd.a(Lade;)V（⚠️ wd 段 a 重载群，getMethod 按 ade 参型消歧）
+        t.addEffectDesc = "(Lade;)V";
+        t.removeEffectM = "f";    // wd.f(I)V（damageEntity 误名，L1019 实锤）
+        t.clearEffectsM = null;   // b1.8.1 无清空面（见上注）
+        t.isActiveEffectM = "a";  // wd.a(Lud;)Z（留档）
+        t.getActiveEffectM = "b"; // wd.b(Lud;)Lade;（留档）
+        t.effectsMapF = "bR";     // wd.bR protected HashMap（留档，give/remove 走方法面）
+        t.potionClassG = "ud";    // Potion（isActive/get 参类，留档）
+        t.potionEffectClassG = "ade"; // PotionEffect 类名
+        t.potionEffectCtorDesc = "(III)V"; // (id,durationTicks,amplifier)
+        t.xpOrbClassG = null;     // EntityXPOrb 未钉（spawn 面后续批，本批不消费）
+
         return t;
     }
 }

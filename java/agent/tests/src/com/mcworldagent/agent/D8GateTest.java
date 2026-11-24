@@ -34,7 +34,42 @@ public final class D8GateTest {
         }
         ok(unsupported, "weather on " + vid + " must UNSUPPORTED, got pass");
         ok(why.contains("capWeather") && why.contains("b1.5"), "gate reason cites slot+era: " + why);
+
+        // D10 门控（案卷 §6.1）：setxp/giveeffect/removeeffect 在 capXp/capEffect 未真版本
+        // 同样响亮 UNSUPPORTED——门=判决第一站，dummy 对象即触达（不碰字段面）。
+        ok(!Boolean.TRUE.equals(t.capXp), "capXp unset/false on L0 line");
+        ok(!Boolean.TRUE.equals(t.capEffect), "capEffect unset/false on L0 line");
+        gateUnsupported(new RunnableEx() {
+            public void run() throws Exception { WorldOps.setXp(new Object(), 1, 1); }
+        }, "setxp", "capXp");
+        gateUnsupported(new RunnableEx() {
+            public void run() throws Exception { WorldOps.giveEffect(new Object(), 1, 100, 0); }
+        }, "giveeffect", "capEffect");
+        gateUnsupported(new RunnableEx() {
+            public void run() throws Exception { WorldOps.removeEffect(new Object(), 1); }
+        }, "removeeffect", "capEffect");
+
         System.out.println("D8GateTest(" + vid + ") PASS (" + checks + " checks)");
+    }
+
+    interface RunnableEx {
+        void run() throws Exception;
+    }
+
+    /** 门控响亮断言：op 在未放行版本必 UnsupportedOp 且理由引用能力槽名。 */
+    private static void gateUnsupported(RunnableEx r, String op, String slot) {
+        checks++;
+        try {
+            r.run();
+            throw new AssertionError(op + " on L0 line must UNSUPPORTED, got pass");
+        } catch (WorldOps.UnsupportedOp u) {
+            String m = String.valueOf(u.getMessage());
+            if (!m.contains(slot)) {
+                throw new AssertionError(op + " gate reason must cite " + slot + ": " + m);
+            }
+        } catch (Exception e) {
+            throw new AssertionError(op + " wrong exception: " + e);
+        }
     }
 
     private D8GateTest() {

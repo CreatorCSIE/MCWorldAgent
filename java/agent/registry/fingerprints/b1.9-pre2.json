@@ -188,6 +188,9 @@
     "clone": "OK",
     "setdifficulty": "OK",
     "weather": "OK",
+    "setxp": "OK",
+    "giveeffect": "OK",
+    "removeeffect": "OK",
     "listops": "OK"
   }
 }

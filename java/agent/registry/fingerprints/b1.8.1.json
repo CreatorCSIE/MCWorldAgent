@@ -161,6 +161,9 @@
     "fill": "OK",
     "getblocks": "OK",
     "replace": "OK",
+    "setxp": "OK",
+    "giveeffect": "OK",
+    "removeeffect": "OK",
     "listops": "OK"
   }
 }

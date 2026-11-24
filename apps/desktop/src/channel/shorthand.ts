@@ -21,7 +21,7 @@ export interface OpSpec {
   save: SaveMode
 }
 
-/** 40 op 全量（KNOWN_OPS 对榫；D8 批 +4，getbiome 补洞 +1）。 */
+/** 43 op 全量（KNOWN_OPS 对榫；D8 批 +4，getbiome 补洞 +1，D10 批 +3）。 */
 export const OPS: OpSpec[] = [
   { name: 'place', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }, { key: 'blockId', kind: 'int' }], save: 'true' },
   { name: 'dig', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }], save: 'true' },
@@ -65,6 +65,10 @@ export const OPS: OpSpec[] = [
   { name: 'weather', args: [{ key: 'raining', kind: 'flag' }, { key: 'thunder', kind: 'flag', optional: true }], save: 'true' },
   // getbiome 补洞：agent KNOWN_OPS 在册（a1.2.0+ 门控），壳侧早期漏配
   { name: 'getbiome', args: [{ key: 'x', kind: 'int' }, { key: 'z', kind: 'int' }], save: 'ignore' },
+  // D10 无头半壁三 op（agent CommandChannel KNOWN_OPS 同步在册，b1.8+ 门控，案卷 §6.1）
+  { name: 'setxp', args: [{ key: 'level', kind: 'int' }, { key: 'xp', kind: 'int' }], save: 'true' },
+  { name: 'giveeffect', args: [{ key: 'effectId', kind: 'int' }, { key: 'duration', kind: 'int' }, { key: 'amplifier', kind: 'int', optional: true }], save: 'true' },
+  { name: 'removeeffect', args: [{ key: 'effectId', kind: 'int' }], save: 'true' },
 ]
 
 /**

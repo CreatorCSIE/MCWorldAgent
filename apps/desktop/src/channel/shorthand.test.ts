@@ -62,18 +62,33 @@ describe('D8 新四 op', () => {
     expect(okCmd('kill 1 64 1 5').save).toBe(true)
     expect(okCmd('weather true').save).toBe(true)
   })
-  it('KNOWN_OPS 对榫：40 op 全量在册', () => {
-    expect(OPS.length).toBe(40)
+  it('KNOWN_OPS 对榫：43 op 全量在册', () => {
+    expect(OPS.length).toBe(43)
     expect(opSpec('kill')).toBeDefined()
     expect(opSpec('clone')).toBeDefined()
     expect(opSpec('setdifficulty')).toBeDefined()
     expect(opSpec('weather')).toBeDefined()
     expect(opSpec('getbiome')).toBeDefined() // 补洞：agent 侧在册壳侧曾漏
+    expect(opSpec('setxp')).toBeDefined()    // D10 批
+    expect(opSpec('giveeffect')).toBeDefined()
+    expect(opSpec('removeeffect')).toBeDefined()
   })
   it('getbiome 只读面（save 不发）', () => {
     const g = okCmd('getbiome 100 100')
     expect(g.op).toBe('getbiome')
     expect(g.args).toEqual({ x: 100, z: 100 })
     expect(g.save).toBeUndefined()
+  })
+  it('D10 setxp/giveeffect 速记翻译', () => {
+    const x = okCmd('setxp 10 5')
+    expect(x.op).toBe('setxp')
+    expect(x.args).toEqual({ level: 10, xp: 5 })
+    expect(x.save).toBe(true)
+    const g = okCmd('giveeffect 1 200')
+    expect(g.op).toBe('giveeffect')
+    expect(g.args).toEqual({ effectId: 1, duration: 200 }) // amplifier 可选缺省
+    const r = okCmd('removeeffect 1')
+    expect(r.op).toBe('removeeffect')
+    expect(r.args).toEqual({ effectId: 1 })
   })
 })

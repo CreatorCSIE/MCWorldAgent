@@ -120,10 +120,46 @@ public final class VersionTable {
     // UNSUPPORTED，TRUE=已取证放行；JSON ops 段 Boolean 分支 B5 schema 原生支持）
     public Boolean capWeather;      // b1.5+（verscan b1.7.3：World 浮值面+WorldInfo 布尔键两层）
     public Boolean capGamemode;     // b1.8+（creative 旗标）——op 未实装，槽先行
-    public Boolean capXp;           // b1.8+（经验字段，getplayer 同族）——op 未实装，槽先行
-    public Boolean capEffect;       // b1.9-pre2+（MobEffect 挂 EntityLiving）——op 未实装，槽先行
+    public Boolean capXp;           // b1.8+（经验字段，setxp 消费）——D10 实装，build181 放行
+    public Boolean capEffect;       // b1.8+（PotionEffect 挂 EntityLiving，giveeffect/removeeffect
+                                    // 消费）——D10 实装，build181 放行（b1.9-pre2 同族，锚件在档）
     public String rainStrF;         // World.rainingStrength float（b1.7.3=j，verscan 在档）
     public String thunderStrF;      // World.thunderingStrength float（b1.7.3=l）
+
+    // D10 XP 面（b1.8+；键名与锚库 b1.9-pre2.json ops 段逐一对榫——b1.8.1 实值见 build181，
+    // 取证=src-minecraft-beta-1.8.1 树 EntityPlayer.java 直读：field_35211_aX:NBT"Xp"/
+    // field_35210_aY:"XpLevel"/field_35209_aZ:"XpTotal"/field_35214_aG:"XpCooldown"/ay=score，
+    // 全 public int（L464-487 NBT 写读配对实锤）。⚠️ 跨版本字母漂移严禁互抄：
+    // b1.9-pre2 xpF=aW/xpLevelF=aY/playerLevelF=aX（XpTotal 载体，MCP 命名混乱位）/
+    // xpCooldownF=aF/scoreF=ax，b1.8.1 全不同（aX/aY/aZ/aG/ay）。
+    public String xpF;              // EntityPlayer "Xp" int（当前等级内进度经验）
+    public String xpLevelF;         // EntityPlayer "XpLevel" int（等级）
+    public String playerLevelF;     // EntityPlayer "XpTotal" int（累计总经验——键名沿用
+                                    // MCP 字段名混淆位，语义=NBT XpTotal，b1.9-pre2 锚件同键）
+    public String scoreF;           // EntityPlayer score int（NBT "Score"，只读面入 detail）
+    public String xpCooldownF;      // EntityPlayer xpCooldown int（拾取冷却 tick，写 0 立即可再拾）
+    public String addXpM;           // addExperience(I)V（b1.9-pre2=f；b1.8.1 无独立方法=null——
+                                    // 加经验循环体内联 EntityPlayer L1050，setxp 走直写字段面）
+    public String increaseLevelM;   // increaseLevel()V（19pre2=aL / b1.8.1=ab func_35206——留档）
+
+    // D10 效果面（b1.8+；取证=src-minecraft-beta-1.8.1 树 EntityLiving.java 直读：
+    // func_35165_a(Lade;)V=addPotionEffect（L1007 bR.put/合并双分支）、damageEntity(I)V
+    // =MCP 误名实为 removePotionEffect（L1019 bR.remove(i1)——javap 字母 f）、
+    // func_35160_a(Lud;)Z=isPotionActive、func_35167_b(Lud;)Lade;=getPotionEffect、
+    // field_35170_bR:HashMap=activePotionsMap（protected）、ade 构造 (III)V（L8）。
+    // ⚠️ b1.8.1 无 clearActivePotions 面（全树 bR.clear() 零命中）=clearEffectsM null；
+    // b1.9-pre2 锚件字母全不同（afk/vt/bP/i/aG）——严禁互抄）。
+    public String addEffectM;       // EntityLiving addPotionEffect 名（b1.8.1=a / 19pre2=a）
+    public String addEffectDesc;    // 参类名从 desc 解（b1.8.1=(Lade;)V / 19pre2=(Lafk;)V）
+    public String removeEffectM;    // EntityLiving removePotionEffect(I)V（b1.8.1=f / 19pre2=i）
+    public String clearEffectsM;    // clearActivePotions()V（b1.8.1=null 无此面 / 19pre2=aG）
+    public String isActiveEffectM;  // isPotionActive(L<Potion>;)Z（查 Potion 对象非 id——留档）
+    public String getActiveEffectM; // getPotionEffect(L<Potion>;)L<PotionEffect>;（留档）
+    public String effectsMapF;      // EntityLiving activePotionsMap HashMap（b1.8.1=bR / 19pre2=bP）
+    public String potionClassG;     // Potion 类名（b1.8.1=ud / 19pre2=vt——isActive/get 参类）
+    public String potionEffectClassG; // PotionEffect 类名（b1.8.1=ade / 19pre2=afk）
+    public String potionEffectCtorDesc; // 构造描述符 (III)V（id,durationTicks,amplifier 历代同形）
+    public String xpOrbClassG;      // EntityXPOrb 类名（19pre2=bi——spawn 面后续，本批不消费）
 
     /** spawn 白名单：kind→实体类全名（含 tnt/giant/mob 特例）。 */
     public final Map<String, String> mobClasses = new HashMap<String, String>();

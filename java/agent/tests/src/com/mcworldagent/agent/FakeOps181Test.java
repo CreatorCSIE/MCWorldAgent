@@ -216,6 +216,50 @@ public class FakeOps181Test {
         ok((Boolean) getv(item, "G"), "setEntityDead 实例 b(Lkj)V 置 G=dead");
         ok((Integer) getv(w, "killCalls") == 1, "clear 收 world 调用（实例版对账）");
 
+        // ---- D10 setxp（capXp=TRUE；sz.aX/aY/aZ/aG/ay 直写，字段全 public int）----
+        ok(WorldOps.setXp(w, 10, 5).equals("xp level 0 -> 10 xp 0 -> 5"), "setxp 旧值回显");
+        ok((Integer) getv(player, "aY") == 10, "setxp 写 aY=XpLevel");
+        ok((Integer) getv(player, "aX") == 5, "setxp 写 aX=Xp");
+        ok((Integer) getv(player, "aZ") == 105, "setxp 写 aZ=XpTotal=level*10+xp");
+        ok((Integer) getv(player, "aG") == 0, "setxp 清 aG=XpCooldown");
+        try {
+            WorldOps.setXp(w, -1, 0);
+            ok(false, "setxp level<0 must reject");
+        } catch (WorldOps.Rejected r) {
+            ok(String.valueOf(r.getMessage()).contains("level-out-of-range"), "setxp level REJECTED");
+        }
+        try {
+            WorldOps.setXp(w, 0, 200000);
+            ok(false, "setxp xp>100000 must reject");
+        } catch (WorldOps.Rejected r) {
+            ok(String.valueOf(r.getMessage()).contains("xp-out-of-range"), "setxp xp REJECTED");
+        }
+
+        // ---- D10 giveeffect/removeeffect（capEffect=TRUE；wd.a(Lade;)V/f(I)V + ade (III)V）----
+        ok(WorldOps.giveEffect(w, 1, 200, 0).startsWith("giveeffect id=1"), "giveeffect 回显");
+        ok(((java.util.Map) getv(player, "bR")).size() == 1, "giveeffect 入 bR（键=effectId）");
+        Object eff = ((java.util.Map) getv(player, "bR")).get(Integer.valueOf(1));
+        ok(eff != null && eff.getClass().getName().equals("ade"), "bR 值=ade 件");
+        ok((Integer) getv(eff, "b") == 200, "ade.duration=200 对账");
+        WorldOps.giveEffect(w, 4, 100, 2);
+        ok(((java.util.Map) getv(player, "bR")).size() == 2, "giveeffect 第二效果");
+        ok(WorldOps.removeEffect(w, 1).startsWith("removeeffect id=1"), "removeeffect 回显");
+        ok(!((java.util.Map) getv(player, "bR")).containsKey(Integer.valueOf(1)),
+                "removeeffect 移 id=1（f(I)V bR.remove）");
+        ok(((java.util.Map) getv(player, "bR")).containsKey(Integer.valueOf(4)), "id=4 保留");
+        try {
+            WorldOps.giveEffect(w, 0, 100, 0);
+            ok(false, "giveeffect id=0 must reject");
+        } catch (WorldOps.Rejected r) {
+            ok(String.valueOf(r.getMessage()).contains("effect-id-out-of-range"), "giveeffect id REJECTED");
+        }
+        try {
+            WorldOps.removeEffect(w, 99);
+            ok(false, "removeeffect id=99 must reject");
+        } catch (WorldOps.Rejected r) {
+            ok(String.valueOf(r.getMessage()).contains("effect-id-out-of-range"), "removeeffect id REJECTED");
+        }
+
         // ---- UNSUPPORTED 响亮（6 件；同 b1.7.3 判决）----
         set(w, "teStore", Class.forName("ij").getConstructor().newInstance());
         unsupported("setmeta", new RunnableEx() {
