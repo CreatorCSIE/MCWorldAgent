@@ -427,6 +427,14 @@ Standalone Generator and Agent Mode should share lower-level Java Runtime infras
 
 Advanced terrain-generation Skills are explicitly outside the initial scope.
 
+**Design verdicts (2026-11-24, headless discussion batch):**
+
+- Unified route = **client-jar direct invocation for all three eras** (Indev: `createLevel`/`initWorldGenSeed` on Level `a.a.f`; Infdev: fake session + touch-to-generate exploiting the load-path coupling; Beta: World `fd` constructor + chunk provider). The dedicated-server-jar detour is **rejected**: Beta client jars contain no server classes (b1.7.3 full dump: 0 hits) because singleplayer generation already lives client-side; borrowing server jars would add a dual-artifact matrix, build-mismatch risk (e.g. b1.5_02 is server-only) and coverage gaps for zero gain.
+- Headlessness evidence: 0327 Level — 0 back-refs to the Minecraft client class; its only 3 `net.minecraft.client` refs are a pure-IO stream helper on the load/save path; `<clinit>` is a float light table; Level constructs its own observer impl (`a.a.a.c`), so render callbacks no-op on an empty observer list headless. b1.7.3 World (`fd`, 8040 disasm lines) — 0 client refs, 0 LWJGL/AWT. Dependency direction is one-way (`client → World`, never `World → client`); the observer interface is the inversion seam.
+- Per-version gate = **runtime smoke test** (invoke the gen entry in a headless JVM; NoClassDefFoundError/UnsatisfiedLinkError = fail), not javap closure crawling; javap stays as post-failure forensics only.
+- Fidelity trap on the ledger: 2010-era terrain noise depends on `Math.sin` float behavior which **varies across JVM versions** — "same seed, same world" requires pinning the JVM.
+- F1 compiler new facet = **generation-entry anchor columns** (`genSeedMethod`/`createLevel`/`chunkProviderClass`) added to the existing per-version fingerprint table, same artifact, same forensics pass. Classic-era AWT ancestry (`MinecraftApplet extends Applet`) is a separate verdict when that line opens.
+
 ### 4.5 Java Agent and Runtime Bridge
 
 **Priority: High**
@@ -560,6 +568,16 @@ The rendering layer should use a common coordinate system while respecting versi
 
 Lighting should be capability-driven rather than assumed to exist uniformly across historical versions.
 
+**Design verdicts (2026-11-24, Three.js/MCEdit reference batch):**
+
+- Era split: pre-Infdev worlds are **finite** (Indev fixed-size maps) — full load + full render is legitimate there; the streaming model below applies from Infdev onward.
+- Two interaction modes, not one: **Live mode** — the game owns chunk streaming, so the view follows the *player*, not a free camera; distant editing = teleport the player (the player is the searchlight), unloaded chunks render grayed/read-only with click-to-focus = tp. **Offline mode** — camera-centric spiral streaming load (`iterateChunks`-style, view-distance threshold triggers swap), two independent pools (data chunk cap + VRAM/mesh cap, evict farthest first), edit session in a **CoW overlay** with explicit commit; only dirty chunks write back, level.dat last.
+- Two-layer dirty separation (MCEdit-proven): data-dirty (drives save) vs render-invalid (drives mesh rebuild per layer), decoupled; box edits invalidate `expand(1)` neighbors; mesh rebuild runs on a per-frame budget (Web Worker + frame-time quota).
+- Viewing authority splits from editing authority: global view = **per-chunk summary layer** (heightmap + dominant-color 2D overview, offline-generated from the storage readers — no new agent forensics), detail = voxel mesh near camera. Global-visible + local-detailed + distant-editable all hold without loading everything.
+- Live feedback: optimistic local apply of op receipts (diff version-stamped on the envelope id), periodic region-checksum correction; game-originated changes (mob moves, block updates) need a **change-journal subscription surface** — the single biggest new T2 forensics item (blockUpdate hook → outbox append stream).
+- Lighting: render from the real SkyLight/BlockLight nibbles on disk (G2 invariant), surpassing MCEdit's heightmap approximation.
+- MCEdit reference ranking: ①load/dirty/save architecture ②2D overview interaction ③tool→op mapping table (box-select/brush/fill-replace/schematic clipboard ≈ our getblocks/fill/replace/clone faces). Not reusable: its format loaders (master has no Indev scattered-file support and asserts Anvil) — early-era loaders stay self-built; not reusable: display-list renderer, albow UI.
+
 ### 4.10 MCP and External API
 
 **Priority: Medium / Later Phase**
@@ -582,6 +600,21 @@ The MCP Server should call the same World API used by the desktop interface.
 MCP must not become a separate implementation of world manipulation logic.
 
 Advanced AI Skills, including procedural terrain planning, road design and architectural planning, are deferred.
+
+---
+
+### 4.11 Cross-Version Structure Transfer (versioned schematic + remap)
+
+**Design verdicts (2026-11-24, schematic drift batch).** MCEdit-style raw `Blocks[]/Data[]` schematics carry **no version field** and break on downward import (new→old) with silent unmatched blocks. Our schematics must be **versioned artifacts** (source fingerprint id embedded), and cross-version import goes through a remap layer, never raw writes.
+
+Drift has three layers:
+1. **ID-table drift** (adds/removals/merges) — hard case on file: b1.2 "dye + new 16-color wool" merged separate color IDs into `35+data`; imports across that line change block identity.
+2. **Data-value semantics drift** (id survives, meaning changes: stair/torch orientation, log-axis encoding) — subtler; first version warns via a known-drift blacklist, per-property translation rules accrue incrementally.
+3. **World-parameter drift** (height 64→128 clipping; entity/TileEntity type names absent in target era).
+
+Mechanism: **name-join translation** — source table `id→canonical name` joined to target table `name→id+data`, both sides derived from the existing per-version fingerprint block tables (F1/P3 assets; zero new forensics). Unmappable entries follow a tri-state policy (default `error` listing all misses; optional `substitute` with declared fallback id; `drop`), and every import emits a **remap report** — never silent.
+
+Ledger consequence: the 21 desc-drift items upgrade from hygiene debt to **dependency debt** (they are exactly the name-join key holes); a block-table canonical-name cleanup batch is now a prerequisite for this layer. Relation to channel ledger §6.1: that section ruled id+data **forward** portability of the wire format; this section covers **bidirectional** world-data transfer.
 
 ---
 
@@ -701,6 +734,15 @@ Bulk modifications should support:
 - [ ] Undo / rollback where feasible.
 
 Operations affecting the running game should avoid blocking Minecraft's main thread for excessive periods.
+
+### 7.4 World-Occupancy Lock, version-tiered (2026-11-24 verdict)
+
+`session.lock` is itself a version-gated surface: introduced **Alpha v1.0.13**; absent 0327→a1.0.12. Verified on our own live lines (natural experiment across the boundary): a1.0.3 jar 0 string hits; a1.2.0 2 hits (class `cu`); b1.7.3 2 hits (class `fm`). Format: 8-byte BE int64 open-timestamp; semantics = **last opener wins + monitor-and-abort** (unlike typical locks).
+
+- **Tier L1 (≥ a1.0.13)**: the offline layer may *read* session.lock as an occupancy hint (fresh ≈ recently opened; cannot prove liveness — the value is static during a session). **Red line: the offline layer never writes session.lock** — under last-opener-wins that steals the lock from a running game and makes the game abort its own world (MCEdit's hostile lock-grab model, explicitly rejected).
+- **Tier L0 (0327/Infdev/a1.0.3–a1.0.12)**: the game has no lock concept; file-level probing yields nothing. Occupancy verdict = agent channel liveness (authoritative), else launcher process table / user confirmation. Our live lines a1.0.3, 0624, 0327 all sit in L0.
+- Optional L0 forward-compat courtesy: the agent may stamp a session.lock (spec format above) — inert to the contemporary game, a valid warning for the offline layer and for future-version opens.
+- General rule: the agent holds the authoritative lock; the offline layer queries it before any write (equivalent of checkSessionLock), plus write-time backup discipline.
 
 ---
 
@@ -998,6 +1040,11 @@ This section supersedes the §11 open-questions table as the live status board. 
 | D3 | Version-expansion pilot version pick: 0330 (free anchor reuse via F4 implicit borrowing) vs Classic c0.28 cluster (4 versions / 1 anchor) | Mixed |
 | D4 | T2 kickoff: Editor registry research + chunk export agent batch (read-only hard constraints) + listops v2 capability-metadata batch (T2 prerequisite per workbench-model §6) | Frontend+agent |
 | D5 | Shell alias table small batch (8 modern-name aliases + clear-trap ruling, per channel ledger §6.1) | Offline |
-| D6 | Follow-up ledger: difficulty BLOCKED new criterion, b1.2.zip missing-6-classes borrow-side list, 21 desc-drift items, a1.2.6 headless fixture vs real-jar note | Offline |
+| D6 | Follow-up ledger: difficulty BLOCKED new criterion, b1.2.zip missing-6-classes borrow-side list, 21 desc-drift items (upgraded to dependency debt per §4.11), a1.2.6 headless fixture vs real-jar note | Offline |
+| D7 | Storage write-side batch (order: production NbtWriter → level.dat read/write → scattered-file writer → MCRegion unit-allocator writer) + write-gate/backup discipline per §7.4; b1.3 mcr first-write forensics folded in | Offline |
+| D8 | Gating+zero-forensics op batch: VersionTable boolean capability slots (B5 JSON schema Boolean branch ready), weather first gated op (b1.7.3/b1.8.1, anchors on file; loud UNSUPPORTED on L0 lines), kill/clone/particle/setdifficulty zero-forensics quartet (particle entry+7-name set javaped for 0327 per channel ledger §6.1), optionally merged with D5 alias table | Mixed |
+| D9 | T2/T3 pre-accounts: change-journal subscription surface (biggest new forensics), chunk-summary export (offline, storage-side, zero forensics), optimistic-update version stamping, block-table canonical-name cleanup (§4.11 prerequisite), headless smoke-test harness (§4.4) | Mixed |
+
+Design verdicts 2026-11-24 recorded in §4.4 (headless unified client-jar route), §4.9 (Three.js dual-mode/two-tier render), §4.11 (versioned schematic + remap), §7.4 (session.lock L0/L1 tiers); evidence dumps under %TEMP%\mcaut\b5\{fx0327,lockprobe}.
 
 Disciplines unchanged: live runs require per-batch user approval; evidence chains archived per run; protocol evolution goes through channel ledger only ("panel follows protocol"); no implicit world generation on read paths.
