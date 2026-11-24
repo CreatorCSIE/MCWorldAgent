@@ -1,6 +1,6 @@
 // D8/D5 批守卫：别名归一（零协议）+ 新四 op + flag 解析 + clear≠clearinv 陷阱
 import { describe, expect, it } from 'vitest'
-import { buildEnvelope, opSpec, parseShorthand } from './shorthand'
+import { OPS, buildEnvelope, opSpec, parseShorthand } from './shorthand'
 
 const okCmd = (line: string) => {
   const r = parseShorthand(line)
@@ -62,10 +62,18 @@ describe('D8 新四 op', () => {
     expect(okCmd('kill 1 64 1 5').save).toBe(true)
     expect(okCmd('weather true').save).toBe(true)
   })
-  it('KNOWN_OPS 对榫：39 op 全量在册', () => {
+  it('KNOWN_OPS 对榫：40 op 全量在册', () => {
+    expect(OPS.length).toBe(40)
     expect(opSpec('kill')).toBeDefined()
     expect(opSpec('clone')).toBeDefined()
     expect(opSpec('setdifficulty')).toBeDefined()
     expect(opSpec('weather')).toBeDefined()
+    expect(opSpec('getbiome')).toBeDefined() // 补洞：agent 侧在册壳侧曾漏
+  })
+  it('getbiome 只读面（save 不发）', () => {
+    const g = okCmd('getbiome 100 100')
+    expect(g.op).toBe('getbiome')
+    expect(g.args).toEqual({ x: 100, z: 100 })
+    expect(g.save).toBeUndefined()
   })
 })

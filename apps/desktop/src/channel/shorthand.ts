@@ -21,7 +21,7 @@ export interface OpSpec {
   save: SaveMode
 }
 
-/** 39 op 全量（KNOWN_OPS 对榫；D8 批 +4）。 */
+/** 40 op 全量（KNOWN_OPS 对榫；D8 批 +4，getbiome 补洞 +1）。 */
 export const OPS: OpSpec[] = [
   { name: 'place', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }, { key: 'blockId', kind: 'int' }], save: 'true' },
   { name: 'dig', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }], save: 'true' },
@@ -63,6 +63,8 @@ export const OPS: OpSpec[] = [
   { name: 'clone', args: [{ key: 'x1', kind: 'int' }, { key: 'y1', kind: 'int' }, { key: 'z1', kind: 'int' }, { key: 'x2', kind: 'int' }, { key: 'y2', kind: 'int' }, { key: 'z2', kind: 'int' }, { key: 'tx', kind: 'int' }, { key: 'ty', kind: 'int' }, { key: 'tz', kind: 'int' }], save: 'true' },
   { name: 'setdifficulty', args: [{ key: 'level', kind: 'int' }], save: 'true' },
   { name: 'weather', args: [{ key: 'raining', kind: 'flag' }, { key: 'thunder', kind: 'flag', optional: true }], save: 'true' },
+  // getbiome 补洞：agent KNOWN_OPS 在册（a1.2.0+ 门控），壳侧早期漏配
+  { name: 'getbiome', args: [{ key: 'x', kind: 'int' }, { key: 'z', kind: 'int' }], save: 'ignore' },
 ]
 
 /**

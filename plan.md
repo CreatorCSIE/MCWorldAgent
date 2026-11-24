@@ -1017,7 +1017,7 @@ Changes should be documented in the relevant architecture, research or UI notes.
 
 ---
 
-## 14. Current Status and Decision Queue (2026-11-22)
+## 14. Current Status and Decision Queue (updated 2026-11-25, autonomous window batch)
 
 This section supersedes the §11 open-questions table as the live status board. Detailed ledgers live in `docs/` (architecture/, research/, compatibility/); commit history carries per-batch verdicts.
 
@@ -1025,10 +1025,10 @@ This section supersedes the §11 open-questions table as the live status board. 
 
 | Layer | Status |
 |---|---|
-| Command channel v1 | Live and hardened: file-queue protocol (protocolVersion 1, tmp/inbox/processed/outbox), tick-boundary execution, 36 ops (place…grow/clear/getbiome), save-policy table, targetGeneration, listops self-surface with shell echo diff-check |
-| Version coverage | 11 fingerprint anchor JSONs; 5 lines live-verified (0327, a1.2.0, b1.2_02, b1.7.3, b1.8.1); c0.30-c/0629/0618/0223/a1.1.2_01/a1.2.6 anchored offline |
+| Command channel v1 | Live and hardened: file-queue protocol (protocolVersion 1, tmp/inbox/processed/outbox), tick-boundary execution, 40 ops (place…grow/clear/getbiome + D8 quartet kill/clone/setdifficulty/weather), save-policy table, targetGeneration, listops self-surface with shell echo diff-check; guard batch: strict-vs-lenient fingerprint loading, MiniJson boundary assertions, envelope fuzz, KNOWN_OPS↔LISTOPS consistency gate (commit cffbf95) |
+| Version coverage | 16 fingerprint JSONs (2 runtime-schema + 14 anchors); 5 lines live-verified (0327, a1.2.0, b1.2_02, b1.7.3, b1.8.1); expansion first wave anchored offline with SHA1-verified jars: **b1.5_01 / b1.9-pre2 / b1.3_01** (commit 5858e7a) — weather boundary chain rebuilt (b1.3 absent → b1.5 introduced → b1.7.3 key-case break → b1.9-pre2 flag-setter convergence), WorldInfo migration boundary corrected to b1.2_02..b1.3_01, effect/xp/hunger surfaces pinned |
 | Industrialization | P1/P2/P3/F4/F1×2/F6-eval all closed: F1 compiler covers 113 facets, F5 matrix 627/627 green, F4 verdict = cliff structure (obfuscation dictionaries regenerate per version; 86 effective tables; anchors cannot cross versions → compiler is the only scalable forensics route); 13 cluster-representative anchor drafts pending promotion |
-| Desktop shell | T1 command panel implemented and live-run passed (shorthand translator + dual-source polling + kill×save race UI); T2 (Editor registry + Three.js real render) and T3 (split/drag/palette/persistence) queued per workbench-model.md |
+| Desktop shell | T1 command panel implemented and live-run passed (shorthand translator + dual-source polling + kill×save race UI); D5 alias table + D8 ops + getbiome gap-fill landed (40-op mirror, vitest 10/10); T2 (Editor registry + Three.js real render) and T3 (split/drag/palette/persistence) queued per workbench-model.md |
 | Launcher integration | Attic sidecar `launch` path verified (game start channel); kill/stop semantics deliberately out of shell v1 |
 
 ### 14.2 Decision queue (next steps, ordering = user's call)
@@ -1036,14 +1036,15 @@ This section supersedes the §11 open-questions table as the live status board. 
 | # | Item | Nature |
 |---|---|---|
 | D1 | F6 retirement execution batch: superseded annotations + 7 open-case writebacks + gap routing (hooks schema unification, era-break verdicts → pilot ledger) + b1.8 table→JSON transcription | Offline |
-| D2 | Draft promotion first wave: 2-3 cluster representatives per live boot (live harness scripting via Attic sidecar can compress manual-in-loop) | Live |
-| D3 | Version-expansion pilot version pick: 0330 (free anchor reuse via F4 implicit borrowing) vs Classic c0.28 cluster (4 versions / 1 anchor) | Mixed |
+| D2 | Draft promotion first wave: 2-3 cluster representatives per live boot (live harness scripting via Attic sidecar can compress manual-in-loop); **first wave now includes b1.5_01/b1.9-pre2/b1.3_01 runtime enablement (VersionRegistry build + fake tests) — anchors on file, live promotion pending arrival pack** | Live |
+| D3 | Version-expansion pilot version pick: 0330 (free anchor reuse via F4 implicit borrowing) vs Classic c0.28 cluster (4 versions / 1 anchor) — note: Beta spine first wave already landed offline (5858e7a) | Mixed |
 | D4 | T2 kickoff: Editor registry research + chunk export agent batch (read-only hard constraints) + listops v2 capability-metadata batch (T2 prerequisite per workbench-model §6) | Frontend+agent |
-| D5 | Shell alias table small batch (8 modern-name aliases + clear-trap ruling, per channel ledger §6.1) | Offline |
+| D5 | ~~Shell alias table small batch~~ **DONE** (alias table + clear-trap ruling landed in shorthand.ts; §6.1) | Offline |
 | D6 | Follow-up ledger: difficulty BLOCKED new criterion, b1.2.zip missing-6-classes borrow-side list, 21 desc-drift items (upgraded to dependency debt per §4.11), a1.2.6 headless fixture vs real-jar note | Offline |
-| D7 | Storage write-side batch (order: production NbtWriter → level.dat read/write → scattered-file writer → MCRegion unit-allocator writer) + write-gate/backup discipline per §7.4; b1.3 mcr first-write forensics folded in | Offline |
-| D8 | Gating+zero-forensics op batch: VersionTable boolean capability slots (B5 JSON schema Boolean branch ready), weather first gated op (b1.7.3/b1.8.1, anchors on file; loud UNSUPPORTED on L0 lines), kill/clone/particle/setdifficulty zero-forensics quartet (particle entry+7-name set javaped for 0327 per channel ledger §6.1), optionally merged with D5 alias table | Mixed |
+| D7 | Storage write-side batch (order: production NbtWriter → level.dat read/write → scattered-file writer → MCRegion unit-allocator writer) + write-gate/backup discipline per §7.4; b1.3 mcr first-write forensics folded in — **RegionFile surfaces now pinned for b1.3_01 (mo) and b1.9-pre2 (jz) = two-version offline anchor set for the mcr writer leg** | Offline |
+| D8 | ~~Gating+zero-forensics op batch~~ **DONE headless half** (capability slots + loud UNSUPPORTED + kill/clone/setdifficulty/weather + D5 aliases; commits 61a14e4/cffbf95). Live half open: weather float-write is tick-decayed (ramp overwrites, §6.1 addendum) — full semantics need WorldInfo flag+time writes (b1.9-pre2 public setters; b1.7.3 private-field recipe) → arrival-pack verdict | Mixed |
 | D9 | T2/T3 pre-accounts: change-journal subscription surface (biggest new forensics), chunk-summary export (offline, storage-side, zero forensics), optimistic-update version stamping, block-table canonical-name cleanup (§4.11 prerequisite), headless smoke-test harness (§4.4) | Mixed |
+| D10 | **New op pipeline from mining (§6.1 addendum 2026-11-25)**: hunger (b1.8+, FoodStats pinned b1.8.1=kc/b1.9-pre2=la), effect+setxp (b1.9-pre2+ anchored), gamemode (b1.8+, WorldSettings+WorldInfo dual layer), sleep/wake (b1.5+, dawn-skip semantics), entitylist type-filter widening — each needs D8-style gate slots + fake tests + arrival-pack live items | Mixed |
 
 Design verdicts 2026-11-24 recorded in §4.4 (headless unified client-jar route), §4.9 (Three.js dual-mode/two-tier render), §4.11 (versioned schematic + remap), §7.4 (session.lock L0/L1 tiers); evidence dumps under %TEMP%\mcaut\b5\{fx0327,lockprobe}.
 
