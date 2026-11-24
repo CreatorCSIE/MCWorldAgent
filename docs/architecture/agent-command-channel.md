@@ -163,6 +163,42 @@ save 策略（评审采纳，按操作类型）：
 
 **自我纠错两则入档**：/explode、/bone_meal 在 vanilla 命令面**不存在**（Bukkit 遗产，26.3 全 jar 扫描零命中）——前轮口误，经实证翻正。
 
+### 6.1 追记（2026-11-25，扩版首波取证 × 接口挖掘合流）
+
+对象=b1.3_01/b1.5_01/b1.9-pre2 三 jar（SHA1 对榫版本索引原始行）+ 在册 b1.7.3/b1.8.1，javap -p/-c + client.tiny 类块双源，锚库件 `registry/fingerprints/b1.5_01.json`/`b1.9-pre2.json`/`b1.3_01.json` 落账（提交 5858e7a）。
+
+**边界判决（双版夹逼，全部升级为实据）**：
+
+- **weather 门控链完整重建**：b1.3_01 不存在面实锤（World=dt 零雨浮值、WorldInfo=dc 零旗标）→ b1.5_01 引入（四浮值 B/C/D/E + dc→dy 四键 l/m/n/o，**NBT 键小写** raining/rainTime/thundering/thunderTime）→ b1.7.3 键首字母大写断代（RainTime/Raining/…）→ b1.9-pre2 收敛（World 单浮值 o=rainingStrength/q=thunderingStrength + **WorldInfo public 旗标 setter 四连** setIsRaining=b(Z)V/setIsThundering=a(Z)V/setRainTime=f(I)V/setThunderTime=e(I)V）。LISTOPS "b1.5+ gated" 判决获前后夹逼。⚠️ 新险情报：**浮值写=临时态**——b1.5_01 tick 斜坡 func_27165_m 每 tick 按旗标 ±0.01 覆写（且交叉驱动：C←thundering、E←raining，与后世直觉相反）；173/19pre2 同构=**D8 weather 浮值写在活体必被衰减**，完整语义须写旗标+时间键（19pre2 起 setter 可达；173 需 WorldInfo 私有字段直写配方）。到场包判决点。
+- **WorldInfo 迁移边界修正**：b1.2_02 无 → b1.3_01 dc 已承载 a=randomSeed/b-d=spawnXYZ/e=worldTime（字母布局与 dy/sx/ei 全同）——迁移发生在 **b1.2_02..b1.3_01 之间**，非 b1.5_01（本稿早期误判已在锚库件内修正入档）。
+- **hunger（新 op 候选，高价值）**：FoodStats 类 b1.3_01/b1.5_01/b1.7.3 **不存在** → b1.8.1=kc（EntityPlayer sz.av=Lkc;，func_* 名但形状同后世）→ b1.9-pre2=la 全表面钉（foodLevel=a(I)/foodSaturationLevel=b(F)/foodExhaustionLevel=c(F)/foodTickTimer=d + setFoodLevel=a(I)V/setFoodSaturationLevel=b(F)V/addExhaustion=a(F)V/needFood=c()Z）。**门控=b1.8+**，锚已齐（181 在册活体=可实装候选）。填补生存面空白（现 39 op 零饥饿覆盖）。
+- **effect/xp 锚定完成**：b1.9-pre2 Potion=vt/PotionEffect=afk(III)V/addPotionEffect=a(Lafk;)V/removePotionEffect=i(I)V/clearActivePotions=aG()V/activePotionsMap=bP；xp=aW/xpLevel=aY/playerLevel=aX（**pre2 双 level 字段并存怪癖**，1.0+ 合并——写面须双写或到场包核权威字段）/score=ax/increaseXP=f(I)V/increaseLevel=aL()V/EntityXPOrb=bi。原表"b1.9-pre2+ 版本门控候选"升级为**锚定就绪**。
+- **gamemode 锚定就绪（b1.8+）**：WorldSettings b1.8.1=dx/b1.9-pre2=ek（gameType=b(I)/getGameType=b()I/ctor(JIZZ)V）+ WorldInfo.sx.p=gameType——creative 旗标双层（世界设置=持久、WorldInfo=level.dat 面）。
+- **scoreboard / GameRules：Beta 全线不存在**（b1.3_01..b1.9-pre2 五版 tiny 零命中，本轮取证）——排除判决获得版本定语"≤b1.9-pre2 不存在"，1.0+ 断代待后查。
+- **giant 断代**：EntityGiantZombie b1.3_01 不存在（b1.6+ 入世）；**EntityCreature 抽象断代**：1301 gm/1501 ht public 非 abstract（mob 槽可用）→ **19pre2 vp=abstract**（mob 槽破裂，spawn kind=mob 本版应响亮 UNSUPPORTED——运行时启用时按锚库 mobClasses.mob=null 判决执行）。
+
+**新发现未登记接口候选（挖掘侧，判价值入表）**：
+
+| 候选 | 取证锚（19pre2 为主） | 门控 | 价值判决 |
+|---|---|---|---|
+| hunger（sethunger/gethunger） | uo.au→la 全表面（上节） | b1.8+ | **高**——生存面零覆盖，写读双向，getplayer 可顺带扩字段 |
+| sleep/wake（forced sleep） | uo sleeping=aM/sleepTimer=a/bedChunkCoordinates=aN/wakeUpPlayer=a(Lfd;ZZZ)V/getSleepTimer；1501 gh x/b/a 同形 | b1.5+（类面在 1501 已齐） | **高**——SP 黎明跳过由 sleeping 旗驱动（time skip 语义=现代 /time 家族老版本替身，与 time pause 排除判决互补）；GUI 交互副作用未核=到场包 |
+| setxp（give xp/level） | uo aW/aX/aY/ax + f(I)V/aL()V；getExperiencePoints(xx) | b1.9-pre2+ | **高**——与 effect 合成"成长组"；双 level 字段怪癖=判决点 |
+| effect（add/remove/clear） | xx a(Lafk;)V/i(I)V/aG()V/bP | b1.9-pre2+ | **高**——表内既有候选，本轮锚定完成 |
+| gamemode | ek.b + sx.p | b1.8+ | **中高**——持久层可写；客户端行为面（飞行/破坏模式）联动未核 |
+| hurt（attackEntityFrom） | kw.a(Lsj;I)V（1501）；伤害源类=sj | b1.5+ | 中——真实伤害路径（护甲/难度修正/惊醒联动）vs sethealth 直写；两路并存 |
+| respawn | uo.respawnPlayer=X()V | b1.9-pre2 已见（更早待查） | 中——死亡循环测试件；须先核死亡态前置 |
+| entitylist 类型过滤 | wd.a(Ljava/lang/Class;Z)Ljava/util/List;（getEntitiesOfType） | b1.9-pre2+（1501 ik 无此形待核） | 中——kill/clear 可按类扩参（kind 谓词），现圆柱全杀粗粒度 |
+| dropPlayerItem | uo.a(Lwc;)V（19pre2） | b1.9-pre2+ | 低中——drop 已覆盖主体；增量=拾取延迟/投掷速度真实性 |
+| throw/pickup 延迟 | gz.c=delayBeforeCanPickup（1501 EntityItem） | b1.3+ | 低——drop 参数化尾项 |
+| stat 伪造 | uo.addStat/triggerAchievement | b1.9-pre2+ | 低——成就/统计污染面，非世界状态 |
+| portal 旅行 | uo inPortal=aS/timeInPortal=aT/dimension=aD | b1.9-pre2+ | 低——下界旅行=多维世界态，超单人快照模型 |
+| RegionFile 直读写（**非 op**） | 1301 mo/19pre2 jz 全表面钉（getChunkDataInputStream/OutputStream/offsets/timestamps/write） | b1.2+ | **高（工具侧）**——D7 离线 fixture 工具双版锚；戒律不破（agent 不写世界文件，工具在测试侧） |
+
+**跨版借表陷阱集（本轮新增，verscan 纪律再钉）**：① **fd 撞名**——173 fd=World，1301 fd=EntityPlayer（同字母异类）；② Entity pos 面**每版 +2 右移**：1301=aI..aP / 1501=aK..aR / 173=aM..aT（19pre2 起换轨 o..v）；③ hudDebugGateF **同字母异名**——1501 jz.B=showDebugInfo vs 173 kv.B=showFPS（语义已换，门读点位仍有效）；④ 1501 rj.by=skinUrl vs 173 sn.by=heartsLife（iframes 借表必炸）；⑤ 19pre2 isDmgF=d→e、itemsF=c→e 断代；⑥ saveWorld 包装断代：1301/19pre2 有 1 参包装，**1501 无**（仅 a(ZLwr;)V 双参实体，ops 调用面需双参配方）。
+
+**RUN_TICK 字母表补全**：1301=j / 1501=j / 173=k / 19pre2=k（World.tick=1301 dt.k / 1501 et.l / 173 fd.? / 19pre2 ti.c——World.tick 自身也在漂移，钩表逐版钉死不许借）。
+
 ## 7. 戒律（不变项）
 
 坐标前校验世界加载（tick 计数阈值）；agent 不直接写世界文件——一切经游戏方法；每 run 的 mca/ 目录随 `out/<run>/` 归档；kill 前确认用户回标题（phase1 §6）。
