@@ -53,7 +53,9 @@ public final class CommandChannel {
                     // D8 无头半壁（案卷 §6.1 零取证四连+门控首发）
                     "kill", "clone", "setdifficulty", "weather",
                     // D10 无头半壁（XP/效果面，b1.8+ 门控）
-                    "setxp", "giveeffect", "removeeffect"));
+                    "setxp", "giveeffect", "removeeffect",
+                    // D11 饥饿面（b1.8+ 门控）
+                    "sethunger"));
 
     /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。包内可见=守卫批一致性直测面。 */
     static final String LISTOPS =
@@ -86,6 +88,7 @@ public final class CommandChannel {
           + "setxp(level0..30000,xp0..100000)w[b1.8+ gated capXp;EntityPlayer Xp/XpLevel/XpTotal];"
           + "giveeffect(effectId1..31,durationTicks,amplifier0..255)w[b1.8+ gated capEffect];"
           + "removeeffect(effectId1..31)w[b1.8+ gated capEffect];"
+          + "sethunger(food0..20[,saturation0..20])w[b1.8+ gated capHunger;FoodStats private];"
           + "getbiome(x,z)r[a1.2.0+;beta 前版本 UNSUPPORTED]";
 
     private static String cmdDirArg;
@@ -572,6 +575,11 @@ public final class CommandChannel {
         if ("removeeffect".equals(c.op)) {
             int id = intArg(a, "effectId");
             return WorldOps.removeEffect(world, id) + saveSuffix(world, c);
+        }
+        if ("sethunger".equals(c.op)) {
+            int food = intArg(a, "food");
+            int saturation = optionalIntArg(a, "saturation", -1);
+            return WorldOps.setHunger(world, food, saturation) + saveSuffix(world, c);
         }
         if ("listops".equals(c.op)) {
             return LISTOPS; // agent 侧自省，零游戏调用（世界未捕获仍 not-ready——v1 从简）

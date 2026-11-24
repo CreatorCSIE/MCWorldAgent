@@ -62,8 +62,8 @@ describe('D8 新四 op', () => {
     expect(okCmd('kill 1 64 1 5').save).toBe(true)
     expect(okCmd('weather true').save).toBe(true)
   })
-  it('KNOWN_OPS 对榫：43 op 全量在册', () => {
-    expect(OPS.length).toBe(43)
+  it('KNOWN_OPS 对榫：44 op 全量在册', () => {
+    expect(OPS.length).toBe(44)
     expect(opSpec('kill')).toBeDefined()
     expect(opSpec('clone')).toBeDefined()
     expect(opSpec('setdifficulty')).toBeDefined()
@@ -72,6 +72,15 @@ describe('D8 新四 op', () => {
     expect(opSpec('setxp')).toBeDefined()    // D10 批
     expect(opSpec('giveeffect')).toBeDefined()
     expect(opSpec('removeeffect')).toBeDefined()
+    expect(opSpec('sethunger')).toBeDefined() // D11 批
+  })
+  it('D11 sethunger 速记翻译', () => {
+    const h = okCmd('sethunger 20 5')
+    expect(h.op).toBe('sethunger')
+    expect(h.args).toEqual({ food: 20, saturation: 5 })
+    expect(h.save).toBe(true)
+    const h2 = okCmd('sethunger 10')
+    expect(h2.args).toEqual({ food: 10 }) // saturation 可选缺省
   })
   it('getbiome 只读面（save 不发）', () => {
     const g = okCmd('getbiome 100 100')

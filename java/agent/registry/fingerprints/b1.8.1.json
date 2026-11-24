@@ -164,6 +164,7 @@
     "setxp": "OK",
     "giveeffect": "OK",
     "removeeffect": "OK",
+    "sethunger": "OK",
     "listops": "OK"
   }
 }

@@ -260,6 +260,22 @@ public class FakeOps181Test {
             ok(String.valueOf(r.getMessage()).contains("effect-id-out-of-range"), "removeeffect id REJECTED");
         }
 
+        // ---- D11 sethunger（capHunger=TRUE；sz.at()Lkc -> kc.a/b private 直写）----
+        // 假件 kc 初值 a=20/b=5.0（FoodStats.java L4-5 实值）
+        ok(WorldOps.setHunger(w, 10, 3).equals("hunger food 20 -> 10 sat 5.0 -> 3"), "sethunger 旧值回显");
+        Object fs = Class.forName("sz").getMethod("at").invoke(player);
+        ok((Integer) pri(fs, "a") == 10, "sethunger 写 kc.a=foodLevel private");
+        ok((Float) pri(fs, "b") == 3.0f, "sethunger 写 kc.b=saturation private");
+        // saturation 缺省（-1）=不动
+        ok(WorldOps.setHunger(w, 5, -1).equals("hunger food 10 -> 5"), "sethunger sat 缺省不动");
+        ok((Float) pri(fs, "b") == 3.0f, "sethunger sat 保留");
+        try {
+            WorldOps.setHunger(w, 21, 0);
+            ok(false, "sethunger food>20 must reject");
+        } catch (WorldOps.Rejected r) {
+            ok(String.valueOf(r.getMessage()).contains("food-out-of-range"), "sethunger food REJECTED");
+        }
+
         // ---- UNSUPPORTED 响亮（6 件；同 b1.7.3 判决）----
         set(w, "teStore", Class.forName("ij").getConstructor().newInstance());
         unsupported("setmeta", new RunnableEx() {

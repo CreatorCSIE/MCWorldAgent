@@ -155,6 +155,13 @@ public final class WorldOps {
     private static final String G_POTION_EFFECT = T.potionEffectClassG;
     private static final String D_PE_CTOR = T.potionEffectCtorDesc;
 
+    // D11 饥饿面（表值；取证见 VersionRegistry.build181 D11 段——FoodStats 四 private 字段，
+    // 走 EntityPlayer.at() 访问器取实例再 getDeclaredField+setAccessible 写）。
+    private static final Boolean CAP_HUNGER = T.capHunger;
+    private static final String M_FOOD_STATS = T.foodStatsM;
+    private static final String F_FOOD_LEVEL = T.foodLevelF;
+    private static final String F_FOOD_SAT = T.foodSatF;
+
     // biome 面（a1.2.0 首版；读回链三锚 verscan/a1.2.0_02.md §8：World.a()Lpb;→pb.a(II)Lfy;
     // →fy.m:String 全 public；WCM 大方法纯读（噪声器现算 temp/hum→4096 查找表），零副作用
     // 零 chunk 加载依赖——未加载坐标亦返回。beta 前版本槽 null=require 响亮 UNSUPPORTED）
@@ -224,6 +231,9 @@ public final class WorldOps {
     private static volatile Field xpField, xpLevelField, xpTotalField, scoreField, xpCooldownField;
     private static volatile Method addEffectM, removeEffectM;
     private static volatile Constructor<?> potionEffectCtor;
+    // D11 饥饿面惰性缓存（按 FoodStats 实例类解析 private 字段，setAccessible）
+    private static volatile Method foodStatsM;
+    private static volatile Field foodLevelField, foodSatField;
     /** A2 档位一：resolve 逐槽跳 null 后，缓存判据不能再用单槽非空（用完成标志）。 */
     private static volatile boolean resolved;
 
@@ -1694,6 +1704,67 @@ public final class WorldOps {
         resolveEffectFace(p);
         removeEffectM.invoke(p, Integer.valueOf(id));
         return "removeeffect id=" + id;
+    }
+
+    /**
+     * 饥饿直写（op=sethunger，D11 门控，案卷 §6.1：b1.8+ FoodStats 挂 EntityPlayer）。
+     * 门=capHunger。配方=sz.at()Lkc; 取 FoodStats 实例 → getDeclaredField+setAccessible
+     * 写 private a=foodLevel(int)/b=saturation(float)（FoodStats.java L4-7/L53-66 NBT 配对）。
+     * 协议：food∈[0,20]（原版上限）、saturation 可选∈[0,20]（缺省不动）；负值 Rejected。
+     * 写后游戏 tick 自愈钳制（saturation≤foodLevel 由 update L12 维护），本 op 不重算。
+     */
+    public static String setHunger(Object world, int food, int saturation) throws Exception {
+        if (!Boolean.TRUE.equals(CAP_HUNGER)) {
+            throw new UnsupportedOp("sethunger: version-gated b1.8+ (capHunger unset for "
+                    + T.versionId + ")");
+        }
+        require("foodStatsM", M_FOOD_STATS);
+        require("foodLevelF", F_FOOD_LEVEL);
+        if (food < 0 || food > 20) {
+            throw new Rejected("food-out-of-range [0,20]: " + food);
+        }
+        if (saturation < -1 || saturation > 20) {
+            throw new Rejected("saturation-out-of-range [-1,20] (-1=keep): " + saturation);
+        }
+        Object p = worldPlayer(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        resolveHungerFace(p);
+        Object fs = foodStatsM.invoke(p);
+        int oldFood = foodLevelField.getInt(fs);
+        foodLevelField.setInt(fs, food);
+        String tail = "";
+        if (saturation >= 0 && foodSatField != null) {
+            float oldSat = foodSatField.getFloat(fs);
+            foodSatField.setFloat(fs, (float) saturation);
+            tail = " sat " + oldSat + " -> " + saturation;
+        }
+        return "hunger food " + oldFood + " -> " + food + tail;
+    }
+
+    /** 饥饿面惰性解析（sethunger 首用）：at() 访问器 public，FoodStats private 字段
+     *  getDeclaredField+setAccessible（teBurnF/isDmg 同配方）。foodSatF 槽 null=跳过。 */
+    private static void resolveHungerFace(Object p) throws UnsupportedOp {
+        if (foodStatsM != null && foodLevelField != null) {
+            return;
+        }
+        try {
+            foodStatsM = p.getClass().getMethod(M_FOOD_STATS);
+            Class<?> kc = Class.forName(T.foodStatsClassG);
+            foodLevelField = kc.getDeclaredField(F_FOOD_LEVEL);
+            foodLevelField.setAccessible(true);
+            if (F_FOOD_SAT != null) {
+                foodSatField = kc.getDeclaredField(F_FOOD_SAT);
+                foodSatField.setAccessible(true);
+            }
+        } catch (NoSuchMethodException e) {
+            throw new UnsupportedOp("foodStats accessor " + M_FOOD_STATS + ": " + e);
+        } catch (ClassNotFoundException e) {
+            throw new UnsupportedOp("FoodStats class " + T.foodStatsClassG + ": " + e);
+        } catch (NoSuchFieldException e) {
+            throw new UnsupportedOp("food fields: " + e);
+        }
     }
 
     /** XP 面惰性解析（setxp 首用；EntityPlayer 三 int 字段 public，按实例类 getField。

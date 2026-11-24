@@ -1001,6 +1001,21 @@ public final class VersionRegistry {
         t.potionEffectCtorDesc = "(III)V"; // (id,durationTicks,amplifier)
         t.xpOrbClassG = null;     // EntityXPOrb 未钉（spawn 面后续批，本批不消费）
 
+        // D11 饥饿面（b1.8.1 首版实装——sethunger 消费；取证=src-minecraft-beta-1.8.1 树
+        // FoodStats.java 直读，四字段全 private（L4-7），NBT 四键写读配对实锤（L53-66）：
+        // a=foodLevel(int 0..20)/b=saturation(float)/c=exhaustion(float)/d=tickTimer(int)。
+        // 取用器 EntityPlayer.func_35191_at()Lkc;（public 字母 at，L1077）——走访问器
+        // 返回 FoodStats 实例，再 getDeclaredField+setAccessible 写 private 字段（teBurnF 同配方）。
+        // 语义：food∈[0,20]（原版饱食度上限）、saturation∈[0,food]（游戏钳 saturation≤foodLevel，
+        // L12 Math.min）——本 op 直写不重算钳制（写后游戏 tick 自愈），saturation 越界仅 Rejected 负值。
+        t.capHunger = Boolean.TRUE;
+        t.foodStatsM = "at";      // sz.at()Lkc; getFoodStats
+        t.foodStatsClassG = "kc"; // FoodStats 类名
+        t.foodLevelF = "a";       // kc.a=foodLevel private int
+        t.foodSatF = "b";         // kc.b=saturation private float
+        t.foodExhaustF = "c";     // kc.c=exhaustion private float（留档）
+        t.foodTimerF = "d";       // kc.d=tickTimer private int（留档）
+
         return t;
     }
 }

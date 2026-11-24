@@ -161,6 +161,21 @@ public final class VersionTable {
     public String potionEffectCtorDesc; // 构造描述符 (III)V（id,durationTicks,amplifier 历代同形）
     public String xpOrbClassG;      // EntityXPOrb 类名（19pre2=bi——spawn 面后续，本批不消费）
 
+    // D11 饥饿面（b1.8+；sethunger 消费。取证=src-minecraft-beta-1.8.1 树 FoodStats.java
+    // 直读：field_35776_a=foodLevel(int 0..20,NBT"foodLevel")/field_35774_b=saturation
+    // (float,NBT"foodSaturationLevel")/field_35775_c=exhaustion(float,NBT"foodExhaustionLevel")/
+    // field_35772_d=tickTimer(int,NBT"foodTickTimer")——**全 private**（getDeclaredField+
+    // setAccessible，teBurnF/isDmg 同配方）。EntityPlayer.field_35217_av=protected FoodStats，
+    // 取用器 func_35191_at()Lkc;（public 字母 at）——走访问器零 private 玩家字段。
+    // ⚠️ b1.9-pre2 饥饿面同族存在（capabilities 记 OK），但其混淆字母未钉=本批不建运行表。
+    public Boolean capHunger;       // b1.8+（FoodStats 挂 EntityPlayer）
+    public String foodStatsM;       // EntityPlayer 取用器名（b1.8.1=at ()Lkc;）
+    public String foodStatsClassG;  // FoodStats 类名（b1.8.1=kc）
+    public String foodLevelF;       // FoodStats foodLevel int（b1.8.1=a）
+    public String foodSatF;         // FoodStats saturation float（b1.8.1=b）
+    public String foodExhaustF;     // FoodStats exhaustion float（b1.8.1=c，留档）
+    public String foodTimerF;       // FoodStats tickTimer int（b1.8.1=d，留档）
+
     /** spawn 白名单：kind→实体类全名（含 tnt/giant/mob 特例）。 */
     public final Map<String, String> mobClasses = new HashMap<String, String>();
 

@@ -48,6 +48,10 @@ public final class D8GateTest {
         gateUnsupported(new RunnableEx() {
             public void run() throws Exception { WorldOps.removeEffect(new Object(), 1); }
         }, "removeeffect", "capEffect");
+        ok(!Boolean.TRUE.equals(t.capHunger), "capHunger unset/false on L0 line");
+        gateUnsupported(new RunnableEx() {
+            public void run() throws Exception { WorldOps.setHunger(new Object(), 10, -1); }
+        }, "sethunger", "capHunger");
 
         System.out.println("D8GateTest(" + vid + ") PASS (" + checks + " checks)");
     }
