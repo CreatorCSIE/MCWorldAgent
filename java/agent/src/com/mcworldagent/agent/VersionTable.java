@@ -125,6 +125,12 @@ public final class VersionTable {
                                     // 消费）——D10 实装，build181 放行（b1.9-pre2 同族，锚件在档）
     public String rainStrF;         // World.rainingStrength float（b1.7.3=j，verscan 在档）
     public String thunderStrF;      // World.thunderingStrength float（b1.7.3=l）
+    // weather 完整语义槽（无头窗 T1 批 2026-11-26）：WorldInfo 旗标 setter 名
+    // （desc=(Z)V，timeHolder 取实例 invoke）。null=旧线维持浮值面单写（181 判决
+    // 不变）；pre2 首钉=sx.b(Z)V setIsRaining/sx.a(Z)V setIsThundering（public，
+    // JSON note 钉；写旗标免 updateWeather 每 tick 斜坡覆写，level.dat 持久化面）。
+    public String wiSetRainM;
+    public String wiSetThunderM;
 
     // D13 游戏模式面（b1.8+；setgamemode 消费。取证=src-minecraft-beta-1.8.1 树
     // WorldInfo.java 直读：field_35920_p=gameType private int，NBT "GameType" 读写配对

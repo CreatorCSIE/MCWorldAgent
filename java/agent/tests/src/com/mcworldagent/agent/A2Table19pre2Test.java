@@ -78,8 +78,8 @@ public class A2Table19pre2Test {
                     + " 表=" + tableVal);
             compared++;
         }
-        ok(ops.size() == 95, "ops 键数=95（88 原钉+7 转正补钉） 实=" + ops.size());
-        ok(compared == 94, "对榫槽数=94（mobClasses 另段） 实=" + compared);
+        ok(ops.size() == 97, "ops 键数=97（88 原钉+7 转正补钉+2 T1 旗标 setter） 实=" + ops.size());
+        ok(compared == 96, "对榫槽数=96（mobClasses 另段） 实=" + compared);
 
         // 断代关键槽复核（禁借 173/181 判决面——HANDOFF 钉死清单）
         ok("y".equals(t.getWorldInfoM), "getWorldInfoM=y（⚠️181=x 断代翻面）");

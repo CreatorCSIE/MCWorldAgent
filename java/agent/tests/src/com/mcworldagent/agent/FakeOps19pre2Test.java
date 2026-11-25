@@ -296,14 +296,19 @@ public class FakeOps19pre2Test {
         }
 
         // ---- D12 weather（capWeather=TRUE；ti.o/q protected 浮值面 ✓同 181 字母；
-        //      旗标 setter 完整语义=活体判决项，无头维持浮值面）----
-        ok(WorldOps.weather(w, true, true).startsWith("weather raining=true thunder=true"),
-                "weather 回显");
+        //      T1 批 2026-11-26：旗标 setter 双写首钉——sx.b/a(Z)V 消费面）----
+        ok(WorldOps.weather(w, true, true).contains("flag setters"),
+                "weather 回显含旗标面（T1 双写路径）");
         ok((Float) getv(w, "o") == 1.0f, "weather 写 ti.o=rainingStrength 1.0");
         ok((Float) getv(w, "q") == 1.0f, "weather 写 ti.q=thunderingStrength 1.0");
         WorldOps.weather(w, false, true);
         ok((Float) getv(w, "o") == 0.0f, "weather raining=false 写 0.0");
         ok((Float) getv(w, "q") == 1.0f, "weather thunder 保留 1.0");
+        Object wiT1 = pri(w, "info");
+        ok(!((Boolean) wiT1.getClass().getField("rainFlagSet").get(wiT1)).booleanValue(),
+                "weather 旗标 setIsRaining(false) 双写（sx.b）");
+        ok(((Boolean) wiT1.getClass().getField("thunderFlagSet").get(wiT1)).booleanValue(),
+                "weather 旗标 setIsThundering(true) 双写（sx.a）");
 
         // ---- D13 setgamemode（sx.p=GameType private int——rl→sx 字段全同判决兑现）----
         Object winfo = pri(w, "info");        // ti.y()Lsx 承载体

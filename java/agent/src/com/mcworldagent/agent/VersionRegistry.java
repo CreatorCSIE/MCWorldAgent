@@ -1223,6 +1223,11 @@ public final class VersionRegistry {
         t.capWeather = Boolean.TRUE;
         t.rainStrF = "o";         // ti.o=rainingStrength protected float
         t.thunderStrF = "q";      // ti.q=thunderingStrength protected float
+        // T1 批（无头窗 2026-11-26）：旗标 setter 面首钉——sx.setIsRaining=b(Z)V/
+        // setIsThundering=a(Z)V public（dump L8871-8887 在册；活体批3 实证浮值面
+        // 不落 level.dat raining/thundering 键=斜坡覆写，完整语义走旗标）。
+        t.wiSetRainM = "b";
+        t.wiSetThunderM = "a";
 
         // D13 gamemode（sx.p=gameType private int——tiny L8128 实锤，NBT "GameType"；
         // sx=rl 字段字母全同判决兑现。写面=WorldInfo 持久层（重进世界生效），

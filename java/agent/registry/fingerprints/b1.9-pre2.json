@@ -103,6 +103,8 @@
     "difficultyF": "v",
     "rainStrF": "o",
     "thunderStrF": "q",
+    "wiSetRainM": "b",
+    "wiSetThunderM": "a",
     "light6M": null,
     "observersF": null,
     "scatterClassG": null,

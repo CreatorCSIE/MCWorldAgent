@@ -138,6 +138,10 @@ public final class WorldOps {
     private static final Boolean CAP_WEATHER = T.capWeather;
     private static final String F_RAIN_STR = T.rainStrF;
     private static final String F_THUNDER_STR = T.thunderStrF;
+    // T1 批（无头窗 2026-11-26）：weather 完整语义=WorldInfo 旗标 setter 双写。
+    // null 槽=旧线单写浮值面（181/0624 判决零变化）；pre2 首钉（表注见 build19pre2）。
+    private static final String M_WI_SET_RAIN = T.wiSetRainM;
+    private static final String M_WI_SET_THUNDER = T.wiSetThunderM;
     private static final String G_SCATTER_CLASS = T.scatterClassG;
 
     // D10 XP/效果面（表值；取证见 VersionRegistry.build181 D10 段注释——b1.8.1 树直读，
@@ -1699,8 +1703,18 @@ public final class WorldOps {
         require("thunderStrF", F_THUNDER_STR);
         rainStr.setFloat(world, raining ? 1.0F : 0.0F);
         thunderStr.setFloat(world, thunder ? 1.0F : 0.0F);
+        if (M_WI_SET_RAIN == null) {
+            return "weather raining=" + raining + " thunder=" + thunder
+                    + " (World float face; level.dat keys via game save)";
+        }
+        // T1 双写：旗标经 WorldInfo public setter（timeHolder 取实例）——updateWeather
+        // 每 tick 由 isRaining 旗标重导斜坡（181 活体判决的覆写源），写旗标=状态真源头，
+        // level.dat raining/thundering 键随存盘落（pre2 活体批3 实证浮值面不落键）。
+        Object wi = timeHolder(world);
+        wi.getClass().getMethod(M_WI_SET_RAIN, boolean.class).invoke(wi, Boolean.valueOf(raining));
+        wi.getClass().getMethod(M_WI_SET_THUNDER, boolean.class).invoke(wi, Boolean.valueOf(thunder));
         return "weather raining=" + raining + " thunder=" + thunder
-                + " (World float face; level.dat keys via game save)";
+                + " (float face + WorldInfo flag setters; level.dat keys via game save)";
     }
 
     /**
