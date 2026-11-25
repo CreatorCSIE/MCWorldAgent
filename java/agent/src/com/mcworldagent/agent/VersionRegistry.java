@@ -1229,6 +1229,16 @@ public final class VersionRegistry {
         t.wiSetRainM = "b";
         t.wiSetThunderM = "a";
 
+        // T2 sleep 面（无头窗 2026-11-26，D10）：tiny 反查全链实锤——
+        // uo.aM=sleeping:Z、uo.a=sleepTimer:I（活体批2 撞名面本尊，声明类精确
+        // 解析与 health 面互不干扰）、ti.z()V=updateAllPlayersSleepingFlag、
+        // ti.T=allPlayersSleeping:Z（旗标位游戏自算，不写）。b1.5_01/b1.7.3/
+        // b1.8.1 锚件未钉 sleep 面=槽 null UNSUPPORTED 响亮（跨版本字母严禁互抄）。
+        t.capSleep = Boolean.TRUE;
+        t.sleepFlagF = "aM";        // uo.sleeping（public? javap 访问位见假件钉）
+        t.sleepTimerF = "a";        // uo.sleepTimer private int（活体批2 dump 实锤）
+        t.worldSleepFlagM = "z";    // ti.updateAllPlayersSleepingFlag()V
+
         // D13 gamemode（sx.p=gameType private int——tiny L8128 实锤，NBT "GameType"；
         // sx=rl 字段字母全同判决兑现。写面=WorldInfo 持久层（重进世界生效），
         // mode∈[0,1]（adventure=2 系 b1.9 正式版后，pre2 越界 Rejected 同 181 判决）。

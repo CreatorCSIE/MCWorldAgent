@@ -12,7 +12,7 @@ import java.util.Map;
  * ② SHA1 反查=b0d40cf4…（索引行对榫件）；③ 钩四项 vs TARGETS_19pre2 对榫
  * （ti/Minecraft/Minecraft/adm——IProgressUpdate pd 断代、changeWorld 3 参
  * 实体 Luo、runTick k 字母保留、GuiIngame adm 断代）；④ capabilities 48 键
- * 对偶全检（41 OK/7 UNSUPPORTED——setmeta 判决修正=observersF+light6M 三件套
+ * 对偶全检（42 OK/7 UNSUPPORTED——setmeta 判决修正=observersF+light6M 三件套
  * 未钉，181 同判，原锚件 OK 为候选误标已改）；⑤ 假件实形访问位复核
  * （钉表纪律：private 就 private，防假绿——sx 六槽/xx.a health/wc.e dmg/
  * la a/b 全 private 断代面 + uo/vp/lh abstract 面 + ti/lh decoy 同形陷阱群）。
@@ -78,8 +78,8 @@ public class A2Table19pre2Test {
                     + " 表=" + tableVal);
             compared++;
         }
-        ok(ops.size() == 97, "ops 键数=97（88 原钉+7 转正补钉+2 T1 旗标 setter） 实=" + ops.size());
-        ok(compared == 96, "对榫槽数=96（mobClasses 另段） 实=" + compared);
+        ok(ops.size() == 101, "ops 键数=101（88 原钉+7 转正补钉+2 T1 旗标 setter+4 T2 sleep） 实=" + ops.size());
+        ok(compared == 100, "对榫槽数=100（mobClasses 另段） 实=" + compared);
 
         // 断代关键槽复核（禁借 173/181 判决面——HANDOFF 钉死清单）
         ok("y".equals(t.getWorldInfoM), "getWorldInfoM=y（⚠️181=x 断代翻面）");
@@ -185,7 +185,7 @@ public class A2Table19pre2Test {
         ok(mcCmp == 9, "mobClasses 对榫计数=9（8 在册+mob null）");
 
         // ---- 4. capabilities 对偶全检（41 OK/7 UNSUPPORTED）----
-        ok(caps.size() == 48, "capabilities 键数=48 实=" + caps.size());
+        ok(caps.size() == 49, "capabilities 键数=49（42 OK/7 UNSUPPORTED，T2 sleep 入列） 实=" + caps.size());
         String[][] unPairs = {
             {"setmeta", "observersF"},   // 转正批判决修正：三件套未钉=181 同判
             {"grow", "idCrops"},
@@ -236,7 +236,7 @@ public class A2Table19pre2Test {
                 ok(false, "capabilities 值域异常: " + keyObj + "=" + v);
             }
         }
-        ok(nOk == 41 && nUn == 7, "caps 计数对账 OK=41/UNSUPPORTED=7 实=" + nOk + "/" + nUn);
+        ok(nOk == 42 && nUn == 7, "caps 计数对账 OK=42/UNSUPPORTED=7 实=" + nOk + "/" + nUn);
         ok(unN == 7 && okN == 40, "对偶断言计数 unN=7/okN=40（listops 另计） 实=" + unN + "/" + okN);
 
         // ---- 5. null 槽复核（档位一缺失面=13 槽）----

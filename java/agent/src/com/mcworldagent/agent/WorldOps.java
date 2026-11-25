@@ -142,6 +142,12 @@ public final class WorldOps {
     // null 槽=旧线单写浮值面（181/0624 判决零变化）；pre2 首钉（表注见 build19pre2）。
     private static final String M_WI_SET_RAIN = T.wiSetRainM;
     private static final String M_WI_SET_THUNDER = T.wiSetThunderM;
+    // T2 sleep 面（无头窗 2026-11-26，D10）：门=capSleep；写面=EntityPlayer 双字段
+    // （声明类精确解析，见 setSleep 注）+World 旗标刷新器。
+    private static final Boolean CAP_SLEEP = T.capSleep;
+    private static final String F_SLEEP_FLAG = T.sleepFlagF;
+    private static final String F_SLEEP_TIMER = T.sleepTimerF;
+    private static final String M_WORLD_SLEEP_FLAG = T.worldSleepFlagM;
     private static final String G_SCATTER_CLASS = T.scatterClassG;
 
     // D10 XP/效果面（表值；取证见 VersionRegistry.build181 D10 段注释——b1.8.1 树直读，
@@ -1715,6 +1721,55 @@ public final class WorldOps {
         wi.getClass().getMethod(M_WI_SET_THUNDER, boolean.class).invoke(wi, Boolean.valueOf(thunder));
         return "weather raining=" + raining + " thunder=" + thunder
                 + " (float face + WorldInfo flag setters; level.dat keys via game save)";
+    }
+
+    /**
+     * 睡眠态写（op=sleep(on)，T2 无头窗 2026-11-26，D10 sleep/wake 条目）：
+     * 写 EntityPlayer.sleeping+sleepTimer 后调 World.updateAllPlayersSleepingFlag
+     * 刷全员旗标——dawn-skip 本体（timer 递减→归零 setWorldTime(0)+清雨）由游戏
+     * tick 循环自推进，本 op 只置状态不代做跳过（语义与床右键同源）。
+     * ⚠️ sleepTimerF=a 与 healthF=a **同字母不同类**（uo.a vs xx.a，活体批2 在案）
+     * ——本面按 sleepFlagF(aM) 声明类精确 getDeclaredField，不借 healthField/
+     * livingClass 任何路径。门=capSleep（b1.5+；pre2 首钉，其余线 null 响亮）。
+     */
+    public static String setSleep(Object world, boolean on) throws Exception {
+        if (!Boolean.TRUE.equals(CAP_SLEEP)) {
+            throw new UnsupportedOp("sleep: version-gated b1.5+ (capSleep unset for "
+                    + T.versionId + ")");
+        }
+        require("sleepFlagF", F_SLEEP_FLAG);
+        require("sleepTimerF", F_SLEEP_TIMER);
+        require("worldSleepFlagM", M_WORLD_SLEEP_FLAG);
+        Object p = worldPlayer(world);
+        if (p == null) {
+            throw new Rejected("sleep: no player in world");
+        }
+        Class<?> pc = null;
+        for (Class<?> k = p.getClass(); k != null && k != Object.class; k = k.getSuperclass()) {
+            try {
+                k.getDeclaredField(F_SLEEP_FLAG);
+                pc = k;
+                break;
+            } catch (NoSuchFieldException e) {
+                // 上溯找声明类（aM 无撞名面，首个命中即 EntityPlayer 等价类）
+            }
+        }
+        if (pc == null) {
+            throw new UnsupportedOp("sleep: declaring class for " + F_SLEEP_FLAG + " not found");
+        }
+        Field sf = pc.getDeclaredField(F_SLEEP_FLAG);
+        Field tf = pc.getDeclaredField(F_SLEEP_TIMER);
+        sf.setAccessible(true);
+        tf.setAccessible(true);
+        boolean oldS = sf.getBoolean(p);
+        int oldT = tf.getInt(p);
+        sf.setBoolean(p, on);
+        tf.setInt(p, on ? 100 : 0);
+        Method um = world.getClass().getMethod(M_WORLD_SLEEP_FLAG);
+        um.invoke(world);
+        return "sleep " + (oldS ? "on" : "off") + " -> " + (on ? "on" : "off")
+                + " timer " + oldT + " -> " + (on ? 100 : 0)
+                + " (EntityPlayer face + all-sleeping flag refresh; dawn-skip=game tick loop)";
     }
 
     /**

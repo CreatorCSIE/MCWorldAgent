@@ -10,6 +10,9 @@ public abstract class uo extends xx {
     // 活体批2 复现钉（W19P2 复跑实锤）：真件 EntityPlayer.a=sleepTimer **private int**
     // 与 xx.a=health 撞名，劫持玩家链就近 int 扫描——livingClass 必须走 mob 链探针。
     private int a;              // sleepTimer（撞车面，非 health）
+    // T2 sleep 面（dump 访问位实锤）：protected boolean sleeping——WorldOps.setSleep
+    // 按本类解析（aM 无撞名），与上方 a 同声明类。
+    protected boolean aM;       // sleeping
     public vz ar;
     public int ax;              // score
     public int aF;              // xpCooldown

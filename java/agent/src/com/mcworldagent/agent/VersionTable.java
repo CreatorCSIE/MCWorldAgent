@@ -132,6 +132,15 @@ public final class VersionTable {
     public String wiSetRainM;
     public String wiSetThunderM;
 
+    // T2 sleep 面（无头窗 2026-11-26，D10 sleep/wake 条目）：b1.5+ 门控。
+    // pre2 首钉（tiny 反查全链）：uo.aM=sleeping:Z / uo.a=sleepTimer:I（⚠️活体批2
+    // 撞名面本尊——本槽按声明类精确解析，与 healthField 的 mob 链探针互不干扰）/
+    // ti.z()V=updateAllPlayersSleepingFlag。旧线 null=op 响亮 UNSUPPORTED。
+    public Boolean capSleep;
+    public String sleepFlagF;       // EntityPlayer.sleeping boolean
+    public String sleepTimerF;      // EntityPlayer.sleepTimer int（同声明类）
+    public String worldSleepFlagM;  // World.updateAllPlayersSleepingFlag ()V
+
     // D13 游戏模式面（b1.8+；setgamemode 消费。取证=src-minecraft-beta-1.8.1 树
     // WorldInfo.java 直读：field_35920_p=gameType private int，NBT "GameType" 读写配对
     // （L26 getInteger/L104 setInteger 实锤）。经 getWorldInfoM（rv.x()Lrl）取 WorldInfo

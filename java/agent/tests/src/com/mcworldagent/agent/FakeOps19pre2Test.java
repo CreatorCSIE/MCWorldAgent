@@ -310,6 +310,24 @@ public class FakeOps19pre2Test {
         ok(((Boolean) wiT1.getClass().getField("thunderFlagSet").get(wiT1)).booleanValue(),
                 "weather 旗标 setIsThundering(true) 双写（sx.a）");
 
+        // ---- T2 sleep（capSleep=TRUE；uo.aM sleeping protected+uo.a sleepTimer
+        //      private 声明类精确解析；ti.z() 旗标刷新计数；⚠️ a 撞名面与
+        //      healthField 互不干扰——sleep 写后 health 面须原值）----
+        java.lang.reflect.Field uoST = Class.forName("uo").getDeclaredField("a");
+        uoST.setAccessible(true);
+        ok(WorldOps.setSleep(w, true).startsWith("sleep off -> on timer 0 -> 100"),
+                "sleep on 回显");
+        ok(((Boolean) pri(player, "aM")).booleanValue(), "sleep 写 uo.aM=sleeping true");
+        ok(((Integer) uoST.getInt(player)).intValue() == 100, "sleep 写 uo.a=sleepTimer=100");
+        ok(((Integer) pri(w, "sleepFlagRefreshes")).intValue() == 1, "ti.z() 旗标刷新 1 次");
+        ok(WorldOps.setSleep(w, false).startsWith("sleep on -> off timer 100 -> 0"),
+                "sleep off 回显（旧值链）");
+        ok(!((Boolean) pri(player, "aM")).booleanValue(), "wake 清 uo.aM");
+        ok(uoST.getInt(player) == 0, "wake 清 uo.a=0");
+        ok(((Integer) pri(w, "sleepFlagRefreshes")).intValue() == 2, "ti.z() 累计 2 次");
+        // 撞名隔离钉：sleep 面读写零触碰 health（xx.a 仍 15，见上 sethealth 段）
+        ok(WorldOps.getPlayer(w).contains("health=15"), "sleep 面零污染 health（uo.a vs xx.a 隔离）");
+
         // ---- D13 setgamemode（sx.p=GameType private int——rl→sx 字段全同判决兑现）----
         Object winfo = pri(w, "info");        // ti.y()Lsx 承载体
         ok(WorldOps.setGameMode(w, 1).startsWith("gamemode 0 -> 1"), "setgamemode 旧值回显");

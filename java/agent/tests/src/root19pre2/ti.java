@@ -22,6 +22,8 @@ public class ti {
     public float q;             // thunderingStrength
     public int saveCalls;
     public int levelSaves;
+    public int sleepFlagRefreshes;   // T2：z()=updateAllPlayersSleepingFlag 调用记录
+    public void z() { sleepFlagRefreshes++; }
     public int expl;
     public int snd;
     public int killCalls;

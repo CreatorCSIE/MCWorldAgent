@@ -59,7 +59,9 @@ public final class CommandChannel {
                     // D13 游戏模式（b1.8+ 门控，WorldInfo 持久层）
                     "setgamemode",
                     // D14 读面扩展（b1.8+ 门控，复用 xp/hunger 已钉字段）
-                    "getxp", "gethunger"));
+                    "getxp", "gethunger",
+                    // T2 sleep 面（无头窗 2026-11-26，b1.5+ 门控，pre2 首钉）
+                    "sleep"));
 
     /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。包内可见=守卫批一致性直测面。 */
     static final String LISTOPS =
@@ -96,6 +98,7 @@ public final class CommandChannel {
           + "setgamemode(mode0..1)w[b1.8+ gated capGamemode;WorldInfo GameType persistent];"
           + "getxp r[b1.8+ gated capXp;level/xp/total/score];"
           + "gethunger r[b1.8+ gated capHunger;food/sat];"
+          + "sleep(on bool)w[b1.5+ gated capSleep;EntityPlayer sleeping+sleepTimer+flag refresh];"
           + "getbiome(x,z)r[a1.2.0+;beta 前版本 UNSUPPORTED]";
 
     private static String cmdDirArg;
@@ -567,6 +570,10 @@ public final class CommandChannel {
             boolean raining = boolArg(a, "raining");
             boolean thunder = optionalBoolArg(a, "thunder", false);
             return WorldOps.weather(world, raining, thunder) + saveSuffix(world, c);
+        }
+        if ("sleep".equals(c.op)) {
+            boolean on = boolArg(a, "on");
+            return WorldOps.setSleep(world, on) + saveSuffix(world, c);
         }
         if ("setxp".equals(c.op)) {
             int level = intArg(a, "level");
