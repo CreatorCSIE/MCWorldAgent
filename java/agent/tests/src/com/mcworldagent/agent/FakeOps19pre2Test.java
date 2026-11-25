@@ -174,6 +174,10 @@ public class FakeOps19pre2Test {
         hf.setAccessible(true);
         ok(hf.getInt(player) == 15, "sethealth 直写 xx.a=15（非 sd.a 遮蔽）");
         ok(WorldOps.getPlayer(w).contains("health=15"), "getPlayer 读回 15（int 门路径）");
+        // 活体批2 防劫持钉：uo.a=sleepTimer 撞车字段必须零污染（mob 链探针选中 xx）
+        java.lang.reflect.Field sf = Class.forName("uo").getDeclaredField("a");
+        sf.setAccessible(true);
+        ok(sf.getInt(player) == 0, "sleepTimer(uo.a) 未被 health 面劫持");
 
         // ---- invulnerable（iframesF=Z——heartsLife 回归钉，181 aa→Z 断代）----
         ok("iframes 0 -> 100".equals(WorldOps.invulnerable(w, 100)), "invulnerable via lh.Z");

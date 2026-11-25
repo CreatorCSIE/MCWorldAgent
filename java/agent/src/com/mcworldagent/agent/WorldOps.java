@@ -197,11 +197,12 @@ public final class WorldOps {
     private static volatile Field eMotX, eMotY, eMotZ;
     private static volatile Field eYaw, ePitch;
     private static volatile Field eHealth; // 惰性：EntityLiving 子类字段，按实例类解析
-    // entitylist [h=] Living 门控探针（b1.9-pre2 转正批）：healthF=a 在 pre2 撞双陷阱——
-    // TNT(abg).a=fuse public 误报 [h=80] + EntityLiving(xx).a=health private 漏报。
-    // 经活体玩家继承链解析"声明 E_HEALTH 的类"=EntityLiving 等价类，health 段仅对其
-    // 实例输出、读取走 healthField 父链回退。0327..181 现行为逐点等值（public 线
-    // 实例门与 getField 命中面重合；非 Living 实体两径同省略）；无玩家世界=旧探针原样。
+    // entitylist [h=] Living 门控探针（b1.9-pre2 转正批；活体批2 重写为 mobClasses 链）：
+    // healthF=a 在 pre2 撞三陷阱——TNT(abg).a=fuse public int 误报、EntityPlayerSP(sd).a=mn
+    // 非 int 遮蔽、EntityPlayer(uo).a=sleepTimer private int 劫持玩家链就近扫描。
+    // 唯 mob 类链（pig=oa 等）直达 EntityLiving 等价类无撞车；healthField 同步走
+    // 声明类解析。0327..181 现行为逐点等值（探针 miss=旧玩家链启发式与其同形）；
+    // 无 mob 表版本回退原样。
     private static volatile Class<?> livingClassCache;
     // 物品栏面惰性缓存（give/inv 首用解析；ItemStack 类=主槽数组分量类型，零硬编码类名）
     private static volatile Field invField;   // EntityHuman.b（InventoryPlayer）
@@ -619,7 +620,7 @@ public final class WorldOps {
         if (p == null) {
             throw new Rejected("no-player");
         }
-        int health = healthField(p).getInt(p);
+        int health = healthField(world, p).getInt(p);
         return "x=" + ePosX.getDouble(p) + " y=" + ePosY.getDouble(p)
                 + " z=" + ePosZ.getDouble(p)
                 + " motX=" + eMotX.getDouble(p) + " motY=" + eMotY.getDouble(p)
@@ -688,27 +689,42 @@ public final class WorldOps {
      *  实锤，181 bz public 形态破裂）——getField miss 走 getDeclaredField 父链回退
      *  +setAccessible（b1.2_02 isDmgF 同配方）；0327..181 public 线 getField 首探即中，
      *  零行为变化。
-     *  ⚠️ 活体批修正（2026-11-25 W19P2 实跑 ERROR 实锤）：pre2 EntityPlayer(sd).a=mn
-     *  **public 非 int**，getField("a") 命中遮蔽字段后 getInt 抛 IllegalArgumentException
-     *  （"Attempt to get mn field sd.a..."）——命中≠类型对。改父链就近扫描，
-     *  仅接受 int/Integer 声明（声明类 Field 即继承面同一字段，0327..181 public 线
-     *  等值：其链上最近 int 声明=原 getField 命中；无 int 遮蔽则两径同形）。 */
-    private static Field healthField(Object p) throws UnsupportedOp {
+     *  ⚠️ 活体批1（2026-11-25 W19P2 实跑 ERROR）：pre2 EntityPlayer(sd).a=mn public
+     *  非 int，getField("a") 命中遮蔽字段后 getInt 崩——加 int 类型门父链就近扫描。
+     *  ⚠️ 活体批2（同窗复跑实锤，类型门仍不够）：玩家链 uo(EntityPlayer).a=sleepTimer
+     *  **private int** 在 xx.a=health 之前被就近命中——读/写全落 sleepTimer 面
+     *  （entitylist 仅玩家带 [h=0]、mob 全无；sethealth "0->15" 实写睡眠计时器）。
+     *  health 声明类必须同时是 mob 祖先：改走 livingClass 探针（mobClasses 类名链）
+     *  取声明类字段；探针 miss（无 mob 表版本）回退玩家链就近 int 扫描
+     *  （0327..181 现行为——其玩家链无 int 撞车，两径同形）。 */
+    private static Field healthField(Object world, Object p) throws UnsupportedOp {
         Field h = eHealth;
         if (h == null) {
-            Class<?> c = p.getClass();
-            while (c != null) {
+            Class<?> living = livingClass(world);
+            if (living != null) {
                 try {
-                    Field f = c.getDeclaredField(E_HEALTH);
-                    if (f.getType() == int.class || f.getType() == Integer.class) {
-                        f.setAccessible(true);
-                        h = f;
-                        break;
-                    }
-                } catch (NoSuchFieldException ignore) {
-                    // 本类无此名，上溯
+                    h = living.getDeclaredField(E_HEALTH);
+                    h.setAccessible(true);
+                } catch (NoSuchFieldException e) {
+                    // mob 探针命中声明类但字段消失（理论不可达）——落回退链
+                    living = null;
                 }
-                c = c.getSuperclass();
+            }
+            if (living == null) {
+                Class<?> c = p.getClass();
+                while (c != null) {
+                    try {
+                        Field f = c.getDeclaredField(E_HEALTH);
+                        if (f.getType() == int.class || f.getType() == Integer.class) {
+                            f.setAccessible(true);
+                            h = f;
+                            break;
+                        }
+                    } catch (NoSuchFieldException ignore) {
+                        // 本类无此名，上溯
+                    }
+                    c = c.getSuperclass();
+                }
             }
             if (h == null) {
                 throw new UnsupportedOp("entity health int field not found: " + E_HEALTH);
@@ -718,34 +734,44 @@ public final class WorldOps {
         return h;
     }
 
-    /** EntityLiving 等价类探针（entitylist [h=] 门控，见 livingClassCache 注）：
-     *  活体玩家继承链上首个 getDeclaredField(E_HEALTH) 命中的类。miss/无玩家=null，
-     *  调用方回退旧 public 探针；命中即缓存（同 JVM 玩家类恒定）。 */
+    /** EntityLiving 等价类探针 v2（活体批2 重写；entitylist [h=] 门控+healthField 声明类）：
+     *  注册表 mobClasses 类名逐个加载，沿 mob 继承链上溯首个**实例 int** E_HEALTH
+     *  声明类。为何不信玩家链（活体批2 实锤）：uo.a=sleepTimer 与 xx.a=health 撞名，
+     *  玩家专属链段（acp/sd/uo）的 int 撞车会劫持探针；health 声明类必然同为全部
+     *  Living mob 祖先，mob 链无此撞车面。tnt(abg) 链只有 static/无 int a——天然
+     *  miss 续下一候选（static 排除：lh.a=private static int 非实体面）。
+     *  全 miss=null → 调用方回退旧玩家链启发式（0327..181 现行为零变化）。
+     *  命中即缓存（同 JVM 表恒定）。 */
     private static Class<?> livingClass(Object world) {
         Class<?> c = livingClassCache;
         if (c != null) {
             return c;
         }
-        Object p;
-        try {
-            p = worldPlayer(world);
-        } catch (Exception e) {
+        if (MOB_CLASSES == null || MOB_CLASSES.isEmpty()) {
             return null;
         }
-        if (p == null) {
-            return null;
-        }
-        for (Class<?> k = p.getClass(); k != null && k != Object.class; k = k.getSuperclass()) {
+        ClassLoader rl = world.getClass().getClassLoader();
+        for (String fqcn : MOB_CLASSES.values()) {
+            if (fqcn == null) {
+                continue;
+            }
+            Class<?> k;
             try {
-                // 活体批修正（sd.a=mn 遮蔽实锤）：仅 int/Integer 声明才算 EntityLiving
-                // 等价类，非 int 同名遮蔽字段（玩家背包/计时器面）跳过继续上溯。
-                Class<?> t = k.getDeclaredField(E_HEALTH).getType();
-                if (t == int.class || t == Integer.class) {
-                    livingClassCache = k;
-                    return k;
+                k = Class.forName(fqcn, false, rl);
+            } catch (ClassNotFoundException e) {
+                continue;
+            }
+            for (; k != null && k != Object.class; k = k.getSuperclass()) {
+                try {
+                    Field f = k.getDeclaredField(E_HEALTH);
+                    if (!java.lang.reflect.Modifier.isStatic(f.getModifiers())
+                            && (f.getType() == int.class || f.getType() == Integer.class)) {
+                        livingClassCache = k;
+                        return k;
+                    }
+                } catch (NoSuchFieldException e) {
+                    // 继续上溯
                 }
-            } catch (NoSuchFieldException e) {
-                // 继续上溯
             }
         }
         return null;
@@ -917,7 +943,7 @@ public final class WorldOps {
         if (health < 0 || health > 20) {
             throw new Rejected("health-out-of-range [0,20]: " + health);
         }
-        Field h = healthField(p);
+        Field h = healthField(world, p);
         int old = h.getInt(p);
         h.setInt(p, health);
         return "health " + old + " -> " + health;
@@ -1309,7 +1335,7 @@ public final class WorldOps {
                 if (living != null) {
                     if (living.isInstance(e)) {
                         try {
-                            int hp = healthField(e).getInt(e);
+                            int hp = healthField(world, e).getInt(e);
                             b.append("[h=").append(hp).append(']');
                         } catch (UnsupportedOp ignored) {
                             // 声明类可达但字段 miss（理论不可达）：省略 health

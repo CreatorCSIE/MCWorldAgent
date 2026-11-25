@@ -7,6 +7,9 @@
 // av()Lla;=getFoodStats（tiny L9418 实锤——⚠️181=at()Lkc 断代）；
 // f(I)V=increaseXP（dump L10030 public；addXpM 留档，setxp 直写面不消费）。
 public abstract class uo extends xx {
+    // 活体批2 复现钉（W19P2 复跑实锤）：真件 EntityPlayer.a=sleepTimer **private int**
+    // 与 xx.a=health 撞名，劫持玩家链就近 int 扫描——livingClass 必须走 mob 链探针。
+    private int a;              // sleepTimer（撞车面，非 health）
     public vz ar;
     public int ax;              // score
     public int aF;              // xpCooldown
