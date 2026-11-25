@@ -3,7 +3,7 @@
 #   old 11 (A2 0618/0629/1121 + F1 RegistryEquals + VersionResolver)
 #   a1.2.0 trio, b1.2_02 trio, b1.7.3 trio, b1.8.1 trio
 #   B5LoaderTest x2 branches (classes-dir + jar resources), 218 assertions each
-#   HookSnapshot byte-compare vs baseline\hook-snapshot.txt (8 hardcoded groups)
+#   HookSnapshot byte-compare vs baseline\hook-snapshot.txt (9 hardcoded groups)
 #   storage module StorageTest (skipped if java\storage\out\classes absent)
 # All compile output goes to %TEMP%\mcaut\tests-out\ (repo stays artifact-free).
 # Agent sources are compiled to java\agent\out\classes (gitignored build dir),
@@ -16,7 +16,7 @@ $O = Join-Path $env:TEMP 'mcaut\tests-out'
 Set-Location $agent
 
 if (Test-Path $O) { Remove-Item -Recurse -Force $O }
-foreach ($d in @('', 'a2out', 'a2out120', 'a2out1202', 'a2out173', 'a2out181', 'b5out', 'inj0618', 'storage_cls')) {
+foreach ($d in @('', 'a2out', 'a2out120', 'a2out1202', 'a2out173', 'a2out181', 'a2out19pre2', 'b5out', 'inj0618', 'storage_cls')) {
   New-Item -ItemType Directory -Force (Join-Path $O $d) | Out-Null
 }
 
@@ -65,6 +65,7 @@ Compile-Trio '120' @('A2Table120Test', 'FakeOps120Test', 'InjectSmoke120Test')
 Compile-Trio '1202' @('A2Table1202Test', 'FakeOps1202Test', 'InjectSmoke1202Test')
 Compile-Trio '173' @('A2Table173Test', 'FakeOps173Test', 'InjectSmoke173Test')
 Compile-Trio '181' @('A2Table181Test', 'FakeOps181Test', 'InjectSmoke181Test')
+Compile-Trio '19pre2' @('A2Table19pre2Test', 'FakeOps19pre2Test', 'InjectSmoke19pre2Test')
 
 # ---- B5 loader + snapshot tools + guard batch ----
 & "$J\javac.exe" -encoding UTF-8 -cp 'out\classes;libs\asm-9.7.jar' -d "$O\b5out" `
@@ -112,7 +113,7 @@ foreach ($cls in @('com.mcworldagent.agent.A2TableTest',
   Invoke-Test $cls $cpOld $cls @()
 }
 # trios
-foreach ($vtag in @('120', '1202', '173', '181')) {
+foreach ($vtag in @('120', '1202', '173', '181', '19pre2')) {
   $cp = "$O\a2out$vtag;out\classes;libs\asm-9.7.jar"
   foreach ($cls in @("com.mcworldagent.agent.A2Table$($vtag)Test",
                      "com.mcworldagent.agent.FakeOps$($vtag)Test",

@@ -4,7 +4,7 @@ package com.mcworldagent.agent;
 import java.util.Arrays;
 import java.util.Comparator;
 
-/** Dumps the 8 hardcoded hook groups (array form + activate/forClass form) canonically. */
+/** Dumps the 9 hardcoded hook groups (array form + activate/forClass form) canonically. */
 public final class HookSnapshot {
     public static void main(String[] a) throws Exception {
         String[][] groups = {
@@ -12,6 +12,7 @@ public final class HookSnapshot {
             {"inf-20100629", "TARGETS_0629"}, {"a1.1.2_01", "TARGETS_1121"},
             {"a1.2.0", "TARGETS_120"}, {"b1.2_02", "TARGETS_1202"},
             {"b1.7.3", "TARGETS_173"}, {"b1.8.1", "TARGETS_181"},
+            {"b1.9-pre2", "TARGETS_19pre2"},
         };
         HookTargets.Target[] all = null;
         for (int i = 0; i < groups.length; i++) {

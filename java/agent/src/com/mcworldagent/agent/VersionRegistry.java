@@ -38,12 +38,13 @@ public final class VersionRegistry {
     private static final VersionTable T_1202 = build1202();
     private static final VersionTable T_173 = build173();
     private static final VersionTable T_181 = build181();
+    private static final VersionTable T_19pre2 = build19pre2();
 
     private static final Map<String, VersionTable> BY_ID = new HashMap<String, VersionTable>();
     private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
 
     static {
-        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202, T_173, T_181 };
+        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202, T_173, T_181, T_19pre2 };
         for (VersionTable t : tables) {
             BY_ID.put(t.versionId, t);
             BY_SHA1.put(t.jarSha1, t);
@@ -1034,6 +1035,196 @@ public final class VersionRegistry {
         // adventure=2 系 b1.9-pre 后，越界 Rejected）。⚠️ 会话内即时行为联动=到场包活体判决。
         t.capGamemode = Boolean.TRUE;
         t.gameTypeF = "p";        // rl.p=gameType private int
+
+        return t;
+    }
+
+    /**
+     * b1.9-pre2 表（Beta 1.9 pre-release 2，G3-beta 扁平散件，9 代表版线外独立件——
+     * 活体测试转正批 2026-11-25）。锚库 java/agent/registry/fingerprints/b1.9-pre2.json
+     * （逐字段对榫=A2Table19pre2 验收）；取证=%TEMP%\mcaut\exp\b19pre2\（jar SHA1
+     * b0d40cf4… 对榫索引行，javap 全量 10240 行+client.tiny 直钉）。
+     * ⚠️ pre2 断代陷阱（禁借 173/181 表，跨版本字母严禁互抄）：
+     *   ① EntityCreature=vp **abstract**（dump L10296）→spawn kind=mob UNSUPPORTED
+     *     （181 el181-1 同判决延续）；
+     *   ② Entity=lh **abstract**+EntityPlayer=uo **abstract**（dump L9905，tiny L9416）
+     *     ——活体玩家真身=sd EntityPlayerSP（concrete，dump L8619）；181 sz 具体可直造
+     *     的形态在本版破裂，假件布景走 sd；
+     *   ③ healthF=a **private**（dump L11444，tiny L11013=health）——181 bz public 断代，
+     *     WorldOps.healthField 本批扩 getDeclaredField 父链回退（b1.2_02 isDmgF 同配方）；
+     *   ④ setPosRotM=c=setLocationAndAngles（tiny L5037）——181 主写=b setPositionAndRotation
+     *     断代翻面；b(DDDFF)V 同形 decoy 在位（tiny L4991）；
+     *   ⑤ setMetaSilentM=c(IIII)Z=setBlockMetadata 裸静默写（tiny L8293）——181 走
+     *     f(IIII)V WithNotify 断代翻面；f/d/e(IIII) decoy 群在位；
+     *   ⑥ isDmgF d→e（wc.e **private**，dump L10553——resolveInvFace 回退消费）；
+     *     itemsF c→e（uk public static uk[] e，dump L9684）；
+     *   ⑦ MobEffectList 名=Potion(vt)（1.0+ 才改名——挖掘侧命名陷阱）；
+     *   ⑧ xp 双 level 字段并存怪癖：aW=xp/aY=xpLevel/aX=playerLevel（XpTotal 载体，
+     *     tiny L9460/9497/9519）——1.0+ 合并；与 181 aX/aY/aZ/aG/ay 整体不同（表注钉死）；
+     *   ⑨ heartsLife=Z 回归（tiny L5057 public int Z——1301 移除→pre2 与 hurtTime=bz 并存）；
+     *     pos 面右移 o/p/q（173=aM..aT/1501=aK..aR/1301=aI..aP 每版+2 规律在案）。
+     * getWorldInfoM=y（⚠️181=x）；WorldInfo=sx 字段字母与 rl 全同（a/e/b/c/d/p 对榫
+     * dump L8871-8887）；weather 浮值面 o/q ✓同 181 字母（旗标 setter 完整语义=活体判决项）。
+     */
+    private static VersionTable build19pre2() {
+        VersionTable t = new VersionTable();
+        t.versionId = "b1.9-pre2";
+        t.family = "G3"; // 扁平散件+未混淆主类（G3-beta，b1.7.3/b1.8.1 同族）
+        t.jarSha1 = "b0d40cf43b625631af65e2a645c34b533251da0e"; // 索引对榫件（锚库主 sha）
+
+        // World 写读面（ti；tiny L8257 块逐锚）
+        t.setBlockM = "g";        // g(IIII)Z setBlockWithNotify ✓同 181 字母
+        t.getBlockM = "a";        // a(III)I ✓历代同字母
+        t.getMetaM = "e";         // e(III)I ✓同 181
+        t.setMetaSilentM = "c";   // c(IIII)Z setBlockMetadata 裸静默写（⚠️181=f(IIII)V
+        // 断代翻面；返回值不消费，f(IIII)V WithNotify/d(IIII)Z setBlock/e(IIII)Z doChunks 同形陷阱群）
+        t.getLightM = "n";        // n(III)I ✓同字母（dump L9145）
+        t.saveWorldM = "a";       // a(Lpd;)V public 包装 saveWorldIndirectly（dump L9204，
+        t.saveWorldDesc = "(Lpd;)V"; // IProgressUpdate yb→ny→**pd** 断代；本体 a(ZLpd)V null 守卫）
+        t.teGetM = "b";           // b(III)Lje; getBlockTileEntity（IBlockAccess afm L1529 直钉；
+        // TileEntity ow→ij→**je** 断代；chest/furnace 面未钉=门先响，本槽不消费）
+        // WorldInfo 面（sx=ei/rl 字段表全同字母复刻——a:J seed/e:J time/b/c/d:I spawn/p:I GameType）
+        t.getWorldInfoM = "y";    // ti.y()Lsx; getWorldInfo（⚠️181=x——dump L9255 断代）
+        t.worldTimeF = "e";       // sx.e:J=worldTime ✓
+        t.randSeedF = "a";        // sx.a:J=randomSeed ✓
+        t.spawnXF = "b";          // sx.b/c/d:I=SpawnX/Y/Z ✓
+        t.spawnYF = "c";
+        t.spawnZF = "d";
+
+        // 玩家/实体定位面（Entity=lh abstract；档位三同族）
+        t.playerF = null;
+        t.playerListF = "i";      // ti public List i=playerEntities ✓同 181 字母
+        t.entityClassG = "lh";    // ⚠️ 撞车位群：181 lh=EntityDamageSource↔pre2 lh=Entity
+        t.setPosRotM = "c";       // c(DDDFF)V setLocationAndAngles（⚠️181=b——断代翻面，见上注④）
+        t.setPosRotDesc = "(DDDFF)V";
+        t.posXF = "o";            // lh.o/p/q=posX/Y/Z（173=aM..aT 右移规律在案）
+        t.posYF = "p";
+        t.posZF = "q";
+        t.motXF = "r";            // NBT "Motion" 配对
+        t.motYF = "s";
+        t.motZF = "t";
+        t.yawF = "u";             // NBT "Rotation" 配对
+        t.pitchF = "v";
+        t.healthF = "a";          // xx.a=health **private**（⚠️181=bz public——healthField
+        // 本批 getDeclaredField 父链回退，见上注③）
+        t.iframesF = "Z";         // lh.Z=heartsLife public int（⚠️181=aa——回归钉，见上注⑨）
+
+        // HUD 次级链（主类字段面 JSON 钉：theWorld=f/thePlayer=i（声明 xx 断代）/
+        // ingameGUI=v/gameSettings=z(gk)/fontRenderer=q(lf)/mcDataDir=E；
+        // 门=gk.E=showDebugInfo（tiny L3627；173=kv.B/181=fv.E——类断代字母 E 保留））
+        t.hudPlayerF = "i";
+        t.hudFontF = "q";
+        t.hudSettingsF = "z";
+        t.hudDebugGateF = "E";
+        t.hudXyzPaint = Boolean.FALSE; // a1.2.3 边界线（§5.1）：F3 自带坐标=注入免做
+
+        // 物品栏面（EntityPlayer=uo.ar→vz；⚠️ invF ar（181=as 右移一位））
+        t.invF = "ar";
+        t.invMainF = "a";         // vz.a=mainInventory[wc] ✓
+        t.invArmorF = "b";
+        t.invCurF = "c";          // ⚠️ vz.d=player/e=inventoryChanged 互换陷阱延续
+        t.isCountF = "a";         // wc a=stackSize/c=itemID public，e=itemDamage **private**
+        t.isIdF = "c";            // （⚠️181 d public——断代访问位翻面，resolveInvFace 回退）
+        t.isDmgF = "e";
+        t.addStackM = "a";        // vz.a(wc)Z addItemStackToInventory ✓
+        t.itemClassG = "uk";      // ⚠️ 撞车位：181 uk=…↔pre2 uk=Item
+        t.itemsF = "e";           // public static uk[] e（⚠️181=f——dump L9684 断代）
+        t.itemEntityG = "eq";     // EntityItem eq（hl→ee→eq 断代）
+
+        // 实体/世界事件面
+        t.explodeM = "a";         // a(Llh;DDDF)Labf（V→Explosion 断代延续，返回值不消费）
+        t.spawnEntityM = "a";     // a(Llh;)Z entityJoinedWorld ✓同 181
+        t.setEntityDeadM = "b";   // b(Llh;)V ✓同 181
+        t.entityListM = "p";      // p()List getLoadedEntityList ✓同 181
+        t.entityTypeM = null;     // per-instance 命名面未钉（同族判决）
+        t.entityListClassG = "wd"; // ⚠️ 撞车位：181 wd=EntityLiving↔pre2 wd=EntityList
+        t.entityListLookupM = "b"; // wd.b(lh)String ✓同字母（dump L10617）
+        t.playSoundM = "a";       // a(DDD,String,F,F)V playSoundEffect ✓
+
+        // getinfo 面
+        t.difficultyF = "v";      // ti public int v=difficultySetting ✓同 181
+
+        // spawn 白名单（mobClasses 全表断代；⚠️ mob 槽 null：vp=EntityCreature abstract
+        // 同 181 el181-1 判决——b1.8-pre1-2 起无泛用可实例化 mob 基类）
+        t.mobClasses.put("pig", "oa");
+        t.mobClasses.put("sheep", "cd");
+        t.mobClasses.put("creeper", "ub");
+        t.mobClasses.put("skeleton", "ts");
+        t.mobClasses.put("zombie", "adt");
+        t.mobClasses.put("spider", "bk");
+        t.mobClasses.put("tnt", "abg");   // (ti,DDD)V——FFF 断代延续（spawn fallback）
+        t.mobClasses.put("giant", "ip");  // EntityGiantZombie extends uq(EntityMob) 构造健在
+
+        // biome 面（三锚链 ti.a()Loz→oz.a(II)Lwz→wz.r=biomeName，173 同形字母断代）
+        t.biomeWcmM = "a";        // ti.a()Loz; getWorldChunkManager（无参唯一）
+        t.biomeAtM = "a";         // oz.a(II)Lwz; getBiomeGenAt ✓
+        t.biomeNameF = "r";       // wz.r=biomeName（⚠️181=vh.l 断代）
+
+        // D10 XP 面（19pre2 首版全方法面——键名与锚库 ops 段逐一对榫；
+        // 取证=tiny L9460/9497/9519/9459/9472 实锤，字段全 public int：
+        // aW=xp/aY=xpLevel/aX=playerLevel(XpTotal 载体)/ax=score/aF=xpCooldown。
+        // 双 level 字段并存怪癖（1.0+ 合并）——setxp 写 aY/aW/aX/aF 四件，语义同 181 配方。
+        // addXpM=f=increaseXP(I)V（dump L10030 public）/increaseLevelM=aL=increaseLevel()V
+        // （dump L10032 **private**）——本批留档不消费，setxp 走直写面。
+        // ⚠️ 与 181 aX/aY/aZ/aG/ay 整体不同，互抄即错（VersionTable D10 注同纪律）。
+        t.capXp = Boolean.TRUE;
+        t.xpF = "aW";             // NBT "Xp"（当前级内进度经验）
+        t.xpLevelF = "aY";        // NBT "XpLevel"（等级）
+        t.playerLevelF = "aX";    // NBT "XpTotal"（累计总经验载体）
+        t.scoreF = "ax";          // NBT "Score"
+        t.xpCooldownF = "aF";     // NBT "XpCooldown"（写 0=立即可再拾）
+        t.addXpM = "f";           // increaseXP(I)V public（留档，直写面不消费）
+        t.increaseLevelM = "aL";  // increaseLevel()V private（留档）
+
+        // D10 效果面（19pre2 首次完整可钉——giveeffect/removeeffect 消费；
+        // 取证=tiny L11084/11115/11028/10988/11013 块实锤：
+        // xx.a(Lafk;)V=addPotionEffect / i(I)V=removePotionEffect / aG()V=clearActivePotions
+        // （181 无清空面 null→本版 aG 启用候选，本批仍走逐 id 移除）/
+        // a(Lvt;)Z=isPotionActive / b(Lvt;)Lafk;=getPotionEffect（参类=Potion(vt) 非 int——
+        // MobEffectList 名=Potion 命名陷阱，1.0+ 才改名）/ bP=activePotionsMap protected
+        // HashMap（键=Potion id）。afk 构造 (III)V（tiny L1478 id/duration/amplifier）
+        // 三字段 a/b/c public（L1476/1482/1484）。xpOrbClassG=bi（EntityXPOrb 在册，
+        // spawn 面后续批，本批不消费）。
+        t.capEffect = Boolean.TRUE;
+        t.addEffectM = "a";       // xx.a(Lafk;)V
+        t.addEffectDesc = "(Lafk;)V";
+        t.removeEffectM = "i";    // xx.i(I)V
+        t.clearEffectsM = "aG";   // xx.aG()V（181=null 断代新增）
+        t.isActiveEffectM = "a";  // xx.a(Lvt;)Z（留档）
+        t.getActiveEffectM = "b"; // xx.b(Lvt;)Lafk;（留档）
+        t.effectsMapF = "bP";     // xx.bP protected HashMap（留档，give/remove 走方法面）
+        t.potionClassG = "vt";    // Potion（isActive/get 参类，留档）
+        t.potionEffectClassG = "afk"; // PotionEffect 类名
+        t.potionEffectCtorDesc = "(III)V"; // (id,durationTicks,amplifier)
+        t.xpOrbClassG = "bi";     // EntityXPOrb（spawn 面后续批）
+
+        // D11 饥饿面（19pre2 转正批补钉——锚件 ops 段原缺，tiny L4896 块实锤：
+        // uo.av()Lla;=getFoodStats（tiny L9418；⚠️181=at()Lkc 断代）；
+        // la 字段面 a=foodLevel:I(默认 20)/b=foodSaturationLevel:F/c=foodExhaustion:F/
+        // d=tickTimer:I/e=prevFoodLevel:I（L4907/4902/4897/4900/4901）全 private
+        // （dump L5723 块）——181 kc 同字母同形，getDeclaredField+setAccessible 同配方。
+        t.capHunger = Boolean.TRUE;
+        t.foodStatsM = "av";      // uo.av()Lla; getFoodStats
+        t.foodStatsClassG = "la"; // FoodStats 类名
+        t.foodLevelF = "a";       // la.a=foodLevel private int
+        t.foodSatF = "b";         // la.b=saturation private float
+        t.foodExhaustF = "c";     // la.c=exhaustion private float（留档）
+        t.foodTimerF = "d";       // la.d=tickTimer private int（留档）
+
+        // D12 weather（19pre2 浮值面 o/q ✓同 181 字母——ti protected float
+        // rainingStrength=o/thunderingStrength=q（tiny L8698/8749）；prevRaining=n/
+        // prevThundering=p 非写面。⚠️ 完整语义候选：sx 旗标 setter setIsRaining=b(Z)V/
+        // setIsThundering=a(Z)V（JSON note 钉，写旗标免 updateWeather 斜坡覆写）=
+        // 活体判决项，本 op 维持浮值面同 181 判决。
+        t.capWeather = Boolean.TRUE;
+        t.rainStrF = "o";         // ti.o=rainingStrength protected float
+        t.thunderStrF = "q";      // ti.q=thunderingStrength protected float
+
+        // D13 gamemode（sx.p=gameType private int——tiny L8128 实锤，NBT "GameType"；
+        // sx=rl 字段字母全同判决兑现。写面=WorldInfo 持久层（重进世界生效），
+        // mode∈[0,1]（adventure=2 系 b1.9 正式版后，pre2 越界 Rejected 同 181 判决）。
+        t.capGamemode = Boolean.TRUE;
+        t.gameTypeF = "p";        // sx.p=gameType private int
 
         return t;
     }

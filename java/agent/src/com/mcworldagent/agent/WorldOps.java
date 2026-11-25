@@ -197,6 +197,12 @@ public final class WorldOps {
     private static volatile Field eMotX, eMotY, eMotZ;
     private static volatile Field eYaw, ePitch;
     private static volatile Field eHealth; // 惰性：EntityLiving 子类字段，按实例类解析
+    // entitylist [h=] Living 门控探针（b1.9-pre2 转正批）：healthF=a 在 pre2 撞双陷阱——
+    // TNT(abg).a=fuse public 误报 [h=80] + EntityLiving(xx).a=health private 漏报。
+    // 经活体玩家继承链解析"声明 E_HEALTH 的类"=EntityLiving 等价类，health 段仅对其
+    // 实例输出、读取走 healthField 父链回退。0327..181 现行为逐点等值（public 线
+    // 实例门与 getField 命中面重合；非 Living 实体两径同省略）；无玩家世界=旧探针原样。
+    private static volatile Class<?> livingClassCache;
     // 物品栏面惰性缓存（give/inv 首用解析；ItemStack 类=主槽数组分量类型，零硬编码类名）
     private static volatile Field invField;   // EntityHuman.b（InventoryPlayer）
     private static volatile Field invMain;    // InventoryPlayer.a ItemStack[36]
@@ -677,18 +683,63 @@ public final class WorldOps {
         }
     }
 
-    /** W 惰性解析（getPlayer/setHealth 共用）：EntityLiving 子类字段，按实例类解析。 */
+    /** W 惰性解析（getPlayer/setHealth 共用）：EntityLiving 子类字段，按实例类解析。
+     *  b1.9-pre2 断代（build19pre2 表注③）：xx.a=health **private**（javap dump L11444
+     *  实锤，181 bz public 形态破裂）——getField miss 走 getDeclaredField 父链回退
+     *  +setAccessible（b1.2_02 isDmgF 同配方）；0327..181 public 线 getField 首探即中，
+     *  零行为变化。 */
     private static Field healthField(Object p) throws UnsupportedOp {
         Field h = eHealth;
         if (h == null) {
             try {
                 h = p.getClass().getField(E_HEALTH);
-            } catch (NoSuchFieldException e) {
-                throw new UnsupportedOp("entity health field: " + e);
+            } catch (NoSuchFieldException e1) {
+                Class<?> c = p.getClass();
+                while (c != null) {
+                    try {
+                        h = c.getDeclaredField(E_HEALTH);
+                        h.setAccessible(true);
+                        break;
+                    } catch (NoSuchFieldException e2) {
+                        c = c.getSuperclass();
+                    }
+                }
+                if (h == null) {
+                    throw new UnsupportedOp("entity health field: " + e1);
+                }
             }
             eHealth = h;
         }
         return h;
+    }
+
+    /** EntityLiving 等价类探针（entitylist [h=] 门控，见 livingClassCache 注）：
+     *  活体玩家继承链上首个 getDeclaredField(E_HEALTH) 命中的类。miss/无玩家=null，
+     *  调用方回退旧 public 探针；命中即缓存（同 JVM 玩家类恒定）。 */
+    private static Class<?> livingClass(Object world) {
+        Class<?> c = livingClassCache;
+        if (c != null) {
+            return c;
+        }
+        Object p;
+        try {
+            p = worldPlayer(world);
+        } catch (Exception e) {
+            return null;
+        }
+        if (p == null) {
+            return null;
+        }
+        for (Class<?> k = p.getClass(); k != null && k != Object.class; k = k.getSuperclass()) {
+            try {
+                k.getDeclaredField(E_HEALTH);
+                livingClassCache = k;
+                return k;
+            } catch (NoSuchFieldException e) {
+                // 继续上溯
+            }
+        }
+        return null;
     }
 
     /** 物品栏面惰性解析（eHealth 同模式）：ItemStack 类取自主槽数组分量类型，零硬编码类名。
@@ -1245,11 +1296,23 @@ public final class WorldOps {
                     .append(fmt1(ec.getField(E_POS_Y).getDouble(e))).append(',')
                     .append(fmt1(ec.getField(E_POS_Z).getDouble(e)));
             if (E_HEALTH != null) {
-                try {
-                    int hp = ec.getField(E_HEALTH).getInt(e); // 先探测成功再写，防半截 "[h=" 残留
-                    b.append("[h=").append(hp).append(']');
-                } catch (NoSuchFieldException ignored) {
-                    // 非 Living 实体（Painting 等）：省略 health
+                Class<?> living = livingClass(world);
+                if (living != null) {
+                    if (living.isInstance(e)) {
+                        try {
+                            int hp = healthField(e).getInt(e);
+                            b.append("[h=").append(hp).append(']');
+                        } catch (UnsupportedOp ignored) {
+                            // 声明类可达但字段 miss（理论不可达）：省略 health
+                        }
+                    }
+                } else {
+                    try {
+                        int hp = ec.getField(E_HEALTH).getInt(e); // 旧探针（无玩家世界原样）
+                        b.append("[h=").append(hp).append(']');
+                    } catch (NoSuchFieldException ignored) {
+                        // 非 Living 实体（Painting 等）：省略 health
+                    }
                 }
             }
         }

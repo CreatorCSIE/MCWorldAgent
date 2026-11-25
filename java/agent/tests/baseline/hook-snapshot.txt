@@ -109,3 +109,15 @@ save-world|rv|a|(Lny;)V|1|1|1|World.saveWorld(progress) public wrapper|null
     run-tick|net/minecraft/client/Minecraft|k|()V|1|1|1|Minecraft.runTick()|null
   forClass rv n=1
     save-world|rv|a|(Lny;)V|1|1|1|World.saveWorld(progress) public wrapper|null
+== b1.9-pre2
+hud-render|adm|a|(FZII)V|1|1|4|GuiIngame.renderGameOverlay(float,boolean,int,int)|null
+load-world|net/minecraft/client/Minecraft|a|(Lti;Ljava/lang/String;Luo;)V|1|1|4|Minecraft.changeWorld(World,String,Entity)|null
+run-tick|net/minecraft/client/Minecraft|k|()V|1|1|1|Minecraft.runTick()|null
+save-world|ti|a|(Lpd;)V|1|1|1|World.saveWorld(progress) public wrapper|null
+  forClass adm n=1
+    hud-render|adm|a|(FZII)V|1|1|4|GuiIngame.renderGameOverlay(float,boolean,int,int)|null
+  forClass net/minecraft/client/Minecraft n=2
+    load-world|net/minecraft/client/Minecraft|a|(Lti;Ljava/lang/String;Luo;)V|1|1|4|Minecraft.changeWorld(World,String,Entity)|null
+    run-tick|net/minecraft/client/Minecraft|k|()V|1|1|1|Minecraft.runTick()|null
+  forClass ti n=1
+    save-world|ti|a|(Lpd;)V|1|1|1|World.saveWorld(progress) public wrapper|null
