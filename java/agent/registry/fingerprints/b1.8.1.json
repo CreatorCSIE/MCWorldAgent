@@ -166,6 +166,8 @@
     "removeeffect": "OK",
     "sethunger": "OK",
     "setgamemode": "OK",
+    "getxp": "OK",
+    "gethunger": "OK",
     "listops": "OK"
   }
 }

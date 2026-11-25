@@ -1810,6 +1810,57 @@ public final class WorldOps {
                 + " linkage=live-verification item per §6.1)";
     }
 
+    /**
+     * 读经验（op=getxp，D14 只读面，门=capXp）。复用 resolveXpFace 读 xpF/xpLevelF/
+     * playerLevelF(XpTotal)/scoreF 四 int（null 槽跳过）。只读不写，save 不发。
+     */
+    public static String getXp(Object world) throws Exception {
+        if (!Boolean.TRUE.equals(CAP_XP)) {
+            throw new UnsupportedOp("getxp: version-gated b1.8+ (capXp unset for "
+                    + T.versionId + ")");
+        }
+        require("xpF", F_XP);
+        require("xpLevelF", F_XP_LEVEL);
+        Object p = worldPlayer(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        resolveXpFace(p);
+        StringBuilder sb = new StringBuilder("xp level=" + xpLevelField.getInt(p)
+                + " xp=" + xpField.getInt(p));
+        if (xpTotalField != null) {
+            sb.append(" total=").append(xpTotalField.getInt(p));
+        }
+        if (scoreField != null) {
+            sb.append(" score=").append(scoreField.getInt(p));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 读饥饿（op=gethunger，D14 只读面，门=capHunger）。复用 resolveHungerFace 经
+     * sz.at()Lkc 取 FoodStats 读 private a=foodLevel/b=saturation。只读不写，save 不发。
+     */
+    public static String getHunger(Object world) throws Exception {
+        if (!Boolean.TRUE.equals(CAP_HUNGER)) {
+            throw new UnsupportedOp("gethunger: version-gated b1.8+ (capHunger unset for "
+                    + T.versionId + ")");
+        }
+        require("foodStatsM", M_FOOD_STATS);
+        require("foodLevelF", F_FOOD_LEVEL);
+        Object p = worldPlayer(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        resolveHungerFace(p);
+        Object fs = foodStatsM.invoke(p);
+        StringBuilder sb = new StringBuilder("hunger food=" + foodLevelField.getInt(fs));
+        if (foodSatField != null) {
+            sb.append(" sat=").append(foodSatField.getFloat(fs));
+        }
+        return sb.toString();
+    }
+
     /** XP 面惰性解析（setxp 首用；EntityPlayer 三 int 字段 public，按实例类 getField。
      *  playerLevelF/scoreF/xpCooldownF 槽 null=跳过（档位一），不连坐 xpF/xpLevelF 主面）。 */
     private static void resolveXpFace(Object p) throws UnsupportedOp {

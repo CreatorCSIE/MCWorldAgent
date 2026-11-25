@@ -298,6 +298,14 @@ public class FakeOps181Test {
             ok(String.valueOf(r.getMessage()).contains("gamemode-out-of-range"), "setgamemode mode REJECTED");
         }
 
+        // ---- D14 getxp/gethunger 读面（复用已写字段回读，只读不写）----
+        // 此前 setxp(10,5) 成功、sethunger(5,-1) 末态 food=5
+        String rx = WorldOps.getXp(w);
+        ok(rx.contains("level=10") && rx.contains("xp=5") && rx.contains("total=105")
+                && rx.contains("score=0"), "getxp 回读四字段: " + rx);
+        String rh = WorldOps.getHunger(w);
+        ok(rh.contains("food=5") && rh.contains("sat=3.0"), "gethunger 回读 food/sat: " + rh);
+
         // ---- UNSUPPORTED 响亮（6 件；同 b1.7.3 判决）----
         set(w, "teStore", Class.forName("ij").getConstructor().newInstance());
         unsupported("setmeta", new RunnableEx() {

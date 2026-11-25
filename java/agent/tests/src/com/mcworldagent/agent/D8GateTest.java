@@ -56,6 +56,13 @@ public final class D8GateTest {
         gateUnsupported(new RunnableEx() {
             public void run() throws Exception { WorldOps.setGameMode(new Object(), 1); }
         }, "setgamemode", "capGamemode");
+        // D14 读面同样门控（getxp/gethunger 复用 capXp/capHunger）
+        gateUnsupported(new RunnableEx() {
+            public void run() throws Exception { WorldOps.getXp(new Object()); }
+        }, "getxp", "capXp");
+        gateUnsupported(new RunnableEx() {
+            public void run() throws Exception { WorldOps.getHunger(new Object()); }
+        }, "gethunger", "capHunger");
 
         System.out.println("D8GateTest(" + vid + ") PASS (" + checks + " checks)");
     }

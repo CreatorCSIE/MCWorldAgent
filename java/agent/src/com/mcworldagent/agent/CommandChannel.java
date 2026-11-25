@@ -57,7 +57,9 @@ public final class CommandChannel {
                     // D11 饥饿面（b1.8+ 门控）
                     "sethunger",
                     // D13 游戏模式（b1.8+ 门控，WorldInfo 持久层）
-                    "setgamemode"));
+                    "setgamemode",
+                    // D14 读面扩展（b1.8+ 门控，复用 xp/hunger 已钉字段）
+                    "getxp", "gethunger"));
 
     /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。包内可见=守卫批一致性直测面。 */
     static final String LISTOPS =
@@ -92,6 +94,8 @@ public final class CommandChannel {
           + "removeeffect(effectId1..31)w[b1.8+ gated capEffect];"
           + "sethunger(food0..20[,saturation0..20])w[b1.8+ gated capHunger;FoodStats private];"
           + "setgamemode(mode0..1)w[b1.8+ gated capGamemode;WorldInfo GameType persistent];"
+          + "getxp r[b1.8+ gated capXp;level/xp/total/score];"
+          + "gethunger r[b1.8+ gated capHunger;food/sat];"
           + "getbiome(x,z)r[a1.2.0+;beta 前版本 UNSUPPORTED]";
 
     private static String cmdDirArg;
@@ -587,6 +591,12 @@ public final class CommandChannel {
         if ("setgamemode".equals(c.op)) {
             int mode = intArg(a, "mode");
             return WorldOps.setGameMode(world, mode) + saveSuffix(world, c);
+        }
+        if ("getxp".equals(c.op)) {
+            return WorldOps.getXp(world);
+        }
+        if ("gethunger".equals(c.op)) {
+            return WorldOps.getHunger(world);
         }
         if ("listops".equals(c.op)) {
             return LISTOPS; // agent 侧自省，零游戏调用（世界未捕获仍 not-ready——v1 从简）

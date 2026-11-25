@@ -62,8 +62,8 @@ describe('D8 新四 op', () => {
     expect(okCmd('kill 1 64 1 5').save).toBe(true)
     expect(okCmd('weather true').save).toBe(true)
   })
-  it('KNOWN_OPS 对榫：45 op 全量在册', () => {
-    expect(OPS.length).toBe(45)
+  it('KNOWN_OPS 对榫：47 op 全量在册', () => {
+    expect(OPS.length).toBe(47)
     expect(opSpec('kill')).toBeDefined()
     expect(opSpec('clone')).toBeDefined()
     expect(opSpec('setdifficulty')).toBeDefined()
@@ -74,6 +74,16 @@ describe('D8 新四 op', () => {
     expect(opSpec('removeeffect')).toBeDefined()
     expect(opSpec('sethunger')).toBeDefined() // D11 批
     expect(opSpec('setgamemode')).toBeDefined() // D13 批
+    expect(opSpec('getxp')).toBeDefined()    // D14 批
+    expect(opSpec('gethunger')).toBeDefined()
+  })
+  it('D14 getxp/gethunger 只读面（save 不发）', () => {
+    const x = okCmd('getxp')
+    expect(x.op).toBe('getxp')
+    expect(x.save).toBeUndefined()
+    const h = okCmd('gethunger')
+    expect(h.op).toBe('gethunger')
+    expect(h.save).toBeUndefined()
   })
   it('D13 setgamemode 速记翻译', () => {
     const m = okCmd('setgamemode 1')
