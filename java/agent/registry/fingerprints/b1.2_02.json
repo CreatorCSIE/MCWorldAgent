@@ -88,6 +88,13 @@
     "biomeClass": { "class": "hf", "name": null, "descriptor": null },
     "biomeNameField": { "class": "hf", "name": "m", "descriptor": "Ljava/lang/String;" }
   },
+  "hooks": {
+    "SAVE_WORLD": { "class": "dn", "method": "a", "desc": "(Lru;)V", "access": "0x0001", "expectedHits": 1, "injectMode": "ENTRY", "note": "IProgressUpdate ru 档位二断代；0629/a1.2.0 配方三连用；a(Z)Z 禁钩预避" },
+    "WORLD_CTOR": { "class": "dn", "method": "<init>", "desc": "(Ljava/io/File;Ljava/lang/String;)V", "access": "0x0001", "expectedHits": 1, "injectMode": "ENTRY", "note": "启用（同 a1.2.0 双钩保底）" },
+    "LOAD_WORLD": { "class": "net/minecraft/client/Minecraft", "method": "a", "desc": "(Ldn;Ljava/lang/String;Leu;)V", "access": "0x0001", "expectedHits": 1, "injectMode": "EXIT", "note": "维度跟随批 3 参实体（旧记 lk 系笔误=eu）；单一尾 RETURN @395" },
+    "RUN_TICK": { "class": "net/minecraft/client/Minecraft", "method": "i", "desc": "()V", "access": "0x0001", "expectedHits": 1, "injectMode": "ENTRY", "note": "✓同字母同形" },
+    "HUD_RENDER": { "class": "pe", "method": "a", "desc": "(FZII)V", "access": "0x0001", "expectedHits": 1, "injectMode": "EXIT", "note": "与 a1.2.0 mz 完全同构（L281 invokevirtual 实锤）；链未钉=优雅降级" }
+  },
   "capabilities": {
     "place": "OK", "dig": "OK", "getblock": "OK", "getblocks": "OK", "fill": "OK",
     "replace": "OK", "save": "OK", "give": "OK", "inv": "OK", "setarmor": "OK",

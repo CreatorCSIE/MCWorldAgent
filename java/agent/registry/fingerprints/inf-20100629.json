@@ -82,6 +82,12 @@
     "mobGiant": { "class": "aa", "name": null, "descriptor": null },
     "mobMonsterClass": { "class": "gl", "name": null, "descriptor": null }
   },
+  "hooks": {
+    "SAVE_WORLD": { "class": "ez", "method": "a", "desc": "(Liw;)V", "access": "0x0011", "expectedHits": 1, "injectMode": "ENTRY", "note": "public 包装（el0629-2 活体翻案：iw=具体类 Proxy 作废；本体 null 守卫+游戏裸传 null）" },
+    "LOAD_WORLD": { "class": "at", "method": "a", "desc": "(Lez;Ljava/lang/String;)V", "access": "0x0002", "expectedHits": 1, "injectMode": "ENTRY", "note": "与 0618 同形态，slot1=活体 World" },
+    "RUN_TICK": { "class": "at", "method": "m", "desc": "()V", "access": "0x0002", "expectedHits": 1, "injectMode": "ENTRY", "note": "详表 §2，run() 内 invokespecial" },
+    "HUD_RENDER": { "class": "gf", "method": "a", "desc": "(F)V", "access": "0x0011", "expectedHits": 1, "injectMode": "EXIT", "note": "与 0327/0618 全同形（详表 §6）" }
+  },
   "capabilities": {
     "place": "OK", "dig": "OK", "getblock": "OK", "getblocks": "OK", "fill": "OK",
     "replace": "OK", "save": "OK", "give": "OK", "inv": "OK", "setarmor": "OK",

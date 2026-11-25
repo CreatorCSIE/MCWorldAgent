@@ -58,6 +58,12 @@
     "guiIngame": { "class": "net.minecraft.client.c.m", "name": "a", "descriptor": "(F)V" },
     "fontRendererClass": { "class": "net.minecraft.client.c.k", "name": null, "descriptor": null }
   },
+  "hooks": {
+    "SAVE_WORLD": { "class": "net/minecraft/a/a/g", "method": "b", "desc": "(Z)V", "access": "0x0002", "expectedHits": 1, "injectMode": "ENTRY", "note": "F1 裁决统一 core (Z)V（0327 先例同型；private 0x0002 按实）" },
+    "LOAD_WORLD": { "class": "net/minecraft/client/d", "method": "a", "desc": "(Lnet/minecraft/a/a/g;Ljava/lang/String;)V", "access": "0x0002", "expectedHits": 1, "injectMode": "ENTRY", "note": "slot1=活体 World（a3-0618-1 字节码实锤）" },
+    "RUN_TICK": { "class": "net/minecraft/client/d", "method": "l", "desc": "()V", "access": "0x0002", "expectedHits": 1, "injectMode": "ENTRY", "note": "runTick（详表 §2，run() 内 invokespecial 钉）" },
+    "HUD_RENDER": { "class": "net/minecraft/client/c/m", "method": "a", "desc": "(F)V", "access": "0x0011", "expectedHits": 1, "injectMode": "EXIT", "note": "与 0327 同形同字母（A3 实跑派生修复批）；pos 字母差异由表化兜住" }
+  },
   "capabilities": {
     "place": "OK", "dig": "OK", "getblock": "OK", "getblocks": "OK", "fill": "OK",
     "replace": "OK", "getmeta": "OK", "settime": "OK", "setspawn": "OK", "setlook": "OK",

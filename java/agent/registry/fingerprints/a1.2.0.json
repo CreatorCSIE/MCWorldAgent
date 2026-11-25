@@ -86,6 +86,13 @@
     "biomeClass": { "class": "fy", "name": null, "descriptor": null },
     "biomeNameField": { "class": "fy", "name": "m", "descriptor": "Ljava/lang/String;" }
   },
+  "hooks": {
+    "SAVE_WORLD": { "class": "cu", "method": "a", "desc": "(Lph;)V", "access": "0x0001", "expectedHits": 1, "injectMode": "ENTRY", "note": "包装→本体链 javap 对榫；⚠️cu.a(Z)Z=TickUpdates 禁钩同字母预避" },
+    "WORLD_CTOR": { "class": "cu", "method": "<init>", "desc": "(Ljava/io/File;Ljava/lang/String;)V", "access": "0x0001", "expectedHits": 1, "injectMode": "ENTRY", "note": "构造族基础形（同 0327/a1.1.2_01 判决）" },
+    "LOAD_WORLD": { "class": "net/minecraft/client/Minecraft", "method": "a", "desc": "(Lcu;Ljava/lang/String;Ldv;)V", "access": "0x0001", "expectedHits": 1, "injectMode": "EXIT", "note": "2026-11-19 维度跟随批由 2 参壳改挂 3 参实体（判决 B 同 b1.8.1 e3375b7）；单一尾 RETURN @341" },
+    "RUN_TICK": { "class": "net/minecraft/client/Minecraft", "method": "i", "desc": "()V", "access": "0x0001", "expectedHits": 1, "injectMode": "ENTRY", "note": "a1.1.2_01 同字母同形" },
+    "HUD_RENDER": { "class": "mz", "method": "a", "desc": "(FZII)V", "access": "0x0001", "expectedHits": 1, "injectMode": "EXIT", "note": "tiny 直钉+jq.b(F)V L1225 调用点双实锤；链未钉=优雅降级" }
+  },
   "capabilities": {
     "place": "OK", "dig": "OK", "getblock": "OK", "getblocks": "OK", "fill": "OK",
     "replace": "OK", "save": "OK", "give": "OK", "inv": "OK", "setarmor": "OK",

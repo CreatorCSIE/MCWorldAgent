@@ -80,6 +80,13 @@
     "mobGiant": { "class": "hl", "name": null, "descriptor": null },
     "mobCreatureClass": { "class": "ek", "name": null, "descriptor": null }
   },
+  "hooks": {
+    "SAVE_WORLD": { "class": "cn", "method": "a", "desc": "(Lnu;)V", "access": "0x0001", "expectedHits": 1, "injectMode": "ENTRY", "note": "el1121-1 活体翻案（初钉 a(Z)Z 系 0629 翻案①同型误判）；0629 配方复用" },
+    "WORLD_CTOR": { "class": "cn", "method": "<init>", "desc": "(Ljava/io/File;Ljava/lang/String;)V", "access": "0x0001", "expectedHits": 1, "injectMode": "ENTRY", "note": "本版启用（换世界流程唯一 new 点，dir 面入把手，同 0327 双钩保底）" },
+    "LOAD_WORLD": { "class": "net/minecraft/client/Minecraft", "method": "a", "desc": "(Lcn;Ljava/lang/String;)V", "access": "0x0001", "expectedHits": 1, "injectMode": "ENTRY", "note": "详表标 private javap 复核=public（按实钉）" },
+    "RUN_TICK": { "class": "net/minecraft/client/Minecraft", "method": "i", "desc": "()V", "access": "0x0001", "expectedHits": 1, "injectMode": "ENTRY", "note": "public（档位二按实）" },
+    "HUD_RENDER": { "class": "lu", "method": "a", "desc": "(FZII)V", "access": "0x0001", "expectedHits": 1, "injectMode": "EXIT", "note": "档位二换形 a(F)V 失效（iq L1110 实锤）；onHud 链断=HUD_HOOK_DISABLED 优雅降级" }
+  },
   "capabilities": {
     "place": "OK", "dig": "OK", "getblock": "OK", "getblocks": "OK", "fill": "OK",
     "replace": "OK", "save": "OK", "give": "OK", "inv": "OK", "setarmor": "OK",
