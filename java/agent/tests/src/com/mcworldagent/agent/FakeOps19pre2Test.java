@@ -165,10 +165,15 @@ public class FakeOps19pre2Test {
         ok(WorldOps.inv(w).contains(" d3"), "inv reads wc.e（private 回退主证）");
         ok(WorldOps.clearInv(w).startsWith("cleared 36+4"), "clearinv 36+4");
 
-        // ---- health 面（xx.a **private**——WorldOps.healthField 父链回退消费主证）----
-        ok(WorldOps.getPlayer(w).contains("health=10"), "getplayer（private a 读通）");
+        // ---- health 面（xx.a **private**——WorldOps.healthField 父链回退消费主证；
+        // sd.a=String 遮蔽件在位，复现活体 mn 形态：旧 getField 首探即崩，
+        // int 类型门必须跳过遮蔽取 xx.a——活体批 2026-11-25 W19P2 ERROR 回归钉）----
+        ok(WorldOps.getPlayer(w).contains("health=10"), "getplayer（private a 读通、遮蔽跳过）");
         ok("health 10 -> 15".equals(WorldOps.setHealth(w, 15)), "sethealth");
-        ok((Integer) pri(player, "a") == 15, "sethealth 直写 xx.a=15（private）");
+        java.lang.reflect.Field hf = Class.forName("xx").getDeclaredField("a");
+        hf.setAccessible(true);
+        ok(hf.getInt(player) == 15, "sethealth 直写 xx.a=15（非 sd.a 遮蔽）");
+        ok(WorldOps.getPlayer(w).contains("health=15"), "getPlayer 读回 15（int 门路径）");
 
         // ---- invulnerable（iframesF=Z——heartsLife 回归钉，181 aa→Z 断代）----
         ok("iframes 0 -> 100".equals(WorldOps.invulnerable(w, 100)), "invulnerable via lh.Z");

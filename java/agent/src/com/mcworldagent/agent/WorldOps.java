@@ -687,26 +687,31 @@ public final class WorldOps {
      *  b1.9-pre2 断代（build19pre2 表注③）：xx.a=health **private**（javap dump L11444
      *  实锤，181 bz public 形态破裂）——getField miss 走 getDeclaredField 父链回退
      *  +setAccessible（b1.2_02 isDmgF 同配方）；0327..181 public 线 getField 首探即中，
-     *  零行为变化。 */
+     *  零行为变化。
+     *  ⚠️ 活体批修正（2026-11-25 W19P2 实跑 ERROR 实锤）：pre2 EntityPlayer(sd).a=mn
+     *  **public 非 int**，getField("a") 命中遮蔽字段后 getInt 抛 IllegalArgumentException
+     *  （"Attempt to get mn field sd.a..."）——命中≠类型对。改父链就近扫描，
+     *  仅接受 int/Integer 声明（声明类 Field 即继承面同一字段，0327..181 public 线
+     *  等值：其链上最近 int 声明=原 getField 命中；无 int 遮蔽则两径同形）。 */
     private static Field healthField(Object p) throws UnsupportedOp {
         Field h = eHealth;
         if (h == null) {
-            try {
-                h = p.getClass().getField(E_HEALTH);
-            } catch (NoSuchFieldException e1) {
-                Class<?> c = p.getClass();
-                while (c != null) {
-                    try {
-                        h = c.getDeclaredField(E_HEALTH);
-                        h.setAccessible(true);
+            Class<?> c = p.getClass();
+            while (c != null) {
+                try {
+                    Field f = c.getDeclaredField(E_HEALTH);
+                    if (f.getType() == int.class || f.getType() == Integer.class) {
+                        f.setAccessible(true);
+                        h = f;
                         break;
-                    } catch (NoSuchFieldException e2) {
-                        c = c.getSuperclass();
                     }
+                } catch (NoSuchFieldException ignore) {
+                    // 本类无此名，上溯
                 }
-                if (h == null) {
-                    throw new UnsupportedOp("entity health field: " + e1);
-                }
+                c = c.getSuperclass();
+            }
+            if (h == null) {
+                throw new UnsupportedOp("entity health int field not found: " + E_HEALTH);
             }
             eHealth = h;
         }
@@ -732,9 +737,13 @@ public final class WorldOps {
         }
         for (Class<?> k = p.getClass(); k != null && k != Object.class; k = k.getSuperclass()) {
             try {
-                k.getDeclaredField(E_HEALTH);
-                livingClassCache = k;
-                return k;
+                // 活体批修正（sd.a=mn 遮蔽实锤）：仅 int/Integer 声明才算 EntityLiving
+                // 等价类，非 int 同名遮蔽字段（玩家背包/计时器面）跳过继续上溯。
+                Class<?> t = k.getDeclaredField(E_HEALTH).getType();
+                if (t == int.class || t == Integer.class) {
+                    livingClassCache = k;
+                    return k;
+                }
             } catch (NoSuchFieldException e) {
                 // 继续上溯
             }
