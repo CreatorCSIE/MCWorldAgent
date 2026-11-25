@@ -29,6 +29,10 @@ public class fd {
     public int snd;
     public int killCalls;
     public ow teStore;
+    // h9 批 sleep 面（真 jar tiny：fd.m()V=updateAllPlayersSleepingFlag **protected**
+    // ——setSleep getDeclaredMethod+setAccessible 上溯泛化消费面）
+    public int sleepFlagRefreshes;
+    protected void m() { sleepFlagRefreshes++; }
     final int[] blocks = new int[4096];
     final int[] meta = new int[4096];
     private final ei info = new ei();   // WorldInfo 承载体（fd.x() 返回）

@@ -316,6 +316,20 @@ public class FakeOps173Test {
         unsupported("genscatter", new RunnableEx() {
             public void run() throws Exception { WorldOps.genScatter(w, 14, 1, 64, 1, null); } }, "scatterClassG");
 
+        // ---- h9 批 sleep 面转正（capSleep b1.5+；gs.u/a + fd.m protected 上溯泛化）----
+        java.lang.reflect.Field gsU = player.getClass().getDeclaredField("u");
+        java.lang.reflect.Field gsA = player.getClass().getDeclaredField("a");
+        gsU.setAccessible(true);
+        gsA.setAccessible(true);
+        String sl = WorldOps.setSleep(w, true);
+        ok(sl.startsWith("sleep off -> on timer 0 -> 100"), "sleep 回显 " + sl);
+        ok(gsU.getBoolean(player), "gs.u sleeping=true");
+        ok(gsA.getInt(player) == 100, "gs.a sleepTimer=100");
+        ok(((Integer) get(w, "sleepFlagRefreshes")).intValue() == 1, "fd.m 刷新 x1（protected 泛化）");
+        WorldOps.setSleep(w, false);
+        ok(!gsU.getBoolean(player) && gsA.getInt(player) == 0, "wake 清零 u=false/timer=0");
+        ok(((Integer) get(w, "sleepFlagRefreshes")).intValue() == 2, "fd.m 刷新 x2");
+
         System.out.println("FakeOps173Test PASS (" + checks + " checks)");
     }
 }

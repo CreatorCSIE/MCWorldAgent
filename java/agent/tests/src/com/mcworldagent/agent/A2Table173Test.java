@@ -31,18 +31,18 @@ public class A2Table173Test {
 
         // ops 全表逐槽对榫（锚库 ops 键=VersionTable 字段名，63 槽+mobClasses 嵌套）
         Map ops = A2TableTest.obj(j.get("ops"));
-        ok(ops.size() == 72, "ops 72 keys got " + ops.size());
+        ok(ops.size() == 76, "ops 76 keys got " + ops.size());
         int compared = 0;
         for (Object ko : ops.keySet()) {
             String key = (String) ko;
             if ("mobClasses".equals(key)) { continue; }
-            ok(A2TableTest.str(ops.get(key)) == null
+            ok(ops.get(key) == null // h9：capSleep 槽为 Boolean，str() 只认 String
                             ? A2TableTest.slot(t, key) == null
                             : ops.get(key).equals(A2TableTest.slot(t, key)),
                     "ops " + key);
             compared++;
         }
-        ok(compared == 71, "71 slots compared got " + compared);
+        ok(compared == 75, "75 slots compared got " + compared);
 
         // 三大结构断代重点复核（详表 §2/§9）
         ok("x".equals(t.getWorldInfoM), "getWorldInfoM x（WorldInfo 断代分支开关）");

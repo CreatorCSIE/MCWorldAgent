@@ -1771,7 +1771,21 @@ public final class WorldOps {
         int oldT = tf.getInt(p);
         sf.setBoolean(p, on);
         tf.setInt(p, on ? 100 : 0);
-        Method um = world.getClass().getMethod(M_WORLD_SLEEP_FLAG);
+        Method um = null;
+        for (Class<?> k = world.getClass(); k != null && k != Object.class; k = k.getSuperclass()) {
+            try {
+                um = k.getDeclaredMethod(M_WORLD_SLEEP_FLAG);
+                um.setAccessible(true);
+                break;
+            } catch (NoSuchMethodException e) {
+                // 上溯找声明类（h9：173 fd.m 为 protected——getMethod 只认 public，
+                // 改走 getDeclaredMethod+setAccessible 同字段配方；pre2 ti.z/181 rv.y
+                // public 路径行为不变=零涟漪）
+            }
+        }
+        if (um == null) {
+            throw new UnsupportedOp("sleep: declaring method " + M_WORLD_SLEEP_FLAG + " not found");
+        }
         um.invoke(world);
         return "sleep " + (oldS ? "on" : "off") + " -> " + (on ? "on" : "off")
                 + " timer " + oldT + " -> " + (on ? 100 : 0)

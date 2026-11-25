@@ -831,6 +831,13 @@ public final class VersionRegistry {
         t.teBurnF = "a";
         t.teCookF = "c";
 
+        // h9 批 sleep 面（tiny 直钉：gs.u=sleeping/gs.a=sleepTimer，
+        // fd.m()V=updateAllPlayersSleepingFlag protected=WorldOps 上溯泛化消费面）。
+        t.capSleep = Boolean.TRUE;
+        t.sleepFlagF = "u";
+        t.sleepTimerF = "a";
+        t.worldSleepFlagM = "m";
+
         // spawn 白名单（jc 注册表+javap 构造器 (fd)V 逐个实锤；tnt=qw
         // (fd,DDD)V DDD 断代延续 b1.2_02——WorldOps fallback；giant=nt 构造健在；
         // mob=ii=EntityCreature（⚠️b1.2_02=fz））
@@ -1056,6 +1063,13 @@ public final class VersionRegistry {
         t.invSetM = "a";
         t.teBurnF = "a";
         t.teCookF = "c";
+
+        // h9 批 sleep 面（tiny 直钉：sz.aN=sleeping/sz.a=sleepTimer，
+        // rv.y()V=updateAllPlayersSleepingFlag public）。
+        t.capSleep = Boolean.TRUE;
+        t.sleepFlagF = "aN";
+        t.sleepTimerF = "a";
+        t.worldSleepFlagM = "y";
 
         // D13 gamemode（b1.8.1 首版实装——setgamemode 消费，完成 capGamemode 槽先行承诺）。
         // 取证=tiny 实锤 WorldInfo=rl，field_35920_p=gameType private int（NBT "GameType"

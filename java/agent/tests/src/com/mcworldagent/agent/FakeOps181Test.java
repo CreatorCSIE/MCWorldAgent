@@ -363,6 +363,20 @@ public class FakeOps181Test {
         unsupported("genscatter", new RunnableEx() {
             public void run() throws Exception { WorldOps.genScatter(w, 14, 1, 64, 1, null); } }, "scatterClassG");
 
+        // ---- h9 批 sleep 面转正（capSleep b1.5+；sz.aN/a + rv.y public）----
+        java.lang.reflect.Field szAN = player.getClass().getDeclaredField("aN");
+        java.lang.reflect.Field szA = player.getClass().getDeclaredField("a");
+        szAN.setAccessible(true);
+        szA.setAccessible(true);
+        String sl = WorldOps.setSleep(w, true);
+        ok(sl.startsWith("sleep off -> on timer 0 -> 100"), "sleep 回显 " + sl);
+        ok(szAN.getBoolean(player), "sz.aN sleeping=true");
+        ok(szA.getInt(player) == 100, "sz.a sleepTimer=100");
+        ok(((Integer) getv(w, "sleepFlagRefreshes")).intValue() == 1, "rv.y 刷新 x1");
+        WorldOps.setSleep(w, false);
+        ok(!szAN.getBoolean(player) && szA.getInt(player) == 0, "wake 清零 aN=false/timer=0");
+        ok(((Integer) getv(w, "sleepFlagRefreshes")).intValue() == 2, "rv.y 刷新 x2");
+
         System.out.println("FakeOps181Test PASS (" + checks + " checks)");
     }
 }

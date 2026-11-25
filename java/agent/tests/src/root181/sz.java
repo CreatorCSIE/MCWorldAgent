@@ -7,6 +7,9 @@ public class sz extends wd {
     public int aZ;   // NBT "XpTotal"
     public int aG;   // NBT "XpCooldown"
     public int ay;   // score
+    // h9 批 sleep 面（真 jar tiny：aN=sleeping protected / a=sleepTimer private）
+    protected boolean aN;
+    private int a;
     public kc av = new kc(); // D11 FoodStats（protected field_35217_av，假件 public 便于对账）
     public sz(rv w) { super(w); as = new ui(this); }
     public kc at() { return av; } // D11 func_35191_at()Lkc; getFoodStats

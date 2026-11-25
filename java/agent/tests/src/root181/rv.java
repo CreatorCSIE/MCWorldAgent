@@ -30,6 +30,9 @@ public class rv {
     public int snd;
     public int killCalls;
     public ij teStore;
+    // h9 批 sleep 面（真 jar tiny：rv.y()V=updateAllPlayersSleepingFlag public）
+    public int sleepFlagRefreshes;
+    public void y() { sleepFlagRefreshes++; }
     final int[] blocks = new int[4096];
     final int[] meta = new int[4096];
     private final rl info = new rl();   // WorldInfo 承载体（rv.x() 返回）
