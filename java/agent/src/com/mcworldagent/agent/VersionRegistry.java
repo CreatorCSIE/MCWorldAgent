@@ -1035,6 +1035,17 @@ public final class VersionRegistry {
         t.wiSetRainM = "b";
         t.wiSetThunderM = "a";
 
+        // h7 批 TE 容器面转正（b1.8.1 真 jar tiny+javap 实锤：gl=IInventory
+        // a()I=getSizeInventory/d_(I)Lul=getStackInSlot/a(ILul;)V=setInventorySlotContents；
+        // aaa=TileEntityFurnace public int a=furnaceBurnTime/c=furnaceCookTime
+        // （b=currentItemBurnTime 非写面）；fh=TileEntityChest public boolean a=
+        // numPlayersUsing 撞 teBurnF 同 pre2 fv 形，int 门防线在位）。
+        t.invSizeM = "a";
+        t.invGetM = "d_";
+        t.invSetM = "a";
+        t.teBurnF = "a";
+        t.teCookF = "c";
+
         // D13 gamemode（b1.8.1 首版实装——setgamemode 消费，完成 capGamemode 槽先行承诺）。
         // 取证=tiny 实锤 WorldInfo=rl，field_35920_p=gameType private int（NBT "GameType"
         // L26/L104 读写配对）。写面=WorldInfo 持久层（重进世界生效），经 getWorldInfoM=x 取

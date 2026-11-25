@@ -138,7 +138,7 @@ public class A2Table181Test {
             ok(mobs[i][1].equals(A2TableTest.str(mobJson.get(mobs[i][0]))), "mob json " + mobs[i][0]);
         }
 
-        // capabilities：35 OK / 7 UNSUPPORTED（D10 +3，D11 +1，D13 +1，D14 +getxp/gethunger）
+        // capabilities：40 OK / 3 UNSUPPORTED（h7 TE 四件转正，档位欠账余 setmeta/grow/genscatter）
         Map caps = A2TableTest.obj(j.get("capabilities"));
         int okN = 0;
         int unN = 0;
@@ -148,12 +148,10 @@ public class A2Table181Test {
             else if ("UNSUPPORTED".equals(s)) { unN++; }
             else { throw new RuntimeException("bad cap value " + s); }
         }
-        ok(okN == 36, "caps 36 OK got " + okN);
-        ok(unN == 7, "caps 7 UNSUPPORTED got " + unN);
+        ok(okN == 40, "caps 40 OK got " + okN);
+        ok(unN == 3, "caps 3 UNSUPPORTED got " + unN);
         String[][] unPairs = {
             {"setmeta", "observersF"}, {"grow", "idCrops"}, {"genscatter", "scatterClassG"},
-            {"getchest", "invSizeM"}, {"setchest", "invSizeM"}, {"getfurnace", "teBurnF"},
-            {"setfurnace", "teBurnF"},
         };
         for (int i = 0; i < unPairs.length; i++) {
             ok("UNSUPPORTED".equals(A2TableTest.str(caps.get(unPairs[i][0]))), "unconfirmed " + unPairs[i][0]);
@@ -171,18 +169,19 @@ public class A2Table181Test {
             {"spawn", "spawnEntityM"}, {"drop", "spawnEntityM"}, {"explode", "explodeM"},
             {"clear", "setEntityDeadM"}, {"getbiome", "biomeWcmM"},
             {"invulnerable", "iframesF"},
+            {"getchest", "invSizeM"}, {"setchest", "invSizeM"},
+            {"getfurnace", "teBurnF"}, {"setfurnace", "teBurnF"},
         };
-        ok(okPairs.length == 27, "27 slot-backed OK pairs");
+        ok(okPairs.length == 31, "31 slot-backed OK pairs");
         for (int i = 0; i < okPairs.length; i++) {
             ok("OK".equals(A2TableTest.str(caps.get(okPairs[i][0]))), "OK " + okPairs[i][0]);
             ok(A2TableTest.slot(t, okPairs[i][1]) != null, okPairs[i][0] + " slot " + okPairs[i][1] + " non-null");
         }
         ok("OK".equals(A2TableTest.str(caps.get("listops"))), "listops OK");
 
-        // null 槽断言（13 件：档位欠账面同 b1.7.3）
+        // null 槽断言（8 件：h7 TE 五槽转正后余档位欠账面）
         String[] nullSlots = {
-            "light6M", "observersF", "scatterClassG", "entityTypeM", "invSizeM",
-            "invGetM", "invSetM", "teBurnF", "teCookF", "idCrops",
+            "light6M", "observersF", "scatterClassG", "entityTypeM", "idCrops",
             "idSapling", "cropsRipeMeta", "playerF",
         };
         for (int i = 0; i < nullSlots.length; i++) {
