@@ -1107,6 +1107,10 @@ public final class VersionRegistry {
         t.pitchF = "v";
         t.healthF = "a";          // xx.a=health **private**（⚠️181=bz public——healthField
         // 本批 getDeclaredField 父链回退，见上注③）
+        // ⚠️ 活体批1/2 三层撞名在案（同字母三形态）：sd(EntityPlayerSP).a=mn public
+        // 非 int 遮蔽 + uo(EntityPlayer).a=sleepTimer private int 劫持玩家链——
+        // livingClass 探针 v2 走 mobClasses 链（批2），批3 闭环 [h=]/sethealth/
+        // level.dat Health=15 全实锤。跨版本抄 a 者必读本注。
         t.iframesF = "Z";         // lh.Z=heartsLife public int（⚠️181=aa——回归钉，见上注⑨）
 
         // HUD 次级链（主类字段面 JSON 钉：theWorld=f/thePlayer=i（声明 xx 断代）/
