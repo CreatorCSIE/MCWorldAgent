@@ -267,3 +267,13 @@
 
 **LOAD_WORLD 3 参 EXIT 移植批（2026-11-19）**：b1.8.1 e3375b7 模板移植至 a1.2.0/b1.2_02/b1.7.3 三线——javap 逐版钉死 3 参实体存在（a1.2.0=`a(Lcu;String;Ldv;)V`、b1.2_02=`a(Ldn;String;Leu;)V`、b1.7.3=`a(Lfd;String;Lgs;)V`，第三参均=EntityPlayer，b1.2_02 旧记 lk 系笔误）+2 参委托壳 aconst_null 委托 3 参+传送门 k()/m() 直调 3 参+3 参体单一尾 RETURN（EXIT 安全）；锚 JSON+HookTargets 改挂 3 参 EXIT，InjectSmoke/A2Table 三版判据同步（3 参恰中+2 参委托恰中 1 无叠钩+null 守卫+捕获保持），全版本线回归 run-headless181 链 **ALL GREEN**（含旧线 0629/1121/0618+storage+jar 重建）。
 - **活体维度批收官（2026-11-19）**：三线 DIM-1 传送门实走**全 PASS**——b1.7.3=el173-3（W173）、a1.2.0=el120-5（World4）、b1.2_02=el1202-2（World5）。判据全绿：进界/回程双向 SWITCHED 同 ms 即时零回拉（EXIT 修订三线复证 el181-5 判据）、getplayer 命中下界、save 存对世界、DIM-1 落盘非零（region 线退出 flush / 散件线 save 即落盘断代复证）、零 TICK_TASK_ERROR/零回拉/零新增 UNSUPPORTED。三线造门同形=fill 框+掏空+give 259 打火石游戏点火（裸 fill 门体被 isValid 清零系 b1.7.3 活体新钉）。**b1.2_02 下界活体可达实锤（翻案"下界实现零"）**。详各 `integrations/attic/out/elXXX/ops-verdict.md`。
+
+## §14 F6 退役执行批（2026-11-26，无头窗）
+
+判决依 `tools/f1-anchor-compiler/f6-retirement-eval.md`（14.1 F6-eval closed），本批=执行：
+
+- **superseded 注记 9 份**：c0.30-c/in-20100223/inf-20100618/inf-20100629/a1.1.2_01/a1.2.0_02/a1.2.6/b1.2_02/b1.8.1 详表头部注记（成员钉表段→锚 JSON 权威；F5 627/627 在案；正文不回写）。**7 open-case 随注记自动解决**（eval §2 判决），其中 b1.8.1 的"2 案"=xp 载体怪癖+HUD 面，翻案值已在 b1.9-pre2.json provenance 与 b1.8.1.json 钉内。
+- **暂不退役 2 份**：b1.7.3/b1.8 头部注记（超面框架核心缺口唯一归宿=详表）。
+- **b1.8 表→JSON 转写**：新建 `b1.8.json`（**status=draft**，运行时不消费）——只转详表明确钉面；两冲突面挂起入注：①天气浮值 B/C/D/E"同 173"与 build173 实钉 j/l 矛盾（F6 值漂移又一实锤，留 null 待 dump）；②biomeAtM 方法字母详表未钉。GuardTest 计数 16→17，run.ps1 33/33 全绿。
+- **gap 路由（eval §3 去向表落地）**：WorldInfo 字段面/region 定位表/天气四键语义/饥饿字段/类树断代=**保留详表**；EntityList 类名表/te 五件=**并入 F5 矩阵扩列**（后续批）；**hooks schema 统一**（9 件补 hooks 段）=独立后续批，未动因=需逐版 dump 复核，无头窗不强做。
+- 本批连带：T1 weather 旗标双写（9b44b67）+T2 sleep op（163ee30）=D8/D10 无头半兑现，活体判决项入下批到场包（旗标→level.dat 键、sleep→入床动画+跳天亮）。

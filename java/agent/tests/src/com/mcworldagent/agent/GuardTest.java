@@ -87,7 +87,7 @@ public final class GuardTest {
                 jsons.add(f);
             }
         }
-        eq("json count", Integer.valueOf(16), Integer.valueOf(jsons.size()));
+        eq("json count", Integer.valueOf(17), Integer.valueOf(jsons.size()));
         int marked = 0;
         for (File f : jsons) {
             String text = readUtf8(f);
