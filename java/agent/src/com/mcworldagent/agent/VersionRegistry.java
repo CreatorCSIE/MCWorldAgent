@@ -1027,6 +1027,14 @@ public final class VersionRegistry {
         t.rainStrF = "o";         // rv.o=rainingStrength protected float
         t.thunderStrF = "q";      // rv.q=thunderingStrength protected float
 
+        // D13 gamemode（b1.8.1 首版实装——setgamemode 消费，完成 capGamemode 槽先行承诺）。
+        // 取证=tiny 实锤 WorldInfo=rl，field_35920_p=gameType private int（NBT "GameType"
+        // L26/L104 读写配对）。写面=WorldInfo 持久层（重进世界生效），经 getWorldInfoM=x 取
+        // 实例 getDeclaredField+setAccessible 写 p。mode∈[0,1]（b1.8 仅 survival/creative，
+        // adventure=2 系 b1.9-pre 后，越界 Rejected）。⚠️ 会话内即时行为联动=到场包活体判决。
+        t.capGamemode = Boolean.TRUE;
+        t.gameTypeF = "p";        // rl.p=gameType private int
+
         return t;
     }
 }

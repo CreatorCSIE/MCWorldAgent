@@ -21,7 +21,7 @@ export interface OpSpec {
   save: SaveMode
 }
 
-/** 44 op 全量（KNOWN_OPS 对榫；D8 批 +4，getbiome 补洞 +1，D10 批 +3，D11 批 +1）。 */
+/** 45 op 全量（KNOWN_OPS 对榫；D8 批 +4，getbiome 补洞 +1，D10 批 +3，D11 批 +1，D13 批 +1）。 */
 export const OPS: OpSpec[] = [
   { name: 'place', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }, { key: 'blockId', kind: 'int' }], save: 'true' },
   { name: 'dig', args: [{ key: 'x', kind: 'int' }, { key: 'y', kind: 'int' }, { key: 'z', kind: 'int' }], save: 'true' },
@@ -71,6 +71,8 @@ export const OPS: OpSpec[] = [
   { name: 'removeeffect', args: [{ key: 'effectId', kind: 'int' }], save: 'true' },
   // D11 饥饿面（b1.8+ 门控，FoodStats private）
   { name: 'sethunger', args: [{ key: 'food', kind: 'int' }, { key: 'saturation', kind: 'int', optional: true }], save: 'true' },
+  // D13 游戏模式（b1.8+ 门控，WorldInfo GameType 持久层）
+  { name: 'setgamemode', args: [{ key: 'mode', kind: 'int' }], save: 'true' },
 ]
 
 /**

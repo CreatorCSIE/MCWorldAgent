@@ -192,6 +192,7 @@
     "giveeffect": "OK",
     "removeeffect": "OK",
     "sethunger": "OK",
+    "setgamemode": "OK",
     "listops": "OK"
   }
 }

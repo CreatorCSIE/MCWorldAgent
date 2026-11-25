@@ -285,6 +285,19 @@ public class FakeOps181Test {
         ok((Float) getv(w, "o") == 0.0f, "weather raining=false 写 0.0");
         ok((Float) getv(w, "q") == 1.0f, "weather thunder 保留 1.0");
 
+        // ---- D13 setgamemode（capGamemode=TRUE；WorldInfo rl.p private int 直写）----
+        Object winfo = pri(w, "info");        // rv.x()Lrl 承载体
+        ok(WorldOps.setGameMode(w, 1).startsWith("gamemode 0 -> 1"), "setgamemode 旧值回显");
+        ok((Integer) pri(winfo, "p") == 1, "setgamemode 写 rl.p=GameType private=1(creative)");
+        ok(WorldOps.setGameMode(w, 0).startsWith("gamemode 1 -> 0"), "setgamemode 回 survival");
+        ok((Integer) pri(winfo, "p") == 0, "setgamemode 写回 0");
+        try {
+            WorldOps.setGameMode(w, 2);
+            ok(false, "setgamemode mode=2 must reject (b1.8 no adventure)");
+        } catch (WorldOps.Rejected r) {
+            ok(String.valueOf(r.getMessage()).contains("gamemode-out-of-range"), "setgamemode mode REJECTED");
+        }
+
         // ---- UNSUPPORTED 响亮（6 件；同 b1.7.3 判决）----
         set(w, "teStore", Class.forName("ij").getConstructor().newInstance());
         unsupported("setmeta", new RunnableEx() {

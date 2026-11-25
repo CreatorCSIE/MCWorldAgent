@@ -162,6 +162,11 @@ public final class WorldOps {
     private static final String F_FOOD_LEVEL = T.foodLevelF;
     private static final String F_FOOD_SAT = T.foodSatF;
 
+    // D13 游戏模式面（表值；取证见 build181 D13 段——WorldInfo.gameType private int，
+    // 经 timeHolder 取 WorldInfo 实例 getDeclaredField+setAccessible 写）。
+    private static final Boolean CAP_GAMEMODE = T.capGamemode;
+    private static final String F_GAME_TYPE = T.gameTypeF;
+
     // biome 面（a1.2.0 首版；读回链三锚 verscan/a1.2.0_02.md §8：World.a()Lpb;→pb.a(II)Lfy;
     // →fy.m:String 全 public；WCM 大方法纯读（噪声器现算 temp/hum→4096 查找表），零副作用
     // 零 chunk 加载依赖——未加载坐标亦返回。beta 前版本槽 null=require 响亮 UNSUPPORTED）
@@ -234,6 +239,8 @@ public final class WorldOps {
     // D11 饥饿面惰性缓存（按 FoodStats 实例类解析 private 字段，setAccessible）
     private static volatile Method foodStatsM;
     private static volatile Field foodLevelField, foodSatField;
+    // D13 游戏模式面惰性缓存（WorldInfo.gameType private int）
+    private static volatile Field gameTypeField;
     /** A2 档位一：resolve 逐槽跳 null 后，缓存判据不能再用单槽非空（用完成标志）。 */
     private static volatile boolean resolved;
 
@@ -1769,6 +1776,38 @@ public final class WorldOps {
         } catch (NoSuchFieldException e) {
             throw new UnsupportedOp("food fields: " + e);
         }
+    }
+
+    /**
+     * 游戏模式写（op=setgamemode，D13 门控，案卷 §6.1：b1.8+ creative 旗标）。
+     * 门=capGamemode。写面=WorldInfo.gameType（经 timeHolder 取 WorldInfo 实例，
+     * getDeclaredField+setAccessible 写 private p——rl.p NBT "GameType" L26/L104 实锤）。
+     * mode∈[0,1]（b1.8 仅 survival=0/creative=1；adventure=2 系 b1.9-pre 后，越界 Rejected）。
+     * ⚠️ 语义标清：本写=level.dat 持久层（重进世界生效），会话内即时飞行/破坏联动需
+     * 玩家能力面（b1.8 无独立 capabilities 对象）=到场包活体判决，与 setdifficulty 同纪律。
+     */
+    public static String setGameMode(Object world, int mode) throws Exception {
+        if (!Boolean.TRUE.equals(CAP_GAMEMODE)) {
+            throw new UnsupportedOp("setgamemode: version-gated b1.8+ (capGamemode unset for "
+                    + T.versionId + ")");
+        }
+        require("gameTypeF", F_GAME_TYPE);
+        if (mode < 0 || mode > 1) {
+            throw new Rejected("gamemode-out-of-range [0,1] (b1.8 survival/creative): " + mode);
+        }
+        Object wi = timeHolder(world);   // getWorldInfoM 非 null=WorldInfo 实例，否则 world 本体
+        if (gameTypeField == null) {
+            try {
+                gameTypeField = wi.getClass().getDeclaredField(F_GAME_TYPE);
+                gameTypeField.setAccessible(true);
+            } catch (NoSuchFieldException e) {
+                throw new UnsupportedOp("gameType field " + F_GAME_TYPE + ": " + e);
+            }
+        }
+        int old = gameTypeField.getInt(wi);
+        gameTypeField.setInt(wi, mode);
+        return "gamemode " + old + " -> " + mode + " (WorldInfo level.dat face; live behavior"
+                + " linkage=live-verification item per §6.1)";
     }
 
     /** XP 面惰性解析（setxp 首用；EntityPlayer 三 int 字段 public，按实例类 getField。

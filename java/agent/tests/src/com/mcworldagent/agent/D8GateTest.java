@@ -52,6 +52,10 @@ public final class D8GateTest {
         gateUnsupported(new RunnableEx() {
             public void run() throws Exception { WorldOps.setHunger(new Object(), 10, -1); }
         }, "sethunger", "capHunger");
+        ok(!Boolean.TRUE.equals(t.capGamemode), "capGamemode unset/false on L0 line");
+        gateUnsupported(new RunnableEx() {
+            public void run() throws Exception { WorldOps.setGameMode(new Object(), 1); }
+        }, "setgamemode", "capGamemode");
 
         System.out.println("D8GateTest(" + vid + ") PASS (" + checks + " checks)");
     }

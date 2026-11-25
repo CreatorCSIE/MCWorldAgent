@@ -15,5 +15,5 @@ public class rl {
     private int m;              // rainTime
     private boolean n;          // thundering
     private int o;              // thunderTime
-    private int q;              // GameType（b1.8 系新键，留档）
+    private int p;              // D13 GameType（tiny 实锤 rl.p=field_35920_p，NBT "GameType"）
 }

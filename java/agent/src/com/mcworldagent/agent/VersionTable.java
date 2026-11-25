@@ -119,12 +119,20 @@ public final class VersionTable {
     // D8 门控能力槽（案卷 §6.1 逐版权益候选表；Boolean null=未宣告=op 响亮
     // UNSUPPORTED，TRUE=已取证放行；JSON ops 段 Boolean 分支 B5 schema 原生支持）
     public Boolean capWeather;      // b1.5+（verscan b1.7.3：World 浮值面+WorldInfo 布尔键两层）
-    public Boolean capGamemode;     // b1.8+（creative 旗标）——op 未实装，槽先行
+    public Boolean capGamemode;     // b1.8+（creative 旗标）——D13 实装 setgamemode，build181 放行
     public Boolean capXp;           // b1.8+（经验字段，setxp 消费）——D10 实装，build181 放行
     public Boolean capEffect;       // b1.8+（PotionEffect 挂 EntityLiving，giveeffect/removeeffect
                                     // 消费）——D10 实装，build181 放行（b1.9-pre2 同族，锚件在档）
     public String rainStrF;         // World.rainingStrength float（b1.7.3=j，verscan 在档）
     public String thunderStrF;      // World.thunderingStrength float（b1.7.3=l）
+
+    // D13 游戏模式面（b1.8+；setgamemode 消费。取证=src-minecraft-beta-1.8.1 树
+    // WorldInfo.java 直读：field_35920_p=gameType private int，NBT "GameType" 读写配对
+    // （L26 getInteger/L104 setInteger 实锤）。经 getWorldInfoM（rv.x()Lrl）取 WorldInfo
+    // 实例再 getDeclaredField+setAccessible 写 private p（timeHolder 同路径）。
+    // ⚠️ 语义=level.dat 持久层（重进世界生效）；会话内即时飞行/破坏联动需玩家能力面
+    // （b1.8 无独立 capabilities 对象，1.3+ 才有）=到场包活体判决，勿当即时 op。
+    public String gameTypeF;        // WorldInfo gameType int（b1.8.1=rl.p private）
 
     // D10 XP 面（b1.8+；键名与锚库 b1.9-pre2.json ops 段逐一对榫——b1.8.1 实值见 build181，
     // 取证=src-minecraft-beta-1.8.1 树 EntityPlayer.java 直读：field_35211_aX:NBT"Xp"/
