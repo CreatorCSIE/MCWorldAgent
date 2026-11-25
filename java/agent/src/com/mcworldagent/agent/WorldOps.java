@@ -1292,6 +1292,12 @@ public final class WorldOps {
         } catch (NoSuchFieldException e) {
             throw new Rejected("not-furnace");
         }
+        // T7 批（无头窗 2026-11-26）pre2 撞名实锤防线：fv.a=**boolean** numPlayersUsing
+        // 撞 teBurnF="a"——getDeclaredField 命中非 int 字段时 getInt 会
+        // IllegalArgumentException 逃逸（0327 无此形，healthField int 门同配方）。
+        if (burn.getType() != int.class || cook.getType() != int.class) {
+            throw new Rejected("not-furnace");
+        }
         burn.setAccessible(true);
         cook.setAccessible(true);
         int b = burn.getInt(te);

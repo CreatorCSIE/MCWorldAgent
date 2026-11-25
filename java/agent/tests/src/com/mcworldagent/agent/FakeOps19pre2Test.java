@@ -354,14 +354,51 @@ public class FakeOps19pre2Test {
             public void run() throws Exception { WorldOps.setMeta(w, 1, 64, 1, 1); } }, "observersF");
         unsupported("grow", new RunnableEx() {
             public void run() throws Exception { WorldOps.growCrops(w, 1, 64, 1); } }, "idCrops");
-        unsupported("getchest", new RunnableEx() {
-            public void run() throws Exception { WorldOps.getInv(w, 1, 64, 1); } }, "invSizeM");
-        unsupported("setchest", new RunnableEx() {
-            public void run() throws Exception { WorldOps.setInv(w, 1, 64, 1, 0, 5, 1, 0, false); } }, "invSizeM");
-        unsupported("getfurnace", new RunnableEx() {
-            public void run() throws Exception { WorldOps.getFurnace(w, 1, 64, 1); } }, "teBurnF");
+        // T7 批（无头窗 2026-11-26）：TE 三件从 UNSUPPORTED 翻正（hc 三方法+
+        // acb/fv 容器面转正），仅 genscatter 维持（scatterClassG null=0327 椭球
+        // 配方结构失效：dm ctor=(II)V 非 (I)V+影响盒几何异）。
         unsupported("genscatter", new RunnableEx() {
             public void run() throws Exception { WorldOps.genScatter(w, 14, 1, 64, 1, null); } }, "scatterClassG");
+
+        // ---- T7 chest/furnace 正向段 ----
+        java.lang.reflect.Field teStore = w.getClass().getField("teStore");
+        Object furn = Class.forName("acb").getConstructor().newInstance();
+        teStore.set(w, furn);
+        ok(WorldOps.setInv(w, 1, 64, 1, 1, 5, 3, 0, false).endsWith("slot=1 <- 5 x3"),
+                "setchest furnace slot1 <- 5x3");
+        ok(WorldOps.getInv(w, 1, 64, 1).equals("slots=3 1=3x5"),
+                "getchest acb 3 槽（fuel 位 e_ 字母消费）");
+        furn.getClass().getField("a").setInt(furn, 20);
+        furn.getClass().getField("c").setInt(furn, 5);
+        ok(WorldOps.getFurnace(w, 1, 64, 1).startsWith("furnace burn=20 cook=5 burning=true 1=3x5"),
+                "getfurnace a/c public 面（0327 f/h 字母+访问位双断代）");
+        Object chest = Class.forName("fv").getConstructor().newInstance();
+        teStore.set(w, chest);
+        ok(WorldOps.getInv(w, 2, 64, 2).equals("slots=27 empty"), "getchest fv 27 槽空");
+        WorldOps.setInv(w, 2, 64, 2, 26, 5, 64, 0, false);
+        ok(WorldOps.getInv(w, 2, 64, 2).endsWith("26=64x5"), "setchest slot26 边界");
+        WorldOps.setInv(w, 2, 64, 2, 26, 0, 0, 0, true);
+        ok(WorldOps.getInv(w, 2, 64, 2).equals("slots=27 empty"), "setchest clear 回空");
+        boolean slotRej = false;
+        try {
+            WorldOps.setInv(w, 2, 64, 2, 27, 5, 1, 0, false);
+        } catch (Exception e) {
+            slotRej = e instanceof WorldOps.Rejected;
+        }
+        ok(slotRej, "slot-out-of-range Rejected");
+        boolean nf = false;
+        String nfMsg = "";
+        try {
+            WorldOps.getFurnace(w, 2, 64, 2);
+        } catch (WorldOps.Rejected e) {
+            nf = true;
+            nfMsg = e.getMessage();
+        } catch (Exception e) {
+            nfMsg = e.getClass().getSimpleName();
+        }
+        ok(nf && "not-furnace".equals(nfMsg),
+                "getfurnace on fv → Rejected not-furnace（boolean a 撞名 int 门，非 IAE 逃逸）实=" + nfMsg);
+        teStore.set(w, null);
 
         System.out.println("FakeOps19pre2Test PASS (" + checks + " checks)");
     }

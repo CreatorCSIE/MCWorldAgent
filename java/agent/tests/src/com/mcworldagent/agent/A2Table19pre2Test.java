@@ -78,7 +78,7 @@ public class A2Table19pre2Test {
                     + " 表=" + tableVal);
             compared++;
         }
-        ok(ops.size() == 101, "ops 键数=101（88 原钉+7 转正补钉+2 T1 旗标 setter+4 T2 sleep） 实=" + ops.size());
+        ok(ops.size() == 101, "ops 键数=101（T7 五槽 null→值不增键） 实=" + ops.size());
         ok(compared == 100, "对榫槽数=100（mobClasses 另段） 实=" + compared);
 
         // 断代关键槽复核（禁借 173/181 判决面——HANDOFF 钉死清单）
@@ -184,16 +184,14 @@ public class A2Table19pre2Test {
         }
         ok(mcCmp == 9, "mobClasses 对榫计数=9（8 在册+mob null）");
 
-        // ---- 4. capabilities 对偶全检（41 OK/7 UNSUPPORTED）----
-        ok(caps.size() == 49, "capabilities 键数=49（42 OK/7 UNSUPPORTED，T2 sleep 入列） 实=" + caps.size());
+        // ---- 4. capabilities 对偶全检（46 OK/3 UNSUPPORTED，T7 TE 四件翻正）----
+        ok(caps.size() == 49, "capabilities 键数=49（46 OK/3 UNSUPPORTED） 实=" + caps.size());
         String[][] unPairs = {
-            {"setmeta", "observersF"},   // 转正批判决修正：三件套未钉=181 同判
+            {"setmeta", "observersF"},   // 转正批判决修正：三件套未钉=181 同判；
+                                         // T7 根因实锤=pre2 World 无 observers 字段（通知机制断代）
             {"grow", "idCrops"},
-            {"genscatter", "scatterClassG"},
-            {"getchest", "invSizeM"},
-            {"setchest", "invSizeM"},
-            {"getfurnace", "teBurnF"},
-            {"setfurnace", "teBurnF"},
+            {"genscatter", "scatterClassG"}, // T7 根因：dm=WorldGenMinable ctor(II)V 非 (I)V，
+                                             // 0327 椭球影响盒配方结构失效
         };
         int unN = 0;
         for (int i = 0; i < unPairs.length; i++) {
@@ -216,6 +214,8 @@ public class A2Table19pre2Test {
             {"weather", "rainStrF"}, {"setxp", "xpF"}, {"giveeffect", "addEffectM"},
             {"removeeffect", "removeEffectM"}, {"sethunger", "foodStatsM"},
             {"setgamemode", "gameTypeF"}, {"getxp", "xpLevelF"}, {"gethunger", "foodSatF"},
+            {"getchest", "invSizeM"}, {"setchest", "invGetM"},
+            {"getfurnace", "teBurnF"}, {"setfurnace", "teCookF"},
         };
         int okN = 0;
         for (int i = 0; i < okPairs.length; i++) {
@@ -236,12 +236,11 @@ public class A2Table19pre2Test {
                 ok(false, "capabilities 值域异常: " + keyObj + "=" + v);
             }
         }
-        ok(nOk == 42 && nUn == 7, "caps 计数对账 OK=42/UNSUPPORTED=7 实=" + nOk + "/" + nUn);
-        ok(unN == 7 && okN == 40, "对偶断言计数 unN=7/okN=40（listops 另计） 实=" + unN + "/" + okN);
+        ok(nOk == 46 && nUn == 3, "caps 计数对账 OK=46/UNSUPPORTED=3（T7 TE 四件翻正） 实=" + nOk + "/" + nUn);
+        ok(unN == 3 && okN == 44, "对偶断言计数 unN=3/okN=44（listops 另计） 实=" + unN + "/" + okN);
 
-        // ---- 5. null 槽复核（档位一缺失面=13 槽）----
+        // ---- 5. null 槽复核（档位一缺失面=8 槽，T7 后 TE 五槽出列）----
         String[] nullSlots = {"light6M", "observersF", "scatterClassG", "entityTypeM",
-                "invSizeM", "invGetM", "invSetM", "teBurnF", "teCookF",
                 "idCrops", "idSapling", "cropsRipeMeta", "playerF"};
         for (int i = 0; i < nullSlots.length; i++) {
             ok(slot(t, nullSlots[i]) == null, "null 槽 " + nullSlots[i]);
@@ -294,6 +293,17 @@ public class A2Table19pre2Test {
             // 预期：FFF 断代延续
         }
         ok(!zeFff, "abg 无 (ti,FFF)V（DDD fallback 前提实锤）");
+        // 22) T7 容器面访问位（dump L635/L3896 双源实形）：acb public int a/b/c+
+        // private wc[] d；fv **boolean a 撞 teBurnF**+private wc[] p；e_ 方法在位
+        Field acbA = Class.forName("acb").getField("a");
+        ok(acbA.getType() == int.class && Modifier.isPublic(acbA.getModifiers()),
+                "acb.a furnaceBurnTime public int（0327 private f 双断代）");
+        ok(Modifier.isPrivate(Class.forName("acb").getDeclaredField("d").getModifiers()),
+                "acb.d items private wc[]");
+        Field fvA = Class.forName("fv").getField("a");
+        ok(fvA.getType() == boolean.class, "fv.a boolean 撞 teBurnF=a（int 门消费面钉）");
+        java.lang.reflect.Method eGet = Class.forName("acb").getMethod("e_", int.class);
+        ok(eGet.getReturnType() == Class.forName("wc"), "acb.e_(I)Lwc; 尾下划线字母实形");
         // 10) ItemStack=wc 无 (II)V、(III)V 在位（newStack 等价配方前提）
         Class<?> ul = Class.forName("wc");
         boolean ul2 = false;

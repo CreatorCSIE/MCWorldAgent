@@ -1083,6 +1083,18 @@ public final class VersionRegistry {
         t.saveWorldDesc = "(Lpd;)V"; // IProgressUpdate yb→ny→**pd** 断代；本体 a(ZLpd)V null 守卫）
         t.teGetM = "b";           // b(III)Lje; getBlockTileEntity（IBlockAccess afm L1529 直钉；
         // TileEntity ow→ij→**je** 断代；chest/furnace 面未钉=门先响，本槽不消费）
+        // T7 批（无头窗 2026-11-26）：TE 容器面转正——tiny+dump 双源实锤：
+        // IInventory=hc（getSizeInventory=a()I / getStackInSlot=**e_**(I)Lwc; 尾下划线
+        // 撞字母规避面 / setInventorySlotContents=a(ILwc;)V 全 public）；
+        // TileEntityFurnace=acb extends je implements hc（public int a=furnaceBurnTime/
+        // b=currentItemBurnTime/c=furnaceCookTime——**public 非 private**，0327 f/h 字母
+        // 与访问位双断代，严禁互抄再证；items d=private wc[]）；
+        // TileEntityChest=fv（items p=private wc[]，27 槽）。
+        t.invSizeM = "a";         // hc.getSizeInventory ()I
+        t.invGetM = "e_";         // hc.getStackInSlot (I)Lwc;（⚠️ e_ 非 e）
+        t.invSetM = "a";          // hc.setInventorySlotContents (I,Lwc;)V
+        t.teBurnF = "a";          // acb.furnaceBurnTime public int（0327=f 断代）
+        t.teCookF = "c";          // acb.furnaceCookTime public int（0327=h 断代）
         // WorldInfo 面（sx=ei/rl 字段表全同字母复刻——a:J seed/e:J time/b/c/d:I spawn/p:I GameType）
         t.getWorldInfoM = "y";    // ti.y()Lsx; getWorldInfo（⚠️181=x——dump L9255 断代）
         t.worldTimeF = "e";       // sx.e:J=worldTime ✓
