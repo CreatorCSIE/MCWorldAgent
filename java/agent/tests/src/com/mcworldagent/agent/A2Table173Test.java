@@ -140,12 +140,10 @@ public class A2Table173Test {
             else if ("UNSUPPORTED".equals(s)) { unN++; }
             else { throw new RuntimeException("bad cap value " + s); }
         }
-        ok(okN == 29, "caps 29 OK got " + okN);
-        ok(unN == 7, "caps 7 UNSUPPORTED got " + unN);
+        ok(okN == 33, "caps 33 OK got " + okN);
+        ok(unN == 3, "caps 3 UNSUPPORTED got " + unN);
         String[][] unPairs = {
             {"setmeta", "observersF"}, {"grow", "idCrops"}, {"genscatter", "scatterClassG"},
-            {"getchest", "invSizeM"}, {"setchest", "invSizeM"}, {"getfurnace", "teBurnF"},
-            {"setfurnace", "teBurnF"},
         };
         for (int i = 0; i < unPairs.length; i++) {
             ok("UNSUPPORTED".equals(A2TableTest.str(caps.get(unPairs[i][0]))), "unconfirmed " + unPairs[i][0]);
@@ -163,18 +161,19 @@ public class A2Table173Test {
             {"spawn", "spawnEntityM"}, {"drop", "spawnEntityM"}, {"explode", "explodeM"},
             {"clear", "setEntityDeadM"}, {"getbiome", "biomeWcmM"},
             {"invulnerable", "iframesF"},
+            {"getchest", "invSizeM"}, {"setchest", "invSizeM"},
+            {"getfurnace", "teBurnF"}, {"setfurnace", "teBurnF"},
         };
-        ok(okPairs.length == 27, "27 slot-backed OK pairs");
+        ok(okPairs.length == 31, "31 slot-backed OK pairs");
         for (int i = 0; i < okPairs.length; i++) {
             ok("OK".equals(A2TableTest.str(caps.get(okPairs[i][0]))), "OK " + okPairs[i][0]);
             ok(A2TableTest.slot(t, okPairs[i][1]) != null, okPairs[i][0] + " slot " + okPairs[i][1] + " non-null");
         }
         ok("OK".equals(A2TableTest.str(caps.get("listops"))), "listops OK"); // 通道级，无表槽
 
-        // null 槽断言（13 件：档位一欠账面）
+        // null 槽断言（8 件：h8 TE 五槽转正后余档位欠账面）
         String[] nullSlots = {
-            "light6M", "observersF", "scatterClassG", "entityTypeM", "invSizeM",
-            "invGetM", "invSetM", "teBurnF", "teCookF", "idCrops",
+            "light6M", "observersF", "scatterClassG", "entityTypeM", "idCrops",
             "idSapling", "cropsRipeMeta", "playerF",
         };
         for (int i = 0; i < nullSlots.length; i++) {

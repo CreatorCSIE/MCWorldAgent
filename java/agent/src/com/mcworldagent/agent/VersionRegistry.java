@@ -820,6 +820,17 @@ public final class VersionRegistry {
         t.wiSetRainM = "b";
         t.wiSetThunderM = "a";
 
+        // h8 批 TE 容器面转正（b1.7.3 真 jar tiny+javap 实锤：lw=IInventory
+        // a()I/f_(I)Liz/a(ILiz)V；sk=TileEntityFurnace public int a=furnaceBurnTime/
+        // c=furnaceCookTime（b=currentItemBurnTime 非写面）+private iz[] i；
+        // js=TileEntityChest private iz[] a=chestContents 27 槽——a 撞数组字段形，
+        // getFurnace int 门命中）。
+        t.invSizeM = "a";
+        t.invGetM = "f_";
+        t.invSetM = "a";
+        t.teBurnF = "a";
+        t.teCookF = "c";
+
         // spawn 白名单（jc 注册表+javap 构造器 (fd)V 逐个实锤；tnt=qw
         // (fd,DDD)V DDD 断代延续 b1.2_02——WorldOps fallback；giant=nt 构造健在；
         // mob=ii=EntityCreature（⚠️b1.2_02=fz））
