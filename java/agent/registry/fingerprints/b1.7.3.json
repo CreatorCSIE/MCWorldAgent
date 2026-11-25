@@ -101,6 +101,10 @@
     "entityListLookupM": "b",
     "playSoundM": "a",
     "difficultyF": "q",
+    "rainStrF": "j",
+    "thunderStrF": "l",
+    "wiSetRainM": "b",
+    "wiSetThunderM": "a",
     "light6M": null,
     "observersF": null,
     "scatterClassG": null,
@@ -162,6 +166,7 @@
     "fill": "OK",
     "getblocks": "OK",
     "replace": "OK",
+    "weather": "OK",
     "listops": "OK"
   }
 }

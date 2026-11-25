@@ -284,6 +284,15 @@ public class FakeOps181Test {
         WorldOps.weather(w, false, true);
         ok((Float) getv(w, "o") == 0.0f, "weather raining=false 写 0.0");
         ok((Float) getv(w, "q") == 1.0f, "weather thunder 保留 1.0");
+        // h6-B 旗标双写转正：rl public b(Z)→l:Z=raining/a(Z)→n:Z=thundering
+        // （getter 字母洗牌 o()Z→l/m()Z→n，NBT 地面真值 javap 对榫）
+        ok(WorldOps.weather(w, true, false).contains("flag setters"), "weather 双写回显");
+        Object rlWi = pri(w, "info");
+        java.lang.reflect.Field rlfL = rlWi.getClass().getDeclaredField("l");
+        java.lang.reflect.Field rlfN = rlWi.getClass().getDeclaredField("n");
+        rlfL.setAccessible(true);
+        rlfN.setAccessible(true);
+        ok(rlfL.getBoolean(rlWi) && !rlfN.getBoolean(rlWi), "weather 旗标 rl.l=true/rl.n=false 双写");
 
         // ---- D13 setgamemode（capGamemode=TRUE；WorldInfo rl.p private int 直写）----
         Object winfo = pri(w, "info");        // rv.x()Lrl 承载体

@@ -811,11 +811,14 @@ public final class VersionRegistry {
         t.difficultyF = "q";      // fd public int q=difficultySetting（⚠️b1.2_02=k）
 
         // D8 门控首发（案卷 §6.1：weather=b1.5+，b1.7.3 verscan 取证在档——
-        // World rainingStrength=j:F/thunderingStrength=l:F 浮值面；WorldInfo
-        // 布尔键由游戏存盘侧写，op 只动运行时浮值）
+        // World rainingStrength=j:F/thunderingStrength=l:F 浮值面）；
+        // h6-B 旗标双写转正（真 jar javap NBT 地面真值：ei.b(Z)→l:Z=raining/
+        // ei.a(Z)→n:Z=thundering 全 public，T1 机制直接适用）
         t.capWeather = Boolean.TRUE;
         t.rainStrF = "j";         // verscan b1.7.3 §0-§11 浮值面
         t.thunderStrF = "l";
+        t.wiSetRainM = "b";
+        t.wiSetThunderM = "a";
 
         // spawn 白名单（jc 注册表+javap 构造器 (fd)V 逐个实锤；tnt=qw
         // (fd,DDD)V DDD 断代延续 b1.2_02——WorldOps fallback；giant=nt 构造健在；
@@ -1023,10 +1026,14 @@ public final class VersionRegistry {
         // （prevRaining=n/prevThundering=p 非写面）。⚠️ 与 b1.7.3 j/l 字母不同（世代漂移），
         // 且 WorldOps resolve 已改 getDeclaredField+setAccessible 兼容 protected。
         // 语义同 D8 判决：写浮值=临时态，updateWeather L1804 每 tick 由 WorldInfo.isRaining
-        // 覆写（斜坡陷阱在档）——完整态需写 WorldInfo 旗标=到场包活体判决，本 op 维持浮值面。
+        // 覆写（斜坡陷阱在案）；h6-B 旗标双写转正（真 jar javap：rl.o()Z→l:Z=isRaining/
+        // rl.m()Z→n:Z=isThundering getter 字母洗牌，setter rl.b(Z)→l/rl.a(Z)→n 全 public，
+        // NBT raining/thundering 地面真值对榫——完整态=T1 双写，到场包判决销案）。
         t.capWeather = Boolean.TRUE;
         t.rainStrF = "o";         // rv.o=rainingStrength protected float
         t.thunderStrF = "q";      // rv.q=thunderingStrength protected float
+        t.wiSetRainM = "b";
+        t.wiSetThunderM = "a";
 
         // D13 gamemode（b1.8.1 首版实装——setgamemode 消费，完成 capGamemode 槽先行承诺）。
         // 取证=tiny 实锤 WorldInfo=rl，field_35920_p=gameType private int（NBT "GameType"

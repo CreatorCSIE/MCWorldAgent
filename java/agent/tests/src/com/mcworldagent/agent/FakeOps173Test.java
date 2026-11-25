@@ -206,6 +206,17 @@ public class FakeOps173Test {
         ok(wx.contains("raining=true") && wx.contains("thunder=false"), "weather " + wx);
         ok(((Float) get(w, "j")).floatValue() == 1.0F, "rainingStrength=1.0 满值");
         ok(((Float) get(w, "l")).floatValue() == 0.0F, "thunderingStrength=0.0");
+        // h6-B 旗标双写转正：ei public b(Z)→l:Z=raining/a(Z)→n:Z=thundering
+        // （getter 字母洗牌 o()Z→l/m()Z→n，NBT 地面真值 javap 对榫）
+        ok(wx.contains("flag setters"), "weather 双写回显 " + wx);
+        Object eiWi = pri(w, "info");
+        java.lang.reflect.Field eifL = eiWi.getClass().getDeclaredField("l");
+        java.lang.reflect.Field eifN = eiWi.getClass().getDeclaredField("n");
+        eifL.setAccessible(true);
+        eifN.setAccessible(true);
+        ok(eifL.getBoolean(eiWi) && !eifN.getBoolean(eiWi), "weather 旗标 ei.l=true/ei.n=false 双写");
+        WorldOps.weather(w, false, true);
+        ok(!eifL.getBoolean(eiWi) && eifN.getBoolean(eiWi), "weather 反向旗标双写 (l=false/n=true)");
         // kill：clear 泛化=全表除玩家（gs 在 d 玩家列不在 b 实体表，身份豁免双保险）
         int alive = pList.size();
         String kl = WorldOps.killEntities(w, null, null, null, null);

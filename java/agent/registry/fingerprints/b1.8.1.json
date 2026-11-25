@@ -101,6 +101,10 @@
     "entityListLookupM": "b",
     "playSoundM": "a",
     "difficultyF": "v",
+    "rainStrF": "o",
+    "thunderStrF": "q",
+    "wiSetRainM": "b",
+    "wiSetThunderM": "a",
     "light6M": null,
     "observersF": null,
     "scatterClassG": null,
@@ -168,6 +172,7 @@
     "setgamemode": "OK",
     "getxp": "OK",
     "gethunger": "OK",
+    "weather": "OK",
     "listops": "OK"
   }
 }

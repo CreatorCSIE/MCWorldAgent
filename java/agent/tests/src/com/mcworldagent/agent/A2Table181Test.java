@@ -31,7 +31,7 @@ public class A2Table181Test {
 
         // ops 全表逐槽对榫（锚库 ops 键=VersionTable 字段名，63 槽+mobClasses 嵌套）
         Map ops = A2TableTest.obj(j.get("ops"));
-        ok(ops.size() == 68, "ops 68 keys got " + ops.size());
+        ok(ops.size() == 72, "ops 72 keys got " + ops.size());
         int compared = 0;
         for (Object ko : ops.keySet()) {
             String key = (String) ko;
@@ -42,7 +42,7 @@ public class A2Table181Test {
                     "ops " + key);
             compared++;
         }
-        ok(compared == 67, "67 slots compared got " + compared);
+        ok(compared == 71, "71 slots compared got " + compared);
 
         // b1.8.1 断代面重点复核（详表 §2 vs b1.7.3 漂移项全列）
         ok("x".equals(t.getWorldInfoM), "getWorldInfoM x（rl=ei 复刻，同字母保留）");
@@ -148,7 +148,7 @@ public class A2Table181Test {
             else if ("UNSUPPORTED".equals(s)) { unN++; }
             else { throw new RuntimeException("bad cap value " + s); }
         }
-        ok(okN == 35, "caps 35 OK got " + okN);
+        ok(okN == 36, "caps 36 OK got " + okN);
         ok(unN == 7, "caps 7 UNSUPPORTED got " + unN);
         String[][] unPairs = {
             {"setmeta", "observersF"}, {"grow", "idCrops"}, {"genscatter", "scatterClassG"},

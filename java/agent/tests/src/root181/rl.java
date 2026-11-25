@@ -16,4 +16,15 @@ public class rl {
     private boolean n;          // thundering
     private int o;              // thunderTime
     private int p;              // D13 GameType（tiny 实锤 rl.p=field_35920_p，NBT "GameType"）
+
+    // 天气方法面（h6-B 真 jar javap 复刻——getter 字母洗牌 o→l=isRaining/
+    // m→n=isThundering，setter b(Z)→l/a(Z)→n 全 public；weather op 旗标双写消费面）
+    public boolean o() { return l; }
+    public boolean m() { return n; }
+    public void b(boolean v) { l = v; }
+    public void a(boolean v) { n = v; }
+    public int p() { return m; }
+    public int n() { return o; }
+    public void f(int v) { m = v; }
+    public void e(int v) { o = v; }
 }
