@@ -2,7 +2,9 @@
 
 > 用法：用户在场时按批次勾选执行；每项标注所需版本与前置。无头侧能钉的已全部钉完
 > （守卫批 cffbf95 / D8 批 61a14e4 / 扩版批 5858e7a / 挖掘批 89273eb / D7 批 ac9afac /
-> D10 批 ad67e1c setxp+giveeffect+removeeffect / D11 批 2d521af sethunger），本包=纯活体账。
+> D10 批 ad67e1c setxp+giveeffect+removeeffect / D11 批 2d521af sethunger /
+> D12 批 c322ed4 b1.8.1 weather 缺口闭合 / D13 批 8ce2fdf setgamemode /
+> D14 批 c04ed2c getxp+gethunger / 勘测批 a79a83b version-coverage-survey），本包=纯活体账。
 
 ## A. D8 weather 活体语义判决（b1.7.3 优先，10 分钟档）
 
@@ -24,7 +26,7 @@
   raining/rainTime 回读对账（D7 离线工具可代劳）。
 - [ ] **b1.3_01**：build1301 + 钩验证（包装存在，173 配方适用）；weather/getbiome 门控
   响亮面复核（getbiome=MobSpawnerBase 系 hv.m 应可读出 "Plains" 类名）。
-- [ ] 三版 `listops` 回声对榫：壳 44-op 镜像（getbiome 补洞+D10 三 op+D11 sethunger 后）vs agent LISTOPS 串。
+- [ ] 三版 `listops` 回声对榫：壳 47-op 镜像（getbiome 补洞+D10 三 op+D11 sethunger+D13 setgamemode+D14 getxp/gethunger 后）vs agent LISTOPS 串。
 
 ## C. D10 新 op 管线前置取证（活体+无头混合）
 
@@ -37,13 +39,19 @@
 - [ ] **hunger**（b1.8+，D11 2d521af 已落无头 sethunger）：活体=`sethunger 20 5` 后饱食
   条满/饱和生效，`sethunger 0` 观察饿死链（L37 food<=0 tickTimer 累加→attackEntityFrom）；
   food>=18 自然回血触发（L31）复核；写后 save 读玩家 NBT foodLevel/foodSaturationLevel 对账。
-- [ ] **gethunger/getxp 只读扩展**（后续批候选）：现仅写面，读面=getplayer 扩字段
-  （sz.aX/aY/aZ/ay + kc.a/b via at()）——活体确认读值与 HUD 一致后并入。
-- [ ] **sleep/wake**（b1.5+）：旗标直写（uo.sleeping=aM / 1501 gh.x）能否在无 GUI 交互下
-  触发黎明跳过（Minecraft tick 检 sleeping 的链路活体实锤）——成立则=time skip op 候选。
-- [ ] **gamemode**（b1.8+，**未落无头——判决=非干净单字段面**）：b1.8.1 EntityPlayer 无
-  public creativeMode 布尔（field_35216_aw 系计时器非旗标），需 WorldSettings.gameType=ek.b
-  + sx.p 双层写序活体实钉再实装（capGamemode 槽仍"先行"，勿在无头硬凑）。
+- [ ] **getxp/gethunger 只读面**（b1.8+，D14 c04ed2c 已落无头）：活体=读值与 HUD 显示一致
+  （getxp level/xp/total/score vs XP 条；gethunger food/sat vs 饱食条）；写读闭环=setxp→getxp 回读。
+- [ ] **weather on b1.8.1**（D12 c322ed4 已落无头，闭合 capWeather 漏设 bug）：活体=`weather true`
+  后 rv.o/q 浮值写是否被 updateWeather L1804 每 tick 由 WorldInfo.isRaining 覆写（§6.1 斜坡陷阱
+  181 复核）；若成立→升级配方=写 WorldInfo.raining 旗标（rl.l/n private，getDeclaredField 可达）。
+- [ ] **gamemode**（b1.8+，D13 8ce2fdf 已落无头 setgamemode）：写面=WorldInfo.rl.p=GameType
+  （NBT "GameType" 持久层，非早期判的 WorldSettings 双层——本批 tiny 实锤 rl.p 单字段可达）。
+  活体判决=① 重进世界后模式是否生效（持久层对账）；② 会话内即时飞行/破坏联动需玩家能力面
+  （b1.8 无独立 capabilities 对象）=待活体确认是否需补 Minecraft 侧写。
+- [ ] **sleep/wake**（b1.5+，**本窗 P4 判 DEFER=非干净半 op**）：sz.sleeping=protected boolean +
+  sleepTimer=private int + bedChunkCoordinates（L467 `if(sleeping)` 疑触 null 床坐标 NPE 地雷）+
+  wakeUpPlayer 副作用未核；黎明跳过实由 Minecraft tick 检全体 sleeping 驱动（非单写旗标）——
+  勉强写半 op 违反"不勉强适配"戒律，留活体实钉链路与副作用再实装。
 - [ ] **spawn kind=mob（19pre2）**：EntityCreature=vp abstract → 运行时须响亮 UNSUPPORTED
   （启用 build19pre2 时 mobClasses.mob=null 路径实机走一遍）。
 
