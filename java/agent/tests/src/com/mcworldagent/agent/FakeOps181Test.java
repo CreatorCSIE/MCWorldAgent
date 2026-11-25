@@ -276,6 +276,15 @@ public class FakeOps181Test {
             ok(String.valueOf(r.getMessage()).contains("food-out-of-range"), "sethunger food REJECTED");
         }
 
+        // ---- D12 weather 缺口闭合（capWeather=TRUE；rv.o/q protected 浮值面 getDeclaredField）----
+        ok(WorldOps.weather(w, true, true).startsWith("weather raining=true thunder=true"),
+                "weather 回显");
+        ok((Float) getv(w, "o") == 1.0f, "weather 写 rv.o=rainingStrength 1.0");
+        ok((Float) getv(w, "q") == 1.0f, "weather 写 rv.q=thunderingStrength 1.0");
+        WorldOps.weather(w, false, true);
+        ok((Float) getv(w, "o") == 0.0f, "weather raining=false 写 0.0");
+        ok((Float) getv(w, "q") == 1.0f, "weather thunder 保留 1.0");
+
         // ---- UNSUPPORTED 响亮（6 件；同 b1.7.3 判决）----
         set(w, "teStore", Class.forName("ij").getConstructor().newInstance());
         unsupported("setmeta", new RunnableEx() {

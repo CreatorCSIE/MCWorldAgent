@@ -363,10 +363,14 @@ public final class WorldOps {
                 difficulty = wc.getField(F_DIFFICULTY);
             }
             if (F_RAIN_STR != null) {
-                rainStr = wc.getField(F_RAIN_STR);
+                // b1.7.3 j/l=public 但 b1.8.1 o/q=protected——统一 getDeclaredField+setAccessible
+                // （observers 同配方；对 public 字段无回归，setAccessible 系 no-op）
+                rainStr = wc.getDeclaredField(F_RAIN_STR);
+                rainStr.setAccessible(true);
             }
             if (F_THUNDER_STR != null) {
-                thunderStr = wc.getField(F_THUNDER_STR);
+                thunderStr = wc.getDeclaredField(F_THUNDER_STR);
+                thunderStr.setAccessible(true);
             }
             if (M_BIOME_WCM != null) {
                 biomeWcm = wc.getMethod(M_BIOME_WCM);

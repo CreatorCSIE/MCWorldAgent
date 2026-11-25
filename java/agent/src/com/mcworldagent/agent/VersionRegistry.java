@@ -1016,6 +1016,17 @@ public final class VersionRegistry {
         t.foodExhaustF = "c";     // kc.c=exhaustion private float（留档）
         t.foodTimerF = "d";       // kc.d=tickTimer private int（留档）
 
+        // D12 weather 缺口闭合（b1.8.1 浮值面——capWeather 此前仅在 build173 设，b1.8.1
+        // 漏设致 weather op 在 181 响亮 UNSUPPORTED，属不一致 bug）。取证=tiny 映射实锤：
+        // rv.rainingStrength=o(F protected) / rv.thunderingStrength=q(F protected)
+        // （prevRaining=n/prevThundering=p 非写面）。⚠️ 与 b1.7.3 j/l 字母不同（世代漂移），
+        // 且 WorldOps resolve 已改 getDeclaredField+setAccessible 兼容 protected。
+        // 语义同 D8 判决：写浮值=临时态，updateWeather L1804 每 tick 由 WorldInfo.isRaining
+        // 覆写（斜坡陷阱在档）——完整态需写 WorldInfo 旗标=到场包活体判决，本 op 维持浮值面。
+        t.capWeather = Boolean.TRUE;
+        t.rainStrF = "o";         // rv.o=rainingStrength protected float
+        t.thunderStrF = "q";      // rv.q=thunderingStrength protected float
+
         return t;
     }
 }

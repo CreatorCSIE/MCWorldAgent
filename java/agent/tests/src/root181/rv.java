@@ -19,6 +19,8 @@ public class rv {
     public List i;              // playerEntities
     public List e;              // 其余 List 面留档
     public int v;               // difficultySetting
+    public float o;             // D12 rainingStrength（真件 protected，假件 public 便于 getDeclaredField）
+    public float q;             // D12 thunderingStrength
     private long H;             // 留档 private 面
     private long I;
 
