@@ -4,6 +4,7 @@ package storage;
 import com.mcworldagent.storage.ChunkExport;
 import com.mcworldagent.storage.NbtReader;
 import com.mcworldagent.storage.NbtWriter;
+import com.mcworldagent.storage.RegionStore;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -366,6 +367,92 @@ public class StorageTest {
         ok(tested >= 1, "at least one real level.dat tested (found=" + tested + ")");
     }
 
+    void testRegionWriterRoundtrip() throws Exception {
+        // T4 mcr 写侧（无头窗 2026-11-26）：夹具目录=%TEMP%，绝不触碰游戏目录。
+        File dir = new File(System.getProperty("java.io.tmpdir"),
+                "mcaut\\regionw-" + System.currentTimeMillis());
+        File region = new File(dir, "region");
+        region.mkdirs();
+        // 1) 首写 (2,3)：新文件 8192 头 + 单位从 2 起
+        java.util.Map<String, Object> lv = new java.util.LinkedHashMap<String, Object>();
+        lv.put("xPos", Integer.valueOf(2));
+        lv.put("zPos", Integer.valueOf(3));
+        lv.put("Blocks", new byte[2048]);
+        lv.put("b", "v1");
+        java.util.Map<String, Object> root = new java.util.LinkedHashMap<String, Object>();
+        root.put("Level", lv);
+        RegionStore.writeChunk(dir, 2, 3, root);
+        File rf = new File(region, "r.0.0.mcr");
+        ok(rf.isFile(), "region file created: " + rf.getName());
+        ok(rf.length() == 8192L + 4096L, "file=8192 头 + 1 单位 实=" + rf.length());
+        java.io.RandomAccessFile raf = new java.io.RandomAccessFile(rf, "r");
+        raf.seek((2 + 3 * 32) * 4L);
+        int entry = raf.readInt();
+        ok(entry == ((2 << 8) | 1), "定位表=unit2|1unit 实=" + Integer.toHexString(entry));
+        raf.seek(4096 + (2 + 3 * 32) * 4L);
+        int ts = raf.readInt();
+        ok(ts > 1700000000, "时间表 slot 写当前秒 实=" + ts);
+        raf.close();
+        Map<String, Object> back = RegionStore.readChunk(dir, 2, 3);
+        ok(back != null && deepEquals(root, back), "写读往返结构相等 (2,3)");
+        // 2) 覆盖写同坐标：原地复用同单位，文件零增长
+        lv.put("b", "v2");
+        RegionStore.writeChunk(dir, 2, 3, root);
+        ok(rf.length() == 8192L + 4096L, "覆盖写复用单位零增长 实=" + rf.length());
+        Map<String, Object> back2 = RegionStore.readChunk(dir, 2, 3);
+        ok("v2".equals(((Map<?, ?>) back2.get("Level")).get("b")), "覆盖写读回 v2");
+        // 3) 负坐标路径：(−33,−5)→r.−2.−1
+        File dir2 = new File(System.getProperty("java.io.tmpdir"),
+                "mcaut\\regionw-neg-" + System.currentTimeMillis());
+        RegionStore.writeChunk(dir2, -33, -5, root);
+        ok(new File(dir2, "region\\r.-2.-1.mcr").isFile(), "负坐标路径 r.-2.-1.mcr");
+        ok(deepEquals(root, RegionStore.readChunk(dir2, -33, -5)), "负坐标往返");
+        // 4) 超容量响亮拒绝：16KB **真随机**（图案数据可压=首版陷阱，实锤在案）
+        byte[] big = new byte[16384];
+        new java.util.Random(42L).nextBytes(big);
+        lv.put("Blocks", big);
+        boolean rejected = false;
+        try {
+            RegionStore.writeChunk(dir, 5, 5, root);
+        } catch (java.io.IOException e) {
+            rejected = e.getMessage().contains("4092");
+        }
+        ok(rejected, "超 4092 容量 IOException 响亮（不截断）");
+        lv.put("Blocks", new byte[2048]);
+        // 5) null root 拒
+        boolean nullRej = false;
+        try {
+            RegionStore.writeChunk(dir, 6, 6, null);
+        } catch (java.io.IOException e) {
+            nullRej = true;
+        }
+        ok(nullRej, "null root IOException 响亮");
+        // 6) 同区多 chunk 追加：(2,3) 已占 unit2，(3,4) 应落 unit3
+        RegionStore.writeChunk(dir, 3, 4, root);
+        raf = new java.io.RandomAccessFile(rf, "r");
+        raf.seek((3 + 4 * 32) * 4L);
+        entry = raf.readInt();
+        raf.close();
+        ok(entry >>> 8 == 3, "(3,4) 追加 unit3 实=" + (entry >>> 8));
+        ok(deepEquals(root, RegionStore.readChunk(dir, 3, 4)), "(3,4) 往返");
+        ok(rf.length() == 8192L + 4096L * 2, "两 chunk 两单位 实=" + rf.length());
+        // 清理（仅夹具目录）
+        deleteTree(dir);
+        deleteTree(dir2);
+    }
+
+    private static void deleteTree(File f) {
+        if (f.isDirectory()) {
+            File[] cs = f.listFiles();
+            if (cs != null) {
+                for (File c : cs) {
+                    deleteTree(c);
+                }
+            }
+        }
+        f.delete();
+    }
+
     public static void main(String[] args) throws Exception {
         StorageTest t = new StorageTest();
         t.testAllTagTypes();
@@ -378,6 +465,7 @@ public class StorageTest {
         t.testWriterRoundtrip();
         t.testWriterLoudRejects();
         t.testWriterRealLevelDat();
+        t.testRegionWriterRoundtrip();
         System.out.println("TOTAL pass=" + pass + " fail=" + fail);
         if (fail > 0) {
             System.exit(1);

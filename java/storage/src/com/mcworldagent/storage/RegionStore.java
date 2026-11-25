@@ -104,4 +104,72 @@ public final class RegionStore {
         }
         return bo.toByteArray();
     }
+
+    /**
+     * D7 写侧（无头窗 T4 批 2026-11-26）：chunk root compound → .mcr 落盘。
+     * 与游戏 RegionFile 写路径同语义（字节码对榫见 b1.7.3.md §5）：
+     * payload=NbtWriter 未压缩树 → **gzip**（版本字节=1，游戏同款；读侧 1/2 双路
+     * 已钉）；分配=旧条目存在且容量够（5+payload ≤ UNIT_BYTES）则原地复用，
+     * 否则文件尾追加新 4096 单位+定位表改写（旧单位泄漏=beta RegionFile 原生
+     * 行为，游戏自身不回收，不修饰）；时间表 slot=当前秒。
+     * 响亮纪律：payload+5 超 4092=IOException（beta chunk 容量硬顶=游戏侧同判
+     * "chunk too big"丢弃，本件宁拒不截）；root null=拒。
+     * ⚠️ 写红线放宽声明：本方法只写**调用方给定目录**（测试夹具=%TEMP%），
+     * 与只读红线的分野=绝不主动触碰游戏世界目录由调用方纪律保证。
+     */
+    public static void writeChunk(File worldDir, int x, int z, Map<String, Object> root)
+            throws IOException {
+        if (root == null) {
+            throw new IOException("writeChunk: null root compound");
+        }
+        byte[] raw = NbtWriter.writeRaw("", root);
+        ByteArrayOutputStream o = new ByteArrayOutputStream();
+        java.util.zip.GZIPOutputStream g = new java.util.zip.GZIPOutputStream(o);
+        g.write(raw);
+        g.close();
+        byte[] gz = o.toByteArray();
+        if (gz.length + 5 > UNIT_BYTES) {
+            throw new IOException("chunk payload exceeds beta 4092-byte capacity: gz="
+                    + gz.length + " at " + x + "," + z);
+        }
+        File rf = regionFile(worldDir, x, z);
+        File dir = rf.getParentFile();
+        if (!dir.isDirectory() && !dir.mkdirs()) {
+            throw new IOException("cannot create region dir: " + dir);
+        }
+        int slot = (x & 31) + (z & 31) * 32;
+        RandomAccessFile raf = new RandomAccessFile(rf, "rw");
+        try {
+            if (raf.length() < LOCATION_TABLE_BYTES * 2L) {
+                raf.setLength(LOCATION_TABLE_BYTES * 2L);
+            }
+            raf.seek(slot * 4L);
+            int entry = raf.readInt();
+            int unit;
+            if (entry != 0 && (entry >>> 8) >= 2 && gz.length + 5 <= UNIT_BYTES) {
+                unit = entry >>> 8;
+            } else {
+                long end = raf.length();
+                unit = (int) ((end + UNIT_BYTES - 1) / UNIT_BYTES);
+                if (unit < 2) {
+                    unit = 2;
+                }
+                raf.setLength((long) (unit + 1) * UNIT_BYTES);
+            }
+            raf.seek((long) unit * UNIT_BYTES);
+            int len = gz.length;
+            raf.write((len >>> 24) & 255);
+            raf.write((len >>> 16) & 255);
+            raf.write((len >>> 8) & 255);
+            raf.write(len & 255);
+            raf.write(1); // gzip（游戏同款；2=zlib 读侧兼容保留）
+            raf.write(gz);
+            raf.seek(slot * 4L);
+            raf.writeInt((unit << 8) | 1);
+            raf.seek(LOCATION_TABLE_BYTES + slot * 4L);
+            raf.writeInt((int) (System.currentTimeMillis() / 1000L));
+        } finally {
+            raf.close();
+        }
+    }
 }
