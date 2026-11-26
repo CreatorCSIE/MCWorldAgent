@@ -137,9 +137,10 @@ public final class VersionTable {
     // 撞名面本尊——本槽按声明类精确解析，与 healthField 的 mob 链探针互不干扰）/
     // ti.z()V=updateAllPlayersSleepingFlag。旧线 null=op 响亮 UNSUPPORTED。
     public Boolean capSleep;
-    public String sleepFlagF;       // EntityPlayer.sleeping boolean
-    public String sleepTimerF;      // EntityPlayer.sleepTimer int（同声明类）
-    public String worldSleepFlagM;  // World.updateAllPlayersSleepingFlag ()V
+    // h10 批（活体 173 崩溃翻案）：sleep 写面=游戏 API 双方法，T2 裸字段三槽退役。
+    public String sleepInBedM;      // EntityPlayer.sleepInBedAt (III)EnumStatus（173=b/181=d）
+    public String wakeUpM;          // EntityPlayer.wakeUpPlayer (ZZZ)V（四版=a）
+    public String sleepOkF;         // EnumStatus OK 常量字段（四版=a，成功路径 areturn 实钉）
 
     // D13 游戏模式面（b1.8+；setgamemode 消费。取证=src-minecraft-beta-1.8.1 树
     // WorldInfo.java 直读：field_35920_p=gameType private int，NBT "GameType" 读写配对

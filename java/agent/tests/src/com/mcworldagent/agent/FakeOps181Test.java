@@ -363,19 +363,79 @@ public class FakeOps181Test {
         unsupported("genscatter", new RunnableEx() {
             public void run() throws Exception { WorldOps.genScatter(w, 14, 1, 64, 1, null); } }, "scatterClassG");
 
-        // ---- h9 批 sleep 面转正（capSleep b1.5+；sz.aN/a + rv.y public）----
+        // ---- h10 批 sleep 面翻案（API 配方同 173，字母表独立：sz.d(III)Lbm;/
+        //      sz.a(ZZZ)V/bm.a；rv.I=isRemote、rv.y:Lacz; provider、rv.k()Z 白天；
+        //      ⚠️ 181 的 y 字段与方法 rv.y()V 同字母不同 namespace——真形即如此）----
         java.lang.reflect.Field szAN = player.getClass().getDeclaredField("aN");
         java.lang.reflect.Field szA = player.getClass().getDeclaredField("a");
         szAN.setAccessible(true);
         szA.setAccessible(true);
-        String sl = WorldOps.setSleep(w, true);
-        ok(sl.startsWith("sleep off -> on timer 0 -> 100"), "sleep 回显 " + sl);
+        set(player, "o", 10.5);
+        set(player, "p", 20.0);
+        set(player, "q", 30.5);
+        boolean rejS = false;
+        String sMsg = "";
+        set(w, "daytime", true);
+        try {
+            WorldOps.setSleep(w, true, 10, 64, 10);
+        } catch (WorldOps.Rejected rj) {
+            rejS = true;
+            sMsg = rj.getMessage();
+        }
+        ok(rejS && sMsg.contains("sleep-status=c"), "白天 sleep on→Rejected c " + sMsg);
+        set(w, "daytime", false);
+        Object prov = Class.forName("acz").getConstructor().newInstance();
+        set(prov, "c", true);
+        set(w, "y", prov);
+        rejS = false;
+        try {
+            WorldOps.setSleep(w, true, 10, 64, 10);
+        } catch (WorldOps.Rejected rj) {
+            rejS = true;
+            sMsg = rj.getMessage();
+        }
+        ok(rejS && sMsg.contains("sleep-status=b"), "provider 禁睡→Rejected b " + sMsg);
+        set(w, "y", null);
+        rejS = false;
+        try {
+            WorldOps.setSleep(w, true, 100, 64, 100);
+        } catch (WorldOps.Rejected rj) {
+            rejS = true;
+            sMsg = rj.getMessage();
+        }
+        ok(rejS && sMsg.contains("sleep-status=d"), "距>3/2/3→Rejected d " + sMsg);
+        WorldOps.setBlock(w, 10, 20, 30, 26);
+        String sl = WorldOps.setSleep(w, true, 10, 20, 30);
+        ok(sl.startsWith("sleep on @10,20,30 -> OK"), "sleep on 回显 " + sl);
         ok(szAN.getBoolean(player), "sz.aN sleeping=true");
-        ok(szA.getInt(player) == 100, "sz.a sleepTimer=100");
-        ok(((Integer) getv(w, "sleepFlagRefreshes")).intValue() == 1, "rv.y 刷新 x1");
-        WorldOps.setSleep(w, false);
+        ok(szA.getInt(player) == 0, "sz.a timer=0 合法态");
+        ok(getv(player, "aO") != null, "sz.aO:Lps 置位（崩溃根因修复）");
+        ok(((Integer) getv(w, "sleepFlagRefreshes")).intValue() == 1, "rv.y() 刷新 x1");
+        java.lang.reflect.Method tick = player.getClass().getMethod("w_");
+        tick.invoke(player);
+        ok(szAN.getBoolean(player), "合法态 tick 存活不崩");
+        set(player, "aO", null);
+        boolean npe = false;
+        try {
+            tick.invoke(player);
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            npe = e.getCause() instanceof NullPointerException;
+        }
+        ok(npe, "aO=null+sleeping tick→NPE（W173 崩溃面 181 同构复现）");
+        set(player, "aO", Class.forName("ps").getConstructor(int.class, int.class, int.class)
+                .newInstance(10, 20, 30));
+        rejS = false;
+        try {
+            WorldOps.setSleep(w, true, 10, 20, 30);
+        } catch (WorldOps.Rejected rj) {
+            rejS = true;
+            sMsg = rj.getMessage();
+        }
+        ok(rejS && sMsg.contains("sleep-status=e"), "已睡→Rejected e " + sMsg);
+        ok(WorldOps.setSleep(w, false, 0, 0, 0).startsWith("sleep off -> wakeUpPlayer"),
+                "wake 回显");
         ok(!szAN.getBoolean(player) && szA.getInt(player) == 0, "wake 清零 aN=false/timer=0");
-        ok(((Integer) getv(w, "sleepFlagRefreshes")).intValue() == 2, "rv.y 刷新 x2");
+        ok(((Integer) getv(w, "sleepFlagRefreshes")).intValue() == 2, "rv.y() 刷新 x2");
 
         System.out.println("FakeOps181Test PASS (" + checks + " checks)");
     }

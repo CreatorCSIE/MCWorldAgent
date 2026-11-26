@@ -98,7 +98,7 @@ public final class CommandChannel {
           + "setgamemode(mode0..1)w[b1.8+ gated capGamemode;WorldInfo GameType persistent];"
           + "getxp r[b1.8+ gated capXp;level/xp/total/score];"
           + "gethunger r[b1.8+ gated capHunger;food/sat];"
-          + "sleep(on bool)w[b1.5+ gated capSleep;EntityPlayer sleeping+sleepTimer+flag refresh];"
+          + "sleep(on bool,x,y,z)w[b1.5+ gated capSleep;on=sleepInBedAt(bed coords,night+dist+provider gates),off=wakeUpPlayer];"
           + "getbiome(x,z)r[a1.2.0+;beta 前版本 UNSUPPORTED]";
 
     private static String cmdDirArg;
@@ -573,7 +573,15 @@ public final class CommandChannel {
         }
         if ("sleep".equals(c.op)) {
             boolean on = boolArg(a, "on");
-            return WorldOps.setSleep(world, on) + saveSuffix(world, c);
+            // h10 批：on 走 sleepInBedAt 需床坐标（原版语义：|dx|<=3,|dy|<=2,|dz|<=3
+            // 且该位须床方块——缺参 intArg 响亮 Rejected）；off=wakeUpPlayer 无参。
+            if (on) {
+                int x = intArg(a, "x");
+                int y = intArg(a, "y");
+                int z = intArg(a, "z");
+                return WorldOps.setSleep(world, true, x, y, z) + saveSuffix(world, c);
+            }
+            return WorldOps.setSleep(world, false, 0, 0, 0) + saveSuffix(world, c);
         }
         if ("setxp".equals(c.op)) {
             int level = intArg(a, "level");

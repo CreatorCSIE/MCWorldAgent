@@ -24,6 +24,11 @@ public class ti {
     public int levelSaves;
     public int sleepFlagRefreshes;   // T2：z()=updateAllPlayersSleepingFlag 调用记录
     public void z() { sleepFlagRefreshes++; }
+    // h10 睡眠门消费面（真形 disasm L2326-2346 实锤）：I=isRemote、y:Laff;=provider
+    // （与 y()Lsx; 方法同字母不同 namespace——真形即如此）、daytime→k()Z
+    public boolean I;
+    public aff y;
+    public boolean daytime;
     public int expl;
     public int snd;
     public int killCalls;
@@ -56,6 +61,7 @@ public class ti {
     public int e(int x, int y, int z) { return meta[idx(x, y, z)]; }
     public boolean g(int x, int y, int z, int id) { return d(x, y, z, id); }  // setBlockWithNotify
     public int n(int x, int y, int z) { return 15; }
+    public boolean k() { return daytime; }   // isDaytime（h10 睡眠门 3）
     public je b(int x, int y, int z) { return teStore; }  // getBlockTileEntity（门先响面）
     public void a(pd p) { a(true, p); }
     public void a(boolean flag, pd p) {

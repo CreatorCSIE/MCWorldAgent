@@ -191,8 +191,11 @@ public class A2Table173Test {
                 "ei.e not public（假绿守卫）");
         // 2) fd 无 time/spawn 承载面：fd.e=List 非 long（五槽不在 World 本体实锤）
         ok(java.util.List.class == Class.forName("fd").getField("e").getType(), "fd.e is List not worldTime");
-        // 3) iz.d public（本版 ItemStack 无 private 断代——getField 直取路径）
-        ok(Modifier.isPublic(Class.forName("iz").getDeclaredField("d").getModifiers()), "iz.d public");
+        // 3) h10 批翻案：iz.d=itemDamage **private**（真 jar javap 实锤——活体
+        //    setchest NoSuchFieldException: d 根因；旧述"无 private 断代"系误记，
+        //    WorldOps resolveTe 已改 getDeclaredField+setAccessible）
+        ok(Modifier.isPrivate(Class.forName("iz").getDeclaredField("d").getModifiers()),
+                "iz.d private（h10 真形）");
         // 4) sn.by public int（iframes 复活实形）+ be=isDead 撞车位区分
         Field by = Class.forName("sn").getField("by");
         ok(Modifier.isPublic(by.getModifiers()) && by.getType() == int.class, "sn.by public int");

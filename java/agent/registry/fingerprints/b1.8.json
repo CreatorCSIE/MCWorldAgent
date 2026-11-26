@@ -81,9 +81,9 @@
     "capXp": null,
     "capEffect": null,
     "capSleep": true,
-    "sleepFlagF": "aN",
-    "sleepTimerF": "a",
-    "worldSleepFlagM": "y"
+    "sleepInBedM": "d",
+    "wakeUpM": "a",
+    "sleepOkF": "a"
   },
   "capabilities": {
     "setblock": "OK",

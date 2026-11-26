@@ -310,18 +310,77 @@ public class FakeOps19pre2Test {
         ok(((Boolean) wiT1.getClass().getField("thunderFlagSet").get(wiT1)).booleanValue(),
                 "weather 旗标 setIsThundering(true) 双写（sx.a）");
 
-        // ---- T2 sleep（capSleep=TRUE；uo.aM sleeping protected+uo.a sleepTimer
-        //      private 声明类精确解析；ti.z() 旗标刷新计数；⚠️ a 撞名面与
-        //      healthField 互不干扰——sleep 写后 health 面须原值）----
+        // ---- h10 批 sleep 面翻案（API 配方同 173/181，字母表独立：
+        //      uo.d(III)Lbr;/uo.a(ZZZ)V/br.a——⚠️ 本版 br=EnumStatus≠173 的
+        //      br=PairCoordinate；bed=uo.aN:Lrc；ti.y:Laff; provider 与方法
+        //      ti.y()Lsx; 同字母 namespace 分立；ti.z() 旗标刷新；
+        //      a 撞名面与 health 隔离钉保留）----
         java.lang.reflect.Field uoST = Class.forName("uo").getDeclaredField("a");
         uoST.setAccessible(true);
-        ok(WorldOps.setSleep(w, true).startsWith("sleep off -> on timer 0 -> 100"),
-                "sleep on 回显");
-        ok(((Boolean) pri(player, "aM")).booleanValue(), "sleep 写 uo.aM=sleeping true");
-        ok(((Integer) uoST.getInt(player)).intValue() == 100, "sleep 写 uo.a=sleepTimer=100");
+        set(player, "o", 10.5);
+        set(player, "p", 20.0);
+        set(player, "q", 30.5);
+        boolean rejS = false;
+        String sMsg = "";
+        set(w, "daytime", true);
+        try {
+            WorldOps.setSleep(w, true, 10, 64, 10);
+        } catch (WorldOps.Rejected rj) {
+            rejS = true;
+            sMsg = rj.getMessage();
+        }
+        ok(rejS && sMsg.contains("sleep-status=c"), "白天 sleep on→Rejected c " + sMsg);
+        set(w, "daytime", false);
+        Object prov = Class.forName("aff").getConstructor().newInstance();
+        set(prov, "c", true);
+        set(w, "y", prov);
+        rejS = false;
+        try {
+            WorldOps.setSleep(w, true, 10, 64, 10);
+        } catch (WorldOps.Rejected rj) {
+            rejS = true;
+            sMsg = rj.getMessage();
+        }
+        ok(rejS && sMsg.contains("sleep-status=b"), "provider 禁睡→Rejected b " + sMsg);
+        set(w, "y", null);
+        rejS = false;
+        try {
+            WorldOps.setSleep(w, true, 100, 64, 100);
+        } catch (WorldOps.Rejected rj) {
+            rejS = true;
+            sMsg = rj.getMessage();
+        }
+        ok(rejS && sMsg.contains("sleep-status=d"), "距>3/2/3→Rejected d " + sMsg);
+        WorldOps.setBlock(w, 10, 20, 30, 26);
+        ok(WorldOps.setSleep(w, true, 10, 20, 30).startsWith("sleep on @10,20,30 -> OK"),
+                "sleep on 回显（API 配方）");
+        ok(((Boolean) pri(player, "aM")).booleanValue(), "uo.aM=sleeping true");
+        ok(uoST.getInt(player) == 0, "uo.a timer=0 合法态（非旧裸写 100）");
+        ok(getv(player, "aN") != null, "uo.aN:Lrc 置位（崩溃根因修复）");
         ok(((Integer) pri(w, "sleepFlagRefreshes")).intValue() == 1, "ti.z() 旗标刷新 1 次");
-        ok(WorldOps.setSleep(w, false).startsWith("sleep on -> off timer 100 -> 0"),
-                "sleep off 回显（旧值链）");
+        java.lang.reflect.Method tick = player.getClass().getMethod("w_");
+        tick.invoke(player);
+        ok(((Boolean) pri(player, "aM")).booleanValue(), "合法态 tick 存活不崩");
+        set(player, "aN", null);
+        boolean npe = false;
+        try {
+            tick.invoke(player);
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            npe = e.getCause() instanceof NullPointerException;
+        }
+        ok(npe, "aN=null+sleeping tick→NPE（W173 崩溃面 pre2 同构复现）");
+        set(player, "aN", Class.forName("rc").getConstructor(int.class, int.class, int.class)
+                .newInstance(10, 20, 30));
+        rejS = false;
+        try {
+            WorldOps.setSleep(w, true, 10, 20, 30);
+        } catch (WorldOps.Rejected rj) {
+            rejS = true;
+            sMsg = rj.getMessage();
+        }
+        ok(rejS && sMsg.contains("sleep-status=e"), "已睡→Rejected e " + sMsg);
+        ok(WorldOps.setSleep(w, false, 0, 0, 0).startsWith("sleep off -> wakeUpPlayer"),
+                "wake 回显");
         ok(!((Boolean) pri(player, "aM")).booleanValue(), "wake 清 uo.aM");
         ok(uoST.getInt(player) == 0, "wake 清 uo.a=0");
         ok(((Integer) pri(w, "sleepFlagRefreshes")).intValue() == 2, "ti.z() 累计 2 次");

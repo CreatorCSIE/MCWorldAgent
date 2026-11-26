@@ -128,7 +128,9 @@ public class FakeOps173Test {
         ok("Ice Desert".equals(b2), "getbiome (-100,-100)=Ice Desert got " + b2);
         ok("Plains".equals(b3), "getbiome (0,0)=Plains got " + b3);
 
-        // ---- 物品栏面（gs.c→ix；iz.d public 本版无 private 断代）----
+        // ---- 物品栏面（gs.c→ix；h10 批翻案：iz.d=itemDamage **private** 真 jar
+        //      javap 实锤——旧述"全 public"系误记，resolveInvFace getDeclaredField
+        //      回退消费，TE 面 resolveTe 同配方修复）----
         Object inv = get(player, "c");
         Object[] mainArr = (Object[]) get(inv, "a");
         ok(mainArr.length == 36, "invMain iz[36]");
@@ -293,6 +295,11 @@ public class FakeOps173Test {
         ok(WorldOps.getInv(w, 2, 64, 2).endsWith("26=64x5"), "setchest slot26 边界");
         WorldOps.setInv(w, 2, 64, 2, 26, 0, 0, 0, true);
         ok(WorldOps.getInv(w, 2, 64, 2).equals("slots=27 empty"), "setchest clear 回空");
+        // h10 批：iz.d **private** 回归面（活体 NoSuchFieldException: d 根因——
+        // TE 链改 getDeclaredField+setAccessible+isCtor2 容忍 null+解析原子化）
+        WorldOps.setInv(w, 2, 64, 2, 5, 5, 2, 3, false);
+        ok(WorldOps.getInv(w, 2, 64, 2).contains("5=2x5 d3"),
+                "setchest dmg=3 via declared（iz.d private 回归）");
         boolean slotRej = false;
         try {
             WorldOps.setInv(w, 2, 64, 2, 27, 5, 1, 0, false);
@@ -316,19 +323,83 @@ public class FakeOps173Test {
         unsupported("genscatter", new RunnableEx() {
             public void run() throws Exception { WorldOps.genScatter(w, 14, 1, 64, 1, null); } }, "scatterClassG");
 
-        // ---- h9 批 sleep 面转正（capSleep b1.5+；gs.u/a + fd.m protected 上溯泛化）----
+        // ---- h10 批 sleep 面翻案（API 配方：gs.b(III)Lcw;/gs.a(ZZZ)V；四门
+        //      e/b/c/d 全验；v=bedChunkCoordinates 崩溃根因回归；fd.y() 旗标刷新
+        //      ——h9 旧钉 m()V 系误钉，真形见 gs_disasm L1753）----
         java.lang.reflect.Field gsU = player.getClass().getDeclaredField("u");
         java.lang.reflect.Field gsA = player.getClass().getDeclaredField("a");
         gsU.setAccessible(true);
         gsA.setAccessible(true);
-        String sl = WorldOps.setSleep(w, true);
-        ok(sl.startsWith("sleep off -> on timer 0 -> 100"), "sleep 回显 " + sl);
-        ok(gsU.getBoolean(player), "gs.u sleeping=true");
-        ok(gsA.getInt(player) == 100, "gs.a sleepTimer=100");
-        ok(((Integer) get(w, "sleepFlagRefreshes")).intValue() == 1, "fd.m 刷新 x1（protected 泛化）");
-        WorldOps.setSleep(w, false);
+        boolean rejS = false;
+        String sMsg = "";
+        // 门 3：白天拒（fd.f()Z→cw.c）
+        set(w, "daytime", true);
+        try {
+            WorldOps.setSleep(w, true, 10, 64, 10);
+        } catch (WorldOps.Rejected rj) {
+            rejS = true;
+            sMsg = rj.getMessage();
+        }
+        ok(rejS && sMsg.contains("sleep-status=c"), "白天 sleep on→Rejected c " + sMsg);
+        set(w, "daytime", false);
+        // 门 2：provider 禁睡（fd.t.xa.c→cw.b）
+        Object prov = Class.forName("xa").getConstructor().newInstance();
+        set(prov, "c", true);
+        set(w, "t", prov);
+        rejS = false;
+        try {
+            WorldOps.setSleep(w, true, 10, 64, 10);
+        } catch (WorldOps.Rejected rj) {
+            rejS = true;
+            sMsg = rj.getMessage();
+        }
+        ok(rejS && sMsg.contains("sleep-status=b"), "provider 禁睡→Rejected b " + sMsg);
+        set(w, "t", null);
+        // 门 4：距远拒（玩家 10.5/20/30.5，床 100,64,100→cw.d）
+        rejS = false;
+        try {
+            WorldOps.setSleep(w, true, 100, 64, 100);
+        } catch (WorldOps.Rejected rj) {
+            rejS = true;
+            sMsg = rj.getMessage();
+        }
+        ok(rejS && sMsg.contains("sleep-status=d"), "距>3/2/3→Rejected d " + sMsg);
+        // 合法态：床 26@(10,20,30)+夜+距内
+        WorldOps.setBlock(w, 10, 20, 30, 26);
+        String sl = WorldOps.setSleep(w, true, 10, 20, 30);
+        ok(sl.startsWith("sleep on @10,20,30 -> OK"), "sleep on 回显 " + sl);
+        ok(gsU.getBoolean(player), "u=sleeping true");
+        ok(gsA.getInt(player) == 0, "timer=0 合法态（非旧裸写 100）");
+        ok(get(player, "v") != null, "v=bedChunkCoordinates 置位（崩溃根因修复）");
+        ok(((Integer) get(w, "sleepFlagRefreshes")).intValue() == 1, "fd.y() 刷新 x1");
+        // tick 崩溃回归：合法态 w_() 存活；v=null 必 NPE（W173 崩溃面模型自证）
+        java.lang.reflect.Method tick = player.getClass().getMethod("w_");
+        tick.invoke(player);
+        ok(gsU.getBoolean(player), "合法态 tick 存活不崩（u 仍 true）");
+        set(player, "v", null);
+        boolean npe = false;
+        try {
+            tick.invoke(player);
+        } catch (java.lang.reflect.InvocationTargetException e) {
+            npe = e.getCause() instanceof NullPointerException;
+        }
+        ok(npe, "v=null+sleeping tick→NPE（W173 崩溃面复现）");
+        // 门 1：已睡拒（重挂 v 后 cw.e）
+        set(player, "v", Class.forName("br").getConstructor(int.class, int.class, int.class)
+                .newInstance(10, 20, 30));
+        rejS = false;
+        try {
+            WorldOps.setSleep(w, true, 10, 20, 30);
+        } catch (WorldOps.Rejected rj) {
+            rejS = true;
+            sMsg = rj.getMessage();
+        }
+        ok(rejS && sMsg.contains("sleep-status=e"), "已睡→Rejected e " + sMsg);
+        // off：wakeUpPlayer(true,true,false)
+        ok(WorldOps.setSleep(w, false, 0, 0, 0).startsWith("sleep off -> wakeUpPlayer"),
+                "wake 回显");
         ok(!gsU.getBoolean(player) && gsA.getInt(player) == 0, "wake 清零 u=false/timer=0");
-        ok(((Integer) get(w, "sleepFlagRefreshes")).intValue() == 2, "fd.m 刷新 x2");
+        ok(((Integer) get(w, "sleepFlagRefreshes")).intValue() == 2, "fd.y() 刷新 x2");
 
         System.out.println("FakeOps173Test PASS (" + checks + " checks)");
     }

@@ -831,12 +831,15 @@ public final class VersionRegistry {
         t.teBurnF = "a";
         t.teCookF = "c";
 
-        // h9 批 sleep 面（tiny 直钉：gs.u=sleeping/gs.a=sleepTimer，
-        // fd.m()V=updateAllPlayersSleepingFlag protected=WorldOps 上溯泛化消费面）。
+        // h10 批 sleep 面（活体 173 崩溃翻案 T2 裸字段配方——tick 睡眠段 gs.am()
+        // 裸解引用 v:Lbr; bedChunkCoordinates，裸写 sleeping 必 NPE）。写面改游戏
+        // API：gs.b(III)Lcw;=sleepInBedAt（成功尾 u=true/a=0/v=new br/清动量/fd.y()，
+        // 返 cw.a）、gs.a(ZZZ)V=wakeUpPlayer（v==null ifnull 跳床段=null-safe）——
+        // 字节码 %TEMP%/mcaut/b173/gs_disasm.txt L1579/L2066/L1909 全量实锤。
         t.capSleep = Boolean.TRUE;
-        t.sleepFlagF = "u";
-        t.sleepTimerF = "a";
-        t.worldSleepFlagM = "m";
+        t.sleepInBedM = "b";
+        t.wakeUpM = "a";
+        t.sleepOkF = "a";
 
         // spawn 白名单（jc 注册表+javap 构造器 (fd)V 逐个实锤；tnt=qw
         // (fd,DDD)V DDD 断代延续 b1.2_02——WorldOps fallback；giant=nt 构造健在；
@@ -1064,12 +1067,15 @@ public final class VersionRegistry {
         t.teBurnF = "a";
         t.teCookF = "c";
 
-        // h9 批 sleep 面（tiny 直钉：sz.aN=sleeping/sz.a=sleepTimer，
-        // rv.y()V=updateAllPlayersSleepingFlag public）。
+        // h10 批 sleep 面（同 173 翻案配方）：sz.d(III)Lbm;=sleepInBedAt（尾 aN=true/
+        // a=0/aO=new ps/k=rv·I 门/rv.y()V/返 bm.a，disasm L2299 区段实锤）、
+        // sz.a(ZZZ)V=wakeUpPlayer（L2514 区段：aN=false/iload_2→rv.y()/iload_1→a=0|100）。
+        // ⚠️ ul.d=itemDamage **private**（javap 实锤）——setchest getDeclaredField
+        // 修复对 181 同样必要。
         t.capSleep = Boolean.TRUE;
-        t.sleepFlagF = "aN";
-        t.sleepTimerF = "a";
-        t.worldSleepFlagM = "y";
+        t.sleepInBedM = "d";
+        t.wakeUpM = "a";
+        t.sleepOkF = "a";
 
         // D13 gamemode（b1.8.1 首版实装——setgamemode 消费，完成 capGamemode 槽先行承诺）。
         // 取证=tiny 实锤 WorldInfo=rl，field_35920_p=gameType private int（NBT "GameType"
@@ -1284,15 +1290,17 @@ public final class VersionRegistry {
         t.wiSetRainM = "b";
         t.wiSetThunderM = "a";
 
-        // T2 sleep 面（无头窗 2026-11-26，D10）：tiny 反查全链实锤——
-        // uo.aM=sleeping:Z、uo.a=sleepTimer:I（活体批2 撞名面本尊，声明类精确
-        // 解析与 health 面互不干扰）、ti.z()V=updateAllPlayersSleepingFlag、
-        // ti.T=allPlayersSleeping:Z（旗标位游戏自算，不写）。b1.5_01/b1.7.3/
-        // b1.8.1 锚件未钉 sleep 面=槽 null UNSUPPORTED 响亮（跨版本字母严禁互抄）。
+        // h10 批 sleep 面（活体 173 崩溃翻案 T2 裸字段配方，同法重钉）：
+        // uo.d(III)Lbr;=sleepInBedAt（门 ap()Z/H()Z→br.e、ti.k()Z 白天→br.c、
+        // 距→br.d；尾 aM=true/a=0/aN=new rc/s-t-r 清零/ti.z()V/返 br.a，
+        // disasm L2323 区段）、uo.a(ZZZ)V=wakeUpPlayer（L2538 区段同构）。
+        // ⚠️ 本版 EnumStatus=br（173 的 br=PairCoordinate 字母表独立——严禁按
+        // 173 印象推）；ItemStack wc **无 (II)V**、isDmgF=e private（d→e 断代在案）。
+        // b1.3_01 无床维持 UNSUPPORTED 判决。
         t.capSleep = Boolean.TRUE;
-        t.sleepFlagF = "aM";        // uo.sleeping（public? javap 访问位见假件钉）
-        t.sleepTimerF = "a";        // uo.sleepTimer private int（活体批2 dump 实锤）
-        t.worldSleepFlagM = "z";    // ti.updateAllPlayersSleepingFlag()V
+        t.sleepInBedM = "d";
+        t.wakeUpM = "a";
+        t.sleepOkF = "a";
 
         // D13 gamemode（sx.p=gameType private int——tiny L8128 实锤，NBT "GameType"；
         // sx=rl 字段字母全同判决兑现。写面=WorldInfo 持久层（重进世界生效），

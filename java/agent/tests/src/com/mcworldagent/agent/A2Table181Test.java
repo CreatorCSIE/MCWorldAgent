@@ -197,8 +197,10 @@ public class A2Table181Test {
         }
         // 2) rv 无 time/spawn 承载面：rv.e=List 非 long（五槽不在 World 本体）
         ok(java.util.List.class == Class.forName("rv").getField("e").getType(), "rv.e is List not worldTime");
-        // 3) ul.d public（ItemStack 无 private 断代——getField 直取路径）
-        ok(Modifier.isPublic(Class.forName("ul").getDeclaredField("d").getModifiers()), "ul.d public");
+        // 3) h10 批翻案：ul.d=itemDamage **private**（真 jar javap 实锤——同 173
+        //    iz.d 断代，setchest getDeclaredField 修复对 181 同样必要）
+        ok(Modifier.isPrivate(Class.forName("ul").getDeclaredField("d").getModifiers()),
+                "ul.d private（h10 真形）");
         // 4) kj.aa public int（iframes 实形）+ G=isDead 撞车位区分
         Field aa = Class.forName("kj").getField("aa");
         ok(Modifier.isPublic(aa.getModifiers()) && aa.getType() == int.class, "kj.aa public int");

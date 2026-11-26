@@ -12,7 +12,8 @@ import java.util.List;
 // b(Lkj;)V setEntityDead（⚠️b1.7.3=e 回漂）/ p()List getLoadedEntityList /
 // a(DDD,String,F,F)V playSound / a(Z)Z=TickUpdates 禁钩 decoy / g(III)Z decoy。
 // 字段面：v=difficultySetting（⚠️b1.7.3=q）、i=playerEntities（⚠️d）、
-// g=loadedEntityList（⚠️b）、c/e List 留档、private long H/I。
+// g=loadedEntityList（⚠️b）、c/e List 留档、private long H、I:Z=isRemote（h10 钉，
+// 旧留档 long I 系 173 fd 误抄已删）。
 public class rv {
     public List g;              // loadedEntityList
     public List c;              // 其余 List 面留档
@@ -21,8 +22,8 @@ public class rv {
     public int v;               // difficultySetting
     public float o;             // D12 rainingStrength（真件 protected，假件 public 便于 getDeclaredField）
     public float q;             // D12 thunderingStrength
-    private long H;             // 留档 private 面
-    private long I;
+    private long H;             // 留档 private 面（⚠️ 旧留档 I 删除——真形 rv.I:Z=isRemote，
+                                // h10 睡眠门消费面，long 版系 173 fd 误抄）
 
     public int saveCalls;
     public int levelSaves;
@@ -30,9 +31,16 @@ public class rv {
     public int snd;
     public int killCalls;
     public ij teStore;
-    // h9 批 sleep 面（真 jar tiny：rv.y()V=updateAllPlayersSleepingFlag public）
+    // h9 批 sleep 面（真 jar tiny：rv.y()V=updateAllPlayersSleepingFlag public——
+    // h10 复核真形无误，sleepInBedAt/wakeUpPlayer 内部即调此）+ h10 门消费面：
+    // I=isRemote（真形 rv.I:Z，173=B 断代）、y:Lacz;=provider 字段（与方法 y()
+    // 同字母不同 namespace——真形即如此）、daytime→k()Z（173=f 断代）、
+    // d(III)Z=床向修正分支门（173=i 断代）
     public int sleepFlagRefreshes;
     public void y() { sleepFlagRefreshes++; }
+    public acz y;
+    public boolean I;
+    public boolean daytime;
     final int[] blocks = new int[4096];
     final int[] meta = new int[4096];
     private final rl info = new rl();   // WorldInfo 承载体（rv.x() 返回）
@@ -63,6 +71,8 @@ public class rv {
     public boolean g(int x, int y, int z) { return meta[idx(x, y, z)] != 0; } // decoy: real rv has g(III)Z
     public void f(int x, int y, int z, int m) { meta[idx(x, y, z)] = m; }
     public int n(int x, int y, int z) { return 15; }
+    public boolean k() { return daytime; }              // isDaytime（h10 睡眠门 3，173=f 断代）
+    public boolean d(int x, int y, int z) { return blocks[idx(x, y, z)] != 0; } // 173=i 断代
     public ij b(int x, int y, int z) {
         if (teStore == null) { throw new NullPointerException("TE map miss"); }
         return teStore;

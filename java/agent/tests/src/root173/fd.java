@@ -29,10 +29,16 @@ public class fd {
     public int snd;
     public int killCalls;
     public ow teStore;
-    // h9 批 sleep 面（真 jar tiny：fd.m()V=updateAllPlayersSleepingFlag **protected**
-    // ——setSleep getDeclaredMethod+setAccessible 上溯泛化消费面）
+    // h10 批 sleep 面翻案：真 sleepInBedAt/wakeUpPlayer 内部刷旗标走 **fd.y()V**
+    // （gs_disasm L1753/L2066 区段 invokespecial→invokevirtual #217 实锤；h9 旧钉
+    // m()V 系误钉——m 疑为 ()Z getter，旧裸写配方"刷新"实为空转）。假件按真形建模 y。
     public int sleepFlagRefreshes;
-    protected void m() { sleepFlagRefreshes++; }
+    public void y() { sleepFlagRefreshes++; }
+    // h10 睡眠门消费面：B=isRemote（false=服务端侧，门全生效）、t=WorldProvider
+    // （xa.c 禁睡旗标）、daytime→f()Z（isDaytime 门 3）、i(III)Z 床向修正分支门
+    public boolean B;
+    public xa t;
+    public boolean daytime;
     final int[] blocks = new int[4096];
     final int[] meta = new int[4096];
     private final ei info = new ei();   // WorldInfo 承载体（fd.x() 返回）
@@ -59,6 +65,8 @@ public class fd {
     public boolean g(int x, int y, int z) { return meta[idx(x, y, z)] != 0; } // decoy: real fd has g(III)Z (el173-1 proved NOT metadata)
     public void d(int x, int y, int z, int m) { meta[idx(x, y, z)] = m; }
     public int n(int x, int y, int z) { return 15; }
+    public boolean f() { return daytime; }              // isDaytime（h10 睡眠门 3）
+    public boolean i(int x, int y, int z) { return blocks[idx(x, y, z)] != 0; } // 床向修正分支门
     public ow b(int x, int y, int z) {
         if (teStore == null) { throw new NullPointerException("TE map miss"); }
         return teStore;

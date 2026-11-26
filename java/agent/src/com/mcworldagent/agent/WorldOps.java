@@ -4,6 +4,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -142,12 +143,14 @@ public final class WorldOps {
     // null 槽=旧线单写浮值面（181/0624 判决零变化）；pre2 首钉（表注见 build19pre2）。
     private static final String M_WI_SET_RAIN = T.wiSetRainM;
     private static final String M_WI_SET_THUNDER = T.wiSetThunderM;
-    // T2 sleep 面（无头窗 2026-11-26，D10）：门=capSleep；写面=EntityPlayer 双字段
-    // （声明类精确解析，见 setSleep 注）+World 旗标刷新器。
+    // h10 批 sleep 面（活体批 173 崩溃翻案，D10）：门=capSleep；写面=EntityPlayer
+    // 游戏 API 双方法（sleepInBedAt/wakeUpPlayer，见 setSleep 注）。T2 裸字段三槽
+    // （sleepFlagF/sleepTimerF/worldSleepFlagM）退役——裸写 sleeping 而 bedChunk-
+    // Coordinates=null，下一 tick gs.am() 裸解引用 v → NPE 崩全链（活体实锤）。
     private static final Boolean CAP_SLEEP = T.capSleep;
-    private static final String F_SLEEP_FLAG = T.sleepFlagF;
-    private static final String F_SLEEP_TIMER = T.sleepTimerF;
-    private static final String M_WORLD_SLEEP_FLAG = T.worldSleepFlagM;
+    private static final String M_SLEEP_IN_BED = T.sleepInBedM;
+    private static final String M_WAKE_UP = T.wakeUpM;
+    private static final String SLEEP_OK_F = T.sleepOkF;
     private static final String G_SCATTER_CLASS = T.scatterClassG;
 
     // D10 XP/效果面（表值；取证见 VersionRegistry.build181 D10 段注释——b1.8.1 树直读，
@@ -1182,11 +1185,31 @@ public final class WorldOps {
             Class<?> stackType = get.getReturnType();
             Method set = tc.getMethod(M_INV_SET, int.class, stackType);
             if (isCount == null) {
-                isCount = stackType.getField(IS_COUNT);
-                isId = stackType.getField(IS_ID);
-                isDmg = stackType.getField(IS_DMG);
-                isCtor2 = stackType.getConstructor(int.class, int.class);
-                isCtor3 = stackType.getConstructor(int.class, int.class, int.class);
+                // h10 批（活体 173 实锤双翻案）：①itemDamage 在 iz/ul/ii 系 **private**
+                // （getField 只认 public→NoSuchFieldException: d）——改 getDeclaredField+
+                // setAccessible，同玩家链 resolveInvFace 配方（public 线 0327..181 行为
+                // 不变——getDeclaredField 对 public 同样命中）；②(II)V 构造缺失断代
+                // （173 iz 无二参构造）——同 L820 容忍 null，newStack (III)V dmg=0 等价；
+                // ③解析**原子化**：全成才提交缓存（活体次生 NPE=旧码先置 isCount 再炸
+                // isDmg，半初始化缓存令后续调用跳过解析、isDmg 恒 null）。
+                Field fCnt = stackType.getDeclaredField(IS_COUNT);
+                Field fId = stackType.getDeclaredField(IS_ID);
+                Field fDmg = stackType.getDeclaredField(IS_DMG);
+                Constructor<?> c2;
+                try {
+                    c2 = stackType.getConstructor(int.class, int.class);
+                } catch (NoSuchMethodException e2) {
+                    c2 = null;
+                }
+                Constructor<?> c3 = stackType.getConstructor(int.class, int.class, int.class);
+                fCnt.setAccessible(true);
+                fId.setAccessible(true);
+                fDmg.setAccessible(true);
+                isCount = fCnt;
+                isId = fId;
+                isDmg = fDmg;
+                isCtor2 = c2;
+                isCtor3 = c3;
             }
             Method[] m = new Method[] { size, get, set };
             TE_METHODS.put(key, m);
@@ -1730,66 +1753,100 @@ public final class WorldOps {
     }
 
     /**
-     * 睡眠态写（op=sleep(on)，T2 无头窗 2026-11-26，D10 sleep/wake 条目）：
-     * 写 EntityPlayer.sleeping+sleepTimer 后调 World.updateAllPlayersSleepingFlag
-     * 刷全员旗标——dawn-skip 本体（timer 递减→归零 setWorldTime(0)+清雨）由游戏
-     * tick 循环自推进，本 op 只置状态不代做跳过（语义与床右键同源）。
-     * ⚠️ sleepTimerF=a 与 healthF=a **同字母不同类**（uo.a vs xx.a，活体批2 在案）
-     * ——本面按 sleepFlagF(aM) 声明类精确 getDeclaredField，不借 healthField/
-     * livingClass 任何路径。门=capSleep（b1.5+；pre2 首钉，其余线 null 响亮）。
+     * 睡眠态写（op=sleep(on[,x,y,z])，h10 批翻案 T2 裸字段配方）：
+     * 写面=EntityPlayer 游戏 API 双方法——on 调 sleepInBedAt(x,y,z)（合法态唯一入口：
+     * 置 sleeping+timer=0+**bedChunkCoordinates=new PairCoordinate(x,y,z)**+吸附+
+     * 清动量+全员旗标刷新，全由游戏自做）；off 调 wakeUpPlayer(true,true,false)
+     * （清旗标+timer=0+站立尺寸；v==null 原版即 null-safe，ifnull 跳床清理段）。
+     * ⚠️ 裸写 sleeping 的活体判决（W173 崩溃栈 gs.am(SourceFile:710)→fd→Minecraft.k）：
+     * EntityPlayer.tick 睡眠段 private isInBed() 裸解引用 bedChunkCoordinates——
+     * v=null 下一 tick 必 NPE，T2 假件未建模游戏侧 tick 故无头全绿、活体必崩。
+     * 前置门（原版语义，本 op 不旁路）：已睡/不可睡→status e；provider 禁睡旗标→b；
+     * 白天→c；|dx|>3|||dy|>2|||dz|>3→d——非 OK 一律 Rejected("sleep-status=<字母>")。
+     * 方法解析=玩家类链 getDeclaredMethod(name,int,int,int) + **isEnum() 返回型门**
+     * （T1.5 四版父链无同型撞车，门为跨代保险）；OK 常量=返回类型上 getDeclaredField
+     * (sleepOkF) 引用相等比对（混淆 enum toString 不可信）。门=capSleep（b1.5+）。
      */
-    public static String setSleep(Object world, boolean on) throws Exception {
+    public static String setSleep(Object world, boolean on, int x, int y, int z) throws Exception {
         if (!Boolean.TRUE.equals(CAP_SLEEP)) {
             throw new UnsupportedOp("sleep: version-gated b1.5+ (capSleep unset for "
                     + T.versionId + ")");
         }
-        require("sleepFlagF", F_SLEEP_FLAG);
-        require("sleepTimerF", F_SLEEP_TIMER);
-        require("worldSleepFlagM", M_WORLD_SLEEP_FLAG);
+        require("sleepInBedM", M_SLEEP_IN_BED);
+        require("wakeUpM", M_WAKE_UP);
+        require("sleepOkF", SLEEP_OK_F);
         Object p = worldPlayer(world);
         if (p == null) {
             throw new Rejected("sleep: no player in world");
         }
-        Class<?> pc = null;
+        if (on) {
+            Method m = null;
+            for (Class<?> k = p.getClass(); k != null && k != Object.class; k = k.getSuperclass()) {
+                try {
+                    Method c = k.getDeclaredMethod(M_SLEEP_IN_BED,
+                            int.class, int.class, int.class);
+                    if (c.getReturnType().isEnum()) {
+                        m = c;
+                        break;
+                    }
+                } catch (NoSuchMethodException e) {
+                    // 本类无此名，上溯
+                }
+            }
+            if (m == null) {
+                throw new UnsupportedOp("sleep: sleepInBedAt " + M_SLEEP_IN_BED
+                        + "(III)->enum not found on player chain");
+            }
+            m.setAccessible(true);
+            Object st = m.invoke(p, Integer.valueOf(x), Integer.valueOf(y), Integer.valueOf(z));
+            Class<?> sc = m.getReturnType();
+            Field ok = sc.getDeclaredField(SLEEP_OK_F);
+            ok.setAccessible(true);
+            if (st == ok.get(null)) {
+                return "sleep on @" + x + "," + y + "," + z
+                        + " -> OK (sleepInBedAt: timer=0, bed=v set, flag refresh"
+                        + " by game; dawn-skip=tick loop)";
+            }
+            throw new Rejected("sleep-status=" + enumConstName(sc, st));
+        }
+        Method wm = null;
         for (Class<?> k = p.getClass(); k != null && k != Object.class; k = k.getSuperclass()) {
             try {
-                k.getDeclaredField(F_SLEEP_FLAG);
-                pc = k;
-                break;
-            } catch (NoSuchFieldException e) {
-                // 上溯找声明类（aM 无撞名面，首个命中即 EntityPlayer 等价类）
-            }
-        }
-        if (pc == null) {
-            throw new UnsupportedOp("sleep: declaring class for " + F_SLEEP_FLAG + " not found");
-        }
-        Field sf = pc.getDeclaredField(F_SLEEP_FLAG);
-        Field tf = pc.getDeclaredField(F_SLEEP_TIMER);
-        sf.setAccessible(true);
-        tf.setAccessible(true);
-        boolean oldS = sf.getBoolean(p);
-        int oldT = tf.getInt(p);
-        sf.setBoolean(p, on);
-        tf.setInt(p, on ? 100 : 0);
-        Method um = null;
-        for (Class<?> k = world.getClass(); k != null && k != Object.class; k = k.getSuperclass()) {
-            try {
-                um = k.getDeclaredMethod(M_WORLD_SLEEP_FLAG);
-                um.setAccessible(true);
+                wm = k.getDeclaredMethod(M_WAKE_UP,
+                        boolean.class, boolean.class, boolean.class);
                 break;
             } catch (NoSuchMethodException e) {
-                // 上溯找声明类（h9：173 fd.m 为 protected——getMethod 只认 public，
-                // 改走 getDeclaredMethod+setAccessible 同字段配方；pre2 ti.z/181 rv.y
-                // public 路径行为不变=零涟漪）
+                // 本类无此名，上溯
             }
         }
-        if (um == null) {
-            throw new UnsupportedOp("sleep: declaring method " + M_WORLD_SLEEP_FLAG + " not found");
+        if (wm == null) {
+            throw new UnsupportedOp("sleep: wakeUpPlayer " + M_WAKE_UP
+                    + "(ZZZ)V not found on player chain");
         }
-        um.invoke(world);
-        return "sleep " + (oldS ? "on" : "off") + " -> " + (on ? "on" : "off")
-                + " timer " + oldT + " -> " + (on ? 100 : 0)
-                + " (EntityPlayer face + all-sleeping flag refresh; dawn-skip=game tick loop)";
+        wm.setAccessible(true);
+        wm.invoke(p, Boolean.TRUE, Boolean.TRUE, Boolean.FALSE);
+        return "sleep off -> wakeUpPlayer(true,true,false)"
+                + " (u=false, timer=0, flag refresh by game)";
+    }
+
+    /** 枚举常量字母名（混淆 toString 不可信——按声明静态字段引用定位）。 */
+    private static String enumConstName(Class<?> sc, Object st) {
+        if (st == null) {
+            return "null";
+        }
+        for (Field f : sc.getDeclaredFields()) {
+            if (Modifier.isStatic(f.getModifiers()) && f.getType() == sc) {
+                try {
+                    f.setAccessible(true);
+                    if (f.get(null) == st) {
+                        return f.getName();
+                    }
+                } catch (Exception e) {
+                    // 不可达（枚举静态字段恒可读）——落 ?
+                }
+            }
+        }
+        return "?";
     }
 
     /**
