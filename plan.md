@@ -1064,6 +1064,15 @@ Priority order; all offline (javap/fakes/docs/storage), stop-and-log on any ambi
 
 Window 2026-11-27 executed W-1→W-5 (commits a42dc10 → 80a68f3 → acef6d6 → e1994fd → ce6fc36): final headless run **35/35 GREEN**（+A2Table1501 314 / FakeOps1501 46），StorageTest 60/60，HookSnapshot byte-identical (123 lines)；队列零触碰、游戏零启动、14 件 EOL 噪音未混入（终核 `git diff --ignore-all-space` 仅真实改动）。
 
+#### 14.3-续 窗口 2026-11-27 续（同窗追加，W-6..W-9，全离线）
+
+6. **W-6 agent 静态欠账**：WorldOps.resolve saveWorld 补 `(ZL…;)V` 双参分支（Class.forName 内嵌类名）+ saveWorld() 调用面 `(false,null)` 配方 + FakeOps1501Test save 腿（46→48 检）。→ **DONE dd39151**（run.ps1 35/35 GREEN 复验；b1.5_01.md §9 欠账同步销账）。
+7. **W-7 三矛盾离线复核**：① pre2 天气键=nbt_walk W19P2 原盘实扫**全小写**（note③ 大写说翻案）；② heartsLife=**lh.Z**（javap lh 有 `public int Z`、xx 无；tiny L5057 落 lh 块；note"xx.Z"翻案）；③ 1501 jz.B ↔ 173 kv.B=**同字母同义 showDebugInfo**（双版 tiny 对榫；note"异名/非 173 showFPS"措辞翻案）。→ **DONE 45e4a71**（docs-only，b1.9-pre2.md×4 + b1.5_01.md×1 回写；JSON 零触碰）。
+8. **W-8 1501 存储链补钉**：pk/qi/hk/kh/fc/gw 六件 + 外围（vk/mp/sm/tu/vp/sk/az/ao）tiny 直钉 + javap -c 实扫（两 int[1024] 表、`e(II)=d[z*32+x]`、4096 扇区串面、"r."/"region"/".mcr" 宿主）——**判决 b1.3→b1.5 存储无断代，region adapter 复用 173 型成立**；顺改 §1"fm→vk"错位（正=wt→vk/fm→fc）。→ **DONE e1c4202**（docs-only，b1.5_01.md §6 全钉+§10 判据追加）。
+9. **W-9 扩版自主判决**：b1.4_01/b1.6 双 jar 三态过闸（MOJANG_C 签名=原始，SHA1 6f157f26/ecc0288d 双位同件）；**不建全指纹表**（无活体证据+全表需 1501 批等深 javap，仓促=F6 漂移温床），产**边界锚批** b1.4_01-b1.6-boundary.md：睡眠面下界=b1.4 钉死（四门链+provider 门全码在，字母表 fm/eb/ay/cb/sy.c 双验）；**"b1.6=下界/disablePlayersleep 门下界"翻案**（b1.4_01 已有 WorldProviderHell=sf 全套+门2 消费；b1.6 真边界=isNether 更名+MaterialPortal=oq）；saveWorld 双参世代下界前移 b1.4_01；b1.7.3.md §10 床/火弹两行改口。→ **DONE 4896892**（docs-only，运行时零消费）。
+
+续窗终态：run.ps1 **35/35 GREEN**、FakeOps1501 48、队列零触碰、游戏零启动、b1.9-pre2.json/b1.2_02.json/inf-20100618.json 等 14 件 EOL 噪音未混入；1501 活体批前置欠账（resolve 双参+存储链静态）已全清，verscan 三处 ⚠️ 矛盾全部终判无遗留待钉悬账（除活体面）。
+
 Exit criteria: run.ps1 all-green (new items included), one commit per W-item (author discipline), plan.md 14.3 ticked with commit hashes; anything blocked → leave annotated note, do not guess.
 
 Disciplines unchanged: live runs require per-batch user approval; evidence chains archived per run; protocol evolution goes through channel ledger only ("panel follows protocol"); no implicit world generation on read paths.
