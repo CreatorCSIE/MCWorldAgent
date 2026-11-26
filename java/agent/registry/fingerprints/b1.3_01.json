@@ -7,7 +7,7 @@
   "provenance": {
     "evidence": "取证产物 %TEMP%/mcaut/exp/b1301/（jar SHA1=add3809d…对榫索引行 L356 有对应jar原始版本；x/ 解包+dump.txt javap -p 全量 8984 行+world_c.txt/mc_c.txt/qf_c.txt 定向 -c+client.tiny 类块直钉 tiny_classes.txt）",
     "mode": "javap+tiny",
-    "note": "b1.3_01 独立件（SHA1 对榫）。三判决：① WorldInfo 迁移边界修正——dc 已承载 a=randomSeed/b-d=spawnXYZ/e=worldTime（字母布局与 dy/sx/ei 全同），即迁移发生在 b1.2_02..b1.3_01 之间而非 b1.5_01（b1.5_01.json 原判语已修正）；World(dt) 持 worldinfo 字段 q(Ldc;)+取用器 v()Ldc;（func_22144_v 同 173 惯例，1501=x 断代）；② 天气不存在面实锤——dt 全类无 raining/thunder 浮值、dc 无 l/m/n/o 旗标、无 isRaining 族=weather op 门控起点=b1.5_01（LISTOPS b1.5+ 标注获双版夹逼证据）；③ heartsLife 移除版——iz 伤害面=hurtTime(X)/maxHurtTime(Y) 体系（1501 同形），iframesF=null=invulnerable UNSUPPORTED（b1.2_02 by 惯例在此断代，19pre2 才以 xx.Z 回归）。字母断代 vs b1.7.3：World fd→dt、Entity sn→om、EntityLiving ls→iz、EntityPlayer gs→fd（⚠️ 撞车陷阱：173 的 fd=World 类名在 1301=EntityPlayer——跨版借表必炸）、InventoryPlayer ix→gy、ItemStack iz→gz（字母全同 a/c/d）、Item gm→ex（itemsF=c 同字母）、EntityList jc→ha、GuiIngame uq→qf、WorldInfo 无→dc、IProgressUpdate yb→ta、ISaveHandler fm→rw（saveWorldInfo=a(Ldc;)V/saveWorldInfoAndPlayer=a(Ldc;Ljava/util/List;)V/loadWorldInfo=c()Ldc; 三件同形）、Chunk→it（getBlockID=a/getBlockMetadata=b 同形）、Explosion→na、EntityItem hl→fs（item=a(Lgz;)）。Entity pos 面=aI/aJ/aK、mot=aL/aM/aN、look=aO/aP（三版 +2 右移规律锚点：1301=aI..aP/1501=aK..aR/173=aM..aT）。getbiome 链=b1.2_02 同代 MobSpawnerBase 系（dt.a()Lsu;→su.a(II)Lhv;→hv.m=biomeName，无 BiomeGenBase 类）=OK 可启用。存储面：RegionFile=mo 全表面钉（getChunkDataInputStream=func_22210_a(II)DataInputStream/getChunkDataOutputStream=func_22205_b(II)DataOutputStream/isChunkSaved=func_22202_c/outOfBounds=func_22206_d/getOffset=func_22207_e/setOffset=func_22198_a/setChunkTimestamp=func_22208_b/write=func_22203_a(I[BI)V+字段 a=emptySector[B/b=fileName/c=RandomAccessFile/d=offsets[I/e=chunkTimestamps[I/f=sectorFree）+RegionFileCache=nl——mcr 无头读写面与 19pre2 jz 同形=D7 真盘往返双版锚。钩四项：SAVE_WORLD=dt.a(Lta;)V public 包装（func_651_a→a(ZLta;)V iconst_1 委托实锤 world_c，173 包装配方适用）、LOAD_WORLD=Minecraft.a(Ldt;Ljava/lang/String;Lfd;)V（2 参壳委托同形）、RUN_TICK=Minecraft.j()V public（dt.k:()V=World.tick 调用点实锤；173=k 同字母）、HUD_RENDER=qf.a(FZII)V public EXIT（ig 门读面两点：@110 ig.z=thirdPersonView 南瓜门/@1135 ig.A=showDebugInfo 调试块，hudDebugGateF=A；173=kv.B 断代）。主类字段面：theWorld=e、thePlayer=h（声明 iz）、ingameGUI=t、gameSettings=x(ig)、fontRenderer=p(oi)、renderEngine=o(hf)、mcDataDir=U。mob 表：Pig=rn/Sheep=cl/Creeper=ep/Skeleton=eg/Zombie=qo/Spider=bp/TNTPrimed=mz（ctor DDD）/EntityCreature=gm（public 非 abstract=173 mob 语义适用）；EntityGiantZombie 类不存在=giant UNSUPPORTED（b1.6+ 才入世）。"
+    "note": "b1.3_01 独立件（SHA1 对榫）。三判决：① WorldInfo 迁移边界修正——dc 已承载 a=randomSeed/b-d=spawnXYZ/e=worldTime（字母布局与 dy/sx/ei 全同），即迁移发生在 b1.2_02..b1.3_01 之间而非 b1.5_01（b1.5_01.json 原判语已修正）；World(dt) 持 worldinfo 字段 q(Ldc;)+取用器 v()Ldc;（func_22144_v 同 173 惯例，1501=x 断代）；② 天气不存在面实锤——dt 全类无 raining/thunder 浮值、dc 无 l/m/n/o 旗标、无 isRaining 族=weather op 门控起点=b1.5_01（LISTOPS b1.5+ 标注获双版夹逼证据）；③ heartsLife 移除版——iz 伤害面=hurtTime(X)/maxHurtTime(Y) 体系（1501 同形），iframesF=null=invulnerable UNSUPPORTED（b1.2_02 by 惯例在此断代，19pre2 才以 xx.Z 回归）。字母断代 vs b1.7.3：World fd→dt、Entity sn→om、EntityLiving ls→iz、EntityPlayer gs→fd（⚠️ 撞车陷阱：173 的 fd=World 类名在 1301=EntityPlayer——跨版借表必炸）、InventoryPlayer ix→gy、ItemStack iz→gz（字母全同 a/c/d）、Item gm→ex（itemsF=c 同字母）、EntityList jc→ha、GuiIngame uq→qf、WorldInfo 无→dc、IProgressUpdate yb→ta、ISaveHandler fm→rw（saveWorldInfo=a(Ldc;)V/saveWorldInfoAndPlayer=a(Ldc;Ljava/util/List;)V/loadWorldInfo=c()Ldc; 三件同形）、Chunk→it（getBlockID=a/getBlockMetadata=b 同形）、Explosion→na、EntityItem hl→fs（item=a(Lgz;)）。Entity pos 面=aI/aJ/aK、mot=aL/aM/aN、look=aO/aP（三版 +2 右移规律锚点：1301=aI..aP/1501=aK..aR/173=aM..aT）。getbiome 链=b1.2_02 同代 MobSpawnerBase 系（dt.a()Lsu;→su.a(II)Lhv;→hv.m=biomeName，无 BiomeGenBase 类）=OK 可启用。存储面：RegionFile=mo 全表面钉（getChunkDataInputStream=func_22210_a(II)DataInputStream/getChunkDataOutputStream=func_22205_b(II)DataOutputStream/isChunkSaved=func_22202_c/outOfBounds=func_22206_d/getOffset=func_22207_e/setOffset=func_22198_a/setChunkTimestamp=func_22208_b/write=func_22203_a(I[BI)V+字段 a=emptySector[B/b=fileName/c=RandomAccessFile/d=offsets[I/e=chunkTimestamps[I/f=sectorFree）+RegionFileCache=nl——mcr 无头读写面与 19pre2 jz 同形=D7 真盘往返双版锚。钩四项：SAVE_WORLD=dt.a(Lta;)V public 包装（func_651_a→a(ZLta;)V iconst_1 委托实锤 world_c，173 包装配方适用）、LOAD_WORLD=Minecraft.a(Ldt;Ljava/lang/String;Lfd;)V（2 参壳委托同形）、RUN_TICK=Minecraft.j()V public（dt.k:()V=World.tick 调用点实锤；173=k 同字母）、HUD_RENDER=qf.a(FZII)V public EXIT（ig 门读面两点：@110 ig.z=thirdPersonView 南瓜门/@1135 ig.A=showDebugInfo 调试块，hudDebugGateF=A；173=kv.B 断代）。主类字段面：theWorld=e、thePlayer=h（声明 iz）、ingameGUI=t、gameSettings=x(ig)、fontRenderer=p(oi)、renderEngine=o(hf)、mcDataDir=U。mob 表：Pig=rn/Sheep=cl/Creeper=ep/Skeleton=eg/Zombie=qo/Spider=bp/TNTPrimed=mz（ctor DDD）/EntityCreature=gm（public 非 abstract=173 mob 语义适用）；EntityGiantZombie 类不存在=giant UNSUPPORTED（b1.6+ 才入世）。⑳ TE 钉面批（无头窗 2026-11-26 续，真 jar javap 对榫 add3809d+b1301 原生 tiny 双对）：IInventory=jc a()I=getSizeInventory/**c_(I)Lgz=getStackInSlot（尾下划线字母 c_ 非 1501/181 的 d_——同位撞字母规避换代，严禁互抄）**/a(ILgz)V=setInventorySlotContents→invSizeM=a/invGetM=c_/invSetM=a；TileEntityFurnace=oj public int a=furnaceBurnTime/c=furnaceCookTime+private gz[] h（同 1501/181 字母）；TileEntityChest=hn private gz[] a=chestContents（槽字母=a 同 1501 iy，无 public int a=int 门天然区分）；TE 四件 UNSUPPORTED→OK。sleep 判决=**UNSUPPORTED 维持**：EntityPlayer(fd) 面存在（private boolean a=sleeping 经 K()Z=isPlayerSleeping 字节码 getfield a:Z 实锤；private int c=sleepTimer 经 L()Z=isPlayerFullyAsleep 的 a:Z&&c:I≥100 双读实锤），但 World(dt) 全类无任何 sleep 成员（updateAllPlayersSleepingFlag 未入世）——WorldOps.setSleep 的 require(worldSleepFlagM) 硬依赖无法满足，门控纪律 b1.5+ 与 listops 标注一致（sleep 完整链=b1.5_01 起）。"
   },
   "hooks": {
     "SAVE_WORLD": {
@@ -106,11 +106,11 @@
     "light6M": null,
     "observersF": null,
     "scatterClassG": null,
-    "invSizeM": null,
-    "invGetM": null,
-    "invSetM": null,
-    "teBurnF": null,
-    "teCookF": null,
+    "invSizeM": "a",
+    "invGetM": "c_",
+    "invSetM": "a",
+    "teBurnF": "a",
+    "teCookF": "c",
     "idCrops": null,
     "idSapling": null,
     "cropsRipeMeta": null,
@@ -169,10 +169,11 @@
     "playsound": "OK",
     "grow": "UNSUPPORTED",
     "genscatter": "UNSUPPORTED",
-    "getchest": "UNSUPPORTED",
-    "setchest": "UNSUPPORTED",
-    "getfurnace": "UNSUPPORTED",
-    "setfurnace": "UNSUPPORTED",
+    "getchest": "OK",
+    "setchest": "OK",
+    "getfurnace": "OK",
+    "setfurnace": "OK",
+    "sleep": "UNSUPPORTED",
     "getbiome": "OK",
     "invulnerable": "UNSUPPORTED",
     "kill": "OK",

@@ -8,7 +8,7 @@
   "provenance": {
     "evidence": "F6 退役执行批 T3-C（无头窗 2026-11-26）：docs/compatibility/verscan/b1.8.md（b1.8 实跑取证 2026-11-21，SHA1 双源对榫）逐段转写。本件=draft——运行时不激活（VersionRegistry 无 build18），供 F5 矩阵/后续转正批消费。",
     "mode": "transcribed-from-verscan",
-    "note": "转写戒律=只转详表明确钉面，未钉面 null/缺键入注。① 类树：World=rv/Entity=kj/EntityLiving=wd/EntityPlayer=sz/Inventory=ui/ItemStack=ul/Item=gb/EntityList=hy/GuiIngame=abj/WorldInfo=rl/Chunk=ia/Explosion=zf/EntityItem=ee/EntityCreature=tz(abstract)/EntityAgeable=um/TNTPrimed=ze/WorldClient=lg/SaveHandler=im/RegionFile=ql/WorldChunkManager=nu/BiomeGenBase=vh。② ⚠️ 冲突面挂起：b1.8.md §3 称天气浮值 B/C/D/E'✓同 173 字母'，但 build173 实钉 rainStrF=j/thunderStrF=l（fd 新字母）——F6 值漂移实锤又一例，本件 weather 浮值槽留 null 待 dump 复核，不借任何一方。③ 断代钉（详表 §2）：iframes by→aa（173=by 陷阱面）；setMetaSilent d→f；EntityList 类 q→hy + 查找方法 c→b（借 173 表即静默失效面）；biome 名字段 vh.l（173 锚=n——同字母异名陷阱）；Pig/Sheep 等 mob 类名未钉=槽 null（详表判'不可挂 mob 槽'）。④ 超面框架内容（region 定位表/天气四键语义/饥饿 kc 粗测/GameType 键面）仍归 b1.8.md 权威=暂不退役（f6-retirement-eval.md §4）。 ⑤ T8 批（无头窗 2026-11-26，真 jar javap 实测裁决，SHA1 对槫 3139e9c2）：⑤a 天气浮值面翻案——rv(World) 实测 protected float n/o/p/q 四连；⑰ 批（无头窗 2026-11-26 续，javap -c rv/rl）终裁：rl getter 字母洗牌=rl.o()Z→l:Z=isRaining、rl.m()Z→n:Z=isThundering（NBT 地面真值 raining→l/thundering→n 对榫，四版 dy/ei/rl/sx 同形），o 由 raining 斜坡驱动=rainStrength、q 由 thundering 驱动=thunderStrength、n/p=每 tick 先覆 prev 槽——⑤a 初钉 rainStrF=n/thunderStrF=p=prev 槽双错，终钉 o/q+wiSetRainM=b/wiSetThunderM=a（rl 全 public）；b1.8.md 的 B/C/D/E 行=**误记**（fd 非 World，其 B.. 字段全是 static acc 区块注册表）=F6 值漂移第三例实锤；⑤b biome 面翻正：rv.a()Lnu 实测（biomeWcmM=a ✓）+nu.a(II)Lvh 实测（biomeAtM=a，原留 null 因详表未钉现实测补）+vh.l=public String 实测；⑤c observers 候选 rv.z=protected List（未经字节码验证不钉，setmeta 维持判决）。"
+    "note": "转写戒律=只转详表明确钉面，未钉面 null/缺键入注。① 类树：World=rv/Entity=kj/EntityLiving=wd/EntityPlayer=sz/Inventory=ui/ItemStack=ul/Item=gb/EntityList=hy/GuiIngame=abj/WorldInfo=rl/Chunk=ia/Explosion=zf/EntityItem=ee/EntityCreature=tz(abstract)/EntityAgeable=um/TNTPrimed=ze/WorldClient=lg/SaveHandler=im/RegionFile=ql/WorldChunkManager=nu/BiomeGenBase=vh。② ⚠️ 冲突面挂起：b1.8.md §3 称天气浮值 B/C/D/E'✓同 173 字母'，但 build173 实钉 rainStrF=j/thunderStrF=l（fd 新字母）——F6 值漂移实锤又一例，本件 weather 浮值槽留 null 待 dump 复核，不借任何一方。③ 断代钉（详表 §2）：iframes by→aa（173=by 陷阱面）；setMetaSilent d→f；EntityList 类 q→hy + 查找方法 c→b（借 173 表即静默失效面）；biome 名字段 vh.l（173 锚=n——同字母异名陷阱）；Pig/Sheep 等 mob 类名未钉=槽 null（详表判'不可挂 mob 槽'）。④ 超面框架内容（region 定位表/天气四键语义/饥饿 kc 粗测/GameType 键面）仍归 b1.8.md 权威=暂不退役（f6-retirement-eval.md §4）。 ⑤ T8 批（无头窗 2026-11-26，真 jar javap 实测裁决，SHA1 对槫 3139e9c2）：⑤a 天气浮值面翻案——rv(World) 实测 protected float n/o/p/q 四连；⑰ 批（无头窗 2026-11-26 续，javap -c rv/rl）终裁：rl getter 字母洗牌=rl.o()Z→l:Z=isRaining、rl.m()Z→n:Z=isThundering（NBT 地面真值 raining→l/thundering→n 对榫，四版 dy/ei/rl/sx 同形），o 由 raining 斜坡驱动=rainStrength、q 由 thundering 驱动=thunderStrength、n/p=每 tick 先覆 prev 槽——⑤a 初钉 rainStrF=n/thunderStrF=p=prev 槽双错，终钉 o/q+wiSetRainM=b/wiSetThunderM=a（rl 全 public）；b1.8.md 的 B/C/D/E 行=**误记**（fd 非 World，其 B.. 字段全是 static acc 区块注册表）=F6 值漂移第三例实锤；⑤b biome 面翻正：rv.a()Lnu 实测（biomeWcmM=a ✓）+nu.a(II)Lvh 实测（biomeAtM=a，原留 null 因详表未钉现实测补）+vh.l=public String 实测；⑤c observers 候选 rv.z=protected List（未经字节码验证不钉，setmeta 维持判决）。⑱ TE/sleep 钉面批（无头窗 2026-11-26 续，真 jar javap 对榫 3139e9c2+b181 原生 tiny 双对）：gl=IInventory a()I=getSizeInventory/d_(I)Lul=getStackInSlot/a(ILul)V=setInventorySlotContents→invSizeM=a/invGetM=d_/invSetM=a（原 draft teInvSizeM=d/teInvGetM=a/teInvSetM=b **键名+值全错**=b1.8.md 记忆转写产物，F6 漂移第五例；键名同步归一 invSizeM 系）；aaa=TileEntityFurnace public int a=furnaceBurnTime/c=furnaceCookTime+private ul[] d（原 teBurnF=c/teCookF=j 全错→a/c）；fh=TileEntityChest private ul[] p 27 槽+public boolean a 撞 teBurnF=a（WorldOps.getFurnace int 类型门=181 同配方）；sleep 三槽=sz.aN protected boolean=sleeping/sz.a private int=sleepTimer/rv.y()V public=updateAllPlayersSleepingFlag（b1.8.1 全同形——116/117 类字节级全同判决+本版真 jar javap 双验）=capSleep=true。TE 四件+sleep UNSUPPORTED→OK（draft 无头钉面，活体效果待转正批/到包批）。"
   },
   "ops": {
     "setBlockM": "g",
@@ -65,11 +65,11 @@
     "biomeWcmM": "a",
     "biomeAtM": "a",
     "biomeNameF": "l",
-    "teInvSizeM": "d",
-    "teInvGetM": "a",
-    "teInvSetM": "b",
-    "teBurnF": "c",
-    "teCookF": "j",
+    "invSizeM": "a",
+    "invGetM": "d_",
+    "invSetM": "a",
+    "teBurnF": "a",
+    "teCookF": "c",
     "capWeather": true,
     "rainStrF": "o",
     "thunderStrF": "q",
@@ -80,7 +80,10 @@
     "capHunger": null,
     "capXp": null,
     "capEffect": null,
-    "capSleep": null
+    "capSleep": true,
+    "sleepFlagF": "aN",
+    "sleepTimerF": "a",
+    "worldSleepFlagM": "y"
   },
   "capabilities": {
     "setblock": "OK",
@@ -107,7 +110,11 @@
     "setgamemode": "UNCONFIRMED",
     "sethunger": "UNCONFIRMED",
     "setxp": "UNCONFIRMED",
-    "sleep": "UNSUPPORTED",
+    "sleep": "OK",
+    "getchest": "OK",
+    "setchest": "OK",
+    "getfurnace": "OK",
+    "setfurnace": "OK",
     "setmeta_silent": "OK"
   },
   "hooks": {
