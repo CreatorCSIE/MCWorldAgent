@@ -282,9 +282,14 @@ public final class WorldOps {
                 // 档位二：按表描述符分支（0327 (Z)V / 0618 ()V / 0629 (Liw;)V /
                 // a1.1.2_01 (Lnu;)V——el1121-1 翻案后同 0629 单引用型参形）。
                 // 参数类名从 desc 解析（"(Liw;)V"→"iw"、"(Lnu;)V"→"nu"），零表外新槽。
+                // b1.5_01 断代（W-6 批）：(ZLwr;)V 双参实体无包装——此前落入零参分支
+                // 静默错绑 et.a()Lwl;（WCM getter 同形陷阱），补双参分支响亮对榫。
                 String sd = T.saveWorldDesc;
                 saveWorld = ("(Z)V".equals(sd) || "(Z)Z".equals(sd))
                         ? wc.getDeclaredMethod(M_SAVE_WORLD, boolean.class)
+                        : sd != null && sd.startsWith("(ZL") && sd.endsWith(";)V")
+                        ? wc.getDeclaredMethod(M_SAVE_WORLD, boolean.class,
+                                Class.forName(sd.substring(3, sd.length() - 3)))
                         : sd != null && sd.startsWith("(L") && sd.endsWith(";)V")
                         ? wc.getDeclaredMethod(M_SAVE_WORLD, Class.forName(sd.substring(2, sd.length() - 3)))
                         : wc.getDeclaredMethod(M_SAVE_WORLD);
@@ -2379,6 +2384,10 @@ public final class WorldOps {
         Class<?>[] pt = saveWorld.getParameterTypes();
         if (pt.length == 0) {
             saveWorld.invoke(world);
+        } else if (pt.length == 2 && pt[0] == boolean.class) {
+            // b1.5_01 双参实体 (ZLwr;)V：第二参 null=无进度 UI
+            // （javap -c 实锤 wr null 守卫 ifnull@14/@30 两处齐全，游戏自身构造器尾亦裸传 null）
+            saveWorld.invoke(world, Boolean.FALSE, null);
         } else if (pt[0] == boolean.class) {
             saveWorld.invoke(world, Boolean.FALSE);
         } else {

@@ -102,6 +102,12 @@ public class FakeOps1501Test {
                 && ((Integer) pri(wi, "d")).intValue() == 3, "setspawn 写 dy.b/c/d");
         ok(WorldOps.getInfo(w).contains("time=1000 spawnX=1 spawnY=2 spawnZ=3"), "getinfo 回读");
 
+        // ---- save 双参腿（W-6：resolve (ZLwr;)V 分支 + invoke (false,null) 配方）----
+        WorldOps.saveWorld(w);
+        ok(((Integer) get(w, "saveCalls")).intValue() == 1, "saveWorld 绑定 et.a(ZLwr;)V 非 a()Lwl");
+        WorldOps.saveWorld(w);
+        ok(((Integer) get(w, "saveCalls")).intValue() == 2, "saveWorld 可重复触发");
+
         // ---- weather 双写（et private C/E 浮值 + dy l/n 旗标 setter b(Z)/a(Z)）----
         String wx = WorldOps.weather(w, true, false);
         ok(wx.contains("raining=true") && wx.contains("flag setters"), "weather 回显 " + wx);

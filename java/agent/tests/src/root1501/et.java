@@ -8,8 +8,9 @@
 //   a(III)I getBlockId、e(IIII)Z setBlockWithNotify、e(III)I getBlockMetadata、
 //   d(IIII)V setBlockMetadata、l(III)I getBrightness、h(III)Z、b(III)Lnx teGet、
 //   b(Lrj;)Z spawn、e(Lrj)V setEntityDead、o()List getLoadedEntityList、
-//   a(ZLwr;)V saveWorld 实体（无 1 参 public 包装——resolve() 零参分支命中 a()Lwl 同形
-//   不报错，save 面活体配方=后续批，本假件仅计数）、l()V World.tick（RUN_TICK note）。
+//   a(ZLwr;)V saveWorld 实体（无 1 参 public 包装——W-6 批 resolve() 已补 (ZL...;)V
+//   双参分支，save 腿 FakeOps1501Test 断言 (false,null) 配方；本假件仅计数）、
+//   l()V World.tick（RUN_TICK note）。
 public class et {
     public java.util.List b = new java.util.ArrayList();   // loadedEntityList
     public java.util.List d = new java.util.ArrayList();   // playerEntities（playerListF=d）
