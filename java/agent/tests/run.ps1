@@ -16,7 +16,7 @@ $O = Join-Path $env:TEMP 'mcaut\tests-out'
 Set-Location $agent
 
 if (Test-Path $O) { Remove-Item -Recurse -Force $O }
-foreach ($d in @('', 'a2out', 'a2out120', 'a2out1202', 'a2out1401', 'a2out1501', 'a2out173', 'a2out181', 'a2out19pre2', 'b5out', 'inj0618', 'storage_cls')) {
+foreach ($d in @('', 'a2out', 'a2out120', 'a2out1202', 'a2out1401', 'a2out1501', 'a2out16', 'a2out173', 'a2out181', 'a2out19pre2', 'b5out', 'inj0618', 'storage_cls')) {
   New-Item -ItemType Directory -Force (Join-Path $O $d) | Out-Null
 }
 
@@ -68,6 +68,7 @@ Compile-Trio '181' @('A2Table181Test', 'FakeOps181Test', 'InjectSmoke181Test')
 Compile-Trio '19pre2' @('A2Table19pre2Test', 'FakeOps19pre2Test', 'InjectSmoke19pre2Test')
 Compile-Trio '1501' @('A2Table1501Test', 'FakeOps1501Test')
 Compile-Trio '1401' @('A2Table1401Test', 'FakeOps1401Test')
+Compile-Trio '16' @('A2Table16Test', 'FakeOps16Test')
 
 # ---- B5 loader + snapshot tools + guard batch ----
 & "$J\javac.exe" -encoding UTF-8 -cp 'out\classes;libs\asm-9.7.jar' -d "$O\b5out" `
@@ -134,6 +135,12 @@ $cp1401 = "$O\a2out1401;out\classes;libs\asm-9.7.jar"
 foreach ($cls in @("com.mcworldagent.agent.A2Table1401Test",
                    "com.mcworldagent.agent.FakeOps1401Test")) {
   Invoke-Test $cls $cp1401 $cls @()
+}
+# b1.6 pair (JSON-only draft anchor, V-7 batch: weather/getbiome OK legs + 3 loud)
+$cp16 = "$O\a2out16;out\classes;libs\asm-9.7.jar"
+foreach ($cls in @("com.mcworldagent.agent.A2Table16Test",
+                   "com.mcworldagent.agent.FakeOps16Test")) {
+  Invoke-Test $cls $cp16 $cls @()
 }
 # B5 loader: dir branch + jar branch
 Invoke-Test 'B5LoaderTest(dir)' "$O\b5out;out\classes;libs\asm-9.7.jar" 'com.mcworldagent.agent.B5LoaderTest' @($jar)
