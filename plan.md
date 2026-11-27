@@ -1076,3 +1076,15 @@ Window 2026-11-27 executed W-1→W-5 (commits a42dc10 → 80a68f3 → acef6d6 �
 Exit criteria: run.ps1 all-green (new items included), one commit per W-item (author discipline), plan.md 14.3 ticked with commit hashes; anything blocked → leave annotated note, do not guess.
 
 Disciplines unchanged: live runs require per-batch user approval; evidence chains archived per run; protocol evolution goes through channel ledger only ("panel follows protocol"); no implicit world generation on read paths.
+
+### 14.4 无头窗 2026-11-27 V 批（5h 无人值守，V-1..V-5+收尾，全离线）
+
+戒律：零启动游戏、零触队列、卡点留注不猜、每件独立提交、**提交信息中文详账式**（用户纠偏后 project_memory.md 在案；h10 批 11 笔已推送英文不回改）。
+
+1. **V-1 b1.4_01 全草稿指纹表**：javap -p 全量 dump（9903 行/619 类块）+client.tiny 三级直钉→`b1.4_01.json`（11967B 草稿锚，>4096B 运行时不消费；ops 77 键/hooks 4/caps 42=37 OK+5 UNSUPPORTED）。核心钉值：World=eb/Entity=pb/EntityLiving=jm/EntityPlayer=fm/InventoryPlayer=hh/ItemStack=hi/Item=fg/EntityList=hj/GuiIngame=qv/WorldInfo=dj；getWorldInfoM=**w**（1501=x 同形陷阱）；isEntityAlive=**pb.U()Z**（边界批 N()Z 误判终判）；saveWorld=`a(ZLtw;)V` null 守卫 @14/@30；四大边界判决（天气/群系下界、Giant 未到世、worldTime 五版同形）。GuardTest 17→18 JSON 闸。→ **DONE fce2620**。
+2. **V-2 root1401 假件树+双测试**：假件 18 件（不建 tq 群系假件=判决②树侧自证；dj 无 boolean/eb 无 float=判决①负锚反射复核；fm 睡眠三槽全 private a/c/b）+ **A2Table1401Test 335 checks**（ops 全表+断代重点+hooks 四节+caps 双对榫+访问位 15 节）+ **FakeOps1401Test 45 checks**（sleep 四门 e→b→c→d+tick NPE+wake null-safe+setchest c_ 回环+oy 熔炉门+UNSUPPORTED 五件分道：四 require 槽名+weather capWeather Boolean 门）；新取证 fm_c.txt（四门/OK 尾/wake/tick/isInBed 全反汇编实锤，@111 lo.w_ super 回调 1401 实形）。run.ps1 35→**37 全绿**。→ **DONE 35de5d6**。
+3. **V-3 b1.4_01.md 调研批文档**：十节格式（四大边界判决成文+saveWorld 双参断代带下界=b1.4_01+isEntityAlive 勘误件+HUD 门 A 非 B 翻面账+存储链 W-8 下界前移 1401+活体判据预登记 §10+转正批欠账清单）；边界批 §2 isEntityAlive 误行改口。→ **DONE ed4ef2c**。
+4. **V-4 1501 活体脚本**：`%TEMP%\mcaut\smoke_h10_1501.ps1`（16 腿含 **getbiome 首测腿**+weather 双写+am() NPE 观测窗+save 双参配方；头注=1501 字母判决全引防借表）；**仅 DryRun**=DRYPARSE 16/16 PASS（零触队列、零启动）。b1.5_01.md §9「1501 活体批未建」欠账销记（剩余欠账=活体执行本身，窗口外另约）。→ **DONE badc154**。
+5. **V-5 b1.6 真 jar 复验（富余）**：javap -p 18 类+gq_c.txt 全量 -c（%TEMP%\mcaut\exp\b16\，SHA1=ecc0288d 对榫索引）→ 边界批 **§3.1**；**头号警示=sister 仓 b1.6 tiny 字段面 ≠ 真 jar**（Entity 系错位一位：worldObj aI→aH/pos aM..→aL..；gq 睡眠三槽 tiny u/a/v→真 jar u:Z/b:I/a:Lbp;——转正批以真 jar 为准）；+1/版规律复验严格成立；RUN_TICK=`k()V` 断代下界提前至 b1.6；主类六字段全洗牌；ChunkCoordinates=bp 补钉；iw 仅 (III)V/d_ 同 1501/群系链 jz.n/xm.a(II) 在位复验。→ **DONE f01be2c**。
+
+收尾终态：run.ps1 **37/37 GREEN**（A2Table1401 335/FakeOps1401 45 新增，GuardTest 102/StorageTest 60 无回归）；git status 残留恰 **14 件** EOL 噪音未混入（b1.9-pre2.json 禁改件未触）；队列零触碰、游戏零启动；V 批五笔提交全中文详账（fce2620→35de5d6→ed4ef2c→badc154→f01be2c，未 push）。
