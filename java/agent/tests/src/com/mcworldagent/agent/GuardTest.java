@@ -15,7 +15,7 @@ import java.util.TreeSet;
 /**
  * 守卫批（2026-11-25 自主窗口①）：把"产线宽容"关进笼子。
  * A. FingerprintLoader strict 入口=标记件坏必抛；生产 loadAll 宽容语义不变。
- * B. 13 JSON 闸：registry/fingerprints 全量盘点（件数/宽松 JSON 合法性/
+ * B. 18 JSON 闸：registry/fingerprints 全量盘点（件数/宽松 JSON 合法性/
  *    标记分布=2/标记件 buildOrThrow 全过/非标记件必拒 schema）。
  * C. buildOrThrow 负例十四连（unknown slot、sha 形态、钩六元组、mode 白名单…）。
  * D. MiniJson 边界断言：MAX_STRING=256（解码后）、深度≤2、整数子集、
@@ -79,7 +79,7 @@ public final class GuardTest {
         List<VersionTable> lenient = FingerprintLoader.loadAll();
         eq("lenient size", Integer.valueOf(2), Integer.valueOf(lenient.size()));
 
-        // ---------- B. 16 JSON 闸（扩版首波 +3 锚：b1.5_01/b1.9-pre2/b1.3_01） ----------
+        // ---------- B. 18 JSON 闸（扩版首波 +3 锚：b1.5_01/b1.9-pre2/b1.3_01；V-1 批 +1 锚：b1.4_01） ----------
         File[] all = fpDir.listFiles();
         List<File> jsons = new ArrayList<File>();
         for (File f : all) {
@@ -87,7 +87,7 @@ public final class GuardTest {
                 jsons.add(f);
             }
         }
-        eq("json count", Integer.valueOf(17), Integer.valueOf(jsons.size()));
+        eq("json count", Integer.valueOf(18), Integer.valueOf(jsons.size()));
         int marked = 0;
         for (File f : jsons) {
             String text = readUtf8(f);
