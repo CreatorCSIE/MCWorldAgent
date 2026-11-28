@@ -1110,7 +1110,11 @@ V-6..V-8 续账终态（用户「继续下一步，还没到截止时间」驱�
 - **N-1 `locate` op 立项（2026-11-28 剖树调研批，设计已钉死待实现）**：
   - 签名：`locate(kind=structure|biome, target=<village|mineshaft|stronghold|dungeon|biome名>, radius?=100)` → `{nearest:{x,z,dist}, candidates:[前N]}`；
   - 数据源（b1.8.1 混淆对榫表 18 项在位，client.tiny↔jar javap 全验）：structure=「`zo.e` HashMap 缓存快路 → 环展开反射 `zo.a(cx,cz)` canSpawn 补算（种子确定性=与游戏真生成 100% 一致，村庄 spacing32/salt10387312、矿井 nextInt(80) 判据）→ 要塞 `sd.g[3]` 直读」三合一，**最近语义与现代 26.3 `findNearestMapStructure` 同心环算法逐一对齐**；biome=环采样 `nu.func_35562_a`（GenLayer 纯种子函数，比现代更自由）+ `vh`/BiomeGenBase 静态实例 name 反查（getbiome 名字典复用）；
-  - 门控：三族=b1.8+（capLocate）；**dungeon/biome=a1.x+ 全代**（⚠️ 用户修正账：b1.8 前并非无结构——地牢 WorldGenDungeons=`cq` alpha 起就在，指纹=mobSpawner(52) 独占块）；
+  - 门控（**下确界实证批 2026-11-28，姊妹仓树面实锤**）：
+    · `locate biome` ≥ **a1.2.0**——`WorldChunkManager.java`+`getBiomeFromLookup` a1.2.0 首现（a1.1.2 零命中）；**与 getbiome 同数据源同下确界自洽（用户指正）→门控复用 biome 槽面零新门**；
+    · `locate structure(dungeon)` ≥ **inf-20100625-1917**——WorldGenDungeons 阶梯 624 no/625-1 no/**625-2 YES**（同日晚 build，jar inf-20100625-1917 在位；该版未转正=未来转正批顺带补 Infdev 锚）；已钉代中 0629/1121 起可用，0327/0618 在界下；
+    · `locate structure(村庄/矿井/要塞)` ≥ **b1.8**（MapGen 三族；625-1917~b1.7.3 区间=仅地牢，与「b1.8 前只有地牢」修正账自洽）；
+  - **Infdev~Beta 覆盖评估（同日批）**：产线 13 代≈全谱 51 版 26%（Infdev 4/~20、Alpha 2/~14、Beta 8/~17）——采样代表策略产物；活体=Beta 六代+Infdev 三件+pre3 药水面，**Alpha 家族锚零**；全覆盖=37 版 headless 三件套批产排期候选；
   - 关键判决（剖树实锤）：b1.8.1 结构**生成即弃零落盘**（五重证据，StructureStart 无 NBT 方法/区块键全集无结构项/无 VillageCollection/jar 常量池零命中）；**26.3 现代格式=区块 NBT `structures→starts→<资源ID>`+References LongArray（level.dat 不参与，"(cx,cz)" 键式属 1.16-1.18 旧格式）**；b1.8.1 无神庙（Temple 类零命中，沙岩=自然生成不可作指纹）；
   - 新表槽 ≈8（adp/zo/lu/mp/sd/nu/vh/cq）；W181 真盘指纹旁证在位（村庄 door4+planks148@chunk(-21,8)、矿井三例、要塞超探索圈符合预期）；
   - headless 备选=.mcr 指纹簇扫描（spawner/door/rail 判据，Python stdlib 原型 mcr_probe.py 已验）——视野=已探索区。
