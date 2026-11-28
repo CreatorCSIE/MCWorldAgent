@@ -185,6 +185,48 @@ public final class VersionTable {
     public String potionEffectCtorDesc; // 构造描述符 (III)V（id,durationTicks,amplifier 历代同形）
     public String xpOrbClassG;      // EntityXPOrb 类名（19pre2=bi——spawn 面后续，本批不消费）
 
+    // 药水活体落地批（2026-11-28，potiontest 消费；取证=姊妹仓 brewing-analysis 权威文档 +
+    // %TEMP%\mcaut\exp\potcmp\all-p2/all-p3.txt javap 全量逐类对榫，源签名↔混淆签名。
+    // ⚠️ 判决修正：本窗先前流转的"Potion=pre2 rz/pre3 sr、MobEffect=xe/yb"系误判——
+    // javap 实形 rz=光照/地形生成器类（afm/mq/ti 参数群+32 float 字段，非药水链）、
+    // xe=Entity 抽象基类（NBT 读写对+addMapping 静态）；真身 pre2 Potion=vt（既有表已钉）、
+    // pre3 Potion=wo、pre3 EntityLiving=yv（与 pre2 xx 字段面逐字母同构，bP 撞同字母）。
+    // 两版 PotionHelper 无 MobEffect 类（pre2/pre3 源码树均无 MobEffect.java）。
+    public Boolean capPotionTest;   // b1.9-pre2/pre3 专属（pre2 炼药锅位域模型+pre3 酿造台
+                                    // 同 PotionHelper 引擎；其余版本无此配方表=UNSUPPORTED 响亮）
+    public String potHelperClassG;  // PotionHelper 类名（pre2=go / pre3=gv——特征：static
+                                    // HashMap×2 + static String[] + 表达式解释器
+                                    // a(String,int,int,int)I + 位补丁 a(int,String)I）
+    public String potDddM;          // dd_d 混淆方法名（pre2=go.d / pre3=gv.a——返回 List、
+                                    // 首参 int damage；pre2 源 dd_d(int)，pre3 重构为
+                                    // aaaa_Aaa_(int,boolean) 增坏效果过滤参）
+    /** dd_d 描述符（档位二·签名差异：pre2 "(I)Ljava/util/List;" / pre3 "(IZ)Ljava/util/List;"）。 */
+    public String potDddDesc;
+    public String potReqMapF;       // PotionHelper.potionRequirements 字段名（声明首位；
+                                    // pre2=go.a 静态块 20 put / pre3=gv.j 8 put——
+                                    // reqTableSize=20/8 判决指纹，potcmp javap -c 逐 put 计数实锤）
+    public String itemPotionClassG; // ItemPotion 类名（pre2=dn / pre3=do——特征：extends
+                                    // Item(uk/vf) + effectCache HashMap + getEffects 尾下划线
+                                    // a_(wc)/a_(wy)List，dn.a_ 体 invokestatic go.d、
+                                    // do.b_ 体 invokestatic gv.a(IZ) 直接对榫）
+    public String itemPotionOnEatM; // onFoodEaten 方法名（pre2=dn.b(wc,ti,uo)Lwc; /
+                                    // pre3=do.b(wy,uc,vj)Lwy;——体首串 stackSize--(wc.a/wy.a
+                                    // isub)+multiplayerWorld 门(ti.I/uc.I)+addPotionEffect
+                                    // (uo.a/yv.a)+glassBottle(uk.bt/vf.bt) 四锚全中；
+                                    // a(wc,ti,uo)/a(wy,uc,vj) 同形=onItemRightClick 陷阱
+                                    // （体仅 setItemInUse），按方法体非字母序钉）
+    public String itemStackClassG;  // ItemStack 类名（pre2=wc / pre3=wy——potiontest 直构
+                                    // (III)V 用，免依赖物品栏面槽=pre3 最小转正可独立跑）
+    public String potionItemF;      // Item.potion 静态字段名（pre2=uk.bs / pre3=vf.bs
+                                    // **Ldo;** 收窄型实锤——dn.getRecord/do.getRecord 体
+                                    // getstatic bs checkcast 同位对榫；onFoodEaten 实例源）
+    public String peIdM;            // PotionEffect.getPotionID()I（pre2=afk.a / pre3=agp.a——
+                                    // getRecord 体 wo.a/vt.a 数组索引参=本 getter 对榫）
+    public String peDurM;           // PotionEffect.getPotionDuration()I（pre2=afk.b / pre3=
+                                    // agp.b——getRecord "duration>20" 比较参对榫）
+    public String peAmpM;           // PotionEffect.getPotionAmplifier()I（pre2=afk.c /
+                                    // pre3=agp.c——getRecord "potion.potency." 拼接参对榫）
+
     // D11 饥饿面（b1.8+；sethunger 消费。取证=src-minecraft-beta-1.8.1 树 FoodStats.java
     // 直读：field_35776_a=foodLevel(int 0..20,NBT"foodLevel")/field_35774_b=saturation
     // (float,NBT"foodSaturationLevel")/field_35775_c=exhaustion(float,NBT"foodExhaustionLevel")/

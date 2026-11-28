@@ -5,6 +5,9 @@
 #   B5LoaderTest x2 branches (classes-dir + jar resources), 218 assertions each
 #   HookSnapshot byte-compare vs baseline\hook-snapshot.txt (9 hardcoded groups)
 #   storage module StorageTest (skipped if java\storage\out\classes absent)
+#   A2Table19pre3Test (potion live-landing batch 2026-11-28: b1.9-pre3-1402 minimal
+#   promotion - SHA1 reverse + potion-chain slots vs T1 forensics + TARGETS_19pre3
+#   six-tuples + pre2 chain recheck + gate boundary; no JSON anchor, no fakes)
 # All compile output goes to %TEMP%\mcaut\tests-out\ (repo stays artifact-free).
 # Agent sources are compiled to java\agent\out\classes (gitignored build dir),
 # same as build.ps1 / the original per-batch runners.
@@ -16,7 +19,7 @@ $O = Join-Path $env:TEMP 'mcaut\tests-out'
 Set-Location $agent
 
 if (Test-Path $O) { Remove-Item -Recurse -Force $O }
-foreach ($d in @('', 'a2out', 'a2out120', 'a2out1202', 'a2out1401', 'a2out1501', 'a2out16', 'a2out173', 'a2out181', 'a2out19pre2', 'b5out', 'inj0618', 'storage_cls')) {
+foreach ($d in @('', 'a2out', 'a2out120', 'a2out1202', 'a2out1401', 'a2out1501', 'a2out16', 'a2out173', 'a2out181', 'a2out19pre2', 'a2out19pre3', 'b5out', 'inj0618', 'storage_cls')) {
   New-Item -ItemType Directory -Force (Join-Path $O $d) | Out-Null
 }
 
@@ -148,6 +151,11 @@ foreach ($cls in @("com.mcworldagent.agent.A2Table16Test",
                    "com.mcworldagent.agent.InjectSmoke16Test")) {
   Invoke-Test $cls $cp16 $cls @()
 }
+# b1.9-pre3-1402 minimal promotion (potion batch 2026-11-28): standalone single test
+& "$J\javac.exe" -encoding UTF-8 -cp 'out\classes;libs\asm-9.7.jar' -d "$O\a2out19pre3" `
+  "$T\src\com\mcworldagent\agent\A2Table19pre3Test.java"
+if ($LASTEXITCODE -ne 0) { throw 'A2Table19pre3Test javac failed' }
+Invoke-Test 'A2Table19pre3Test' "$O\a2out19pre3;out\classes;libs\asm-9.7.jar" 'com.mcworldagent.agent.A2Table19pre3Test' @()
 # B5 loader: dir branch + jar branch
 Invoke-Test 'B5LoaderTest(dir)' "$O\b5out;out\classes;libs\asm-9.7.jar" 'com.mcworldagent.agent.B5LoaderTest' @($jar)
 Invoke-Test 'B5LoaderTest(jar)' "$O\b5out;$jar;libs\asm-9.7.jar" 'com.mcworldagent.agent.B5LoaderTest' @($jar)

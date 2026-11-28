@@ -39,6 +39,7 @@ public final class VersionRegistry {
     private static final VersionTable T_173 = build173();
     private static final VersionTable T_181 = build181();
     private static final VersionTable T_19pre2 = build19pre2();
+    private static final VersionTable T_19pre3 = build19pre3();
     private static final VersionTable T_1501 = build1501();
     private static final VersionTable T_1401 = build1401();
     private static final VersionTable T_16 = build16();
@@ -47,7 +48,7 @@ public final class VersionRegistry {
     private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
 
     static {
-        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202, T_173, T_181, T_19pre2, T_1501, T_1401, T_16 };
+        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202, T_173, T_181, T_19pre2, T_19pre3, T_1501, T_1401, T_16 };
         for (VersionTable t : tables) {
             BY_ID.put(t.versionId, t);
             BY_SHA1.put(t.jarSha1, t);
@@ -1266,6 +1267,34 @@ public final class VersionRegistry {
         t.potionEffectCtorDesc = "(III)V"; // (id,durationTicks,amplifier)
         t.xpOrbClassG = "bi";     // EntityXPOrb（spawn 面后续批）
 
+        // 药水活体落地批（2026-11-28，potiontest 消费；取证=potcmp all-p2.txt javap 全量
+        // 逐类对榫，源签名↔混淆签名——判决注释详 VersionTable 药水链段头注）。
+        // PotionHelper=go（static HashMap a/b+String[] c+解释器 a(String,III)I 全形同构；
+        // dd_d=d(I)Ljava/util/List; 由 dn.a_ 体 invokestatic go.d 直接对榫；静态块 a 收
+        // 20 put/b 收 7 put=potionRequirements/potionAmplifiers 声明序对榫）。
+        // ItemPotion=dn（extends uk；onFoodEaten=**b** 非 a——b 体 stackSize--/ti.I 门/
+        // new afk(Lafk;)V 拷贝构造/uo.a(Lafk;)V 挂载/uk.bt glassBottle 五锚全中；
+        // a(wc,ti,uo) 同形=onItemRightClick 陷阱，体仅 uo.c(Lwc;I)V setItemInUse）。
+        // PotionEffect=afk 三 getter a/b/c（dn.getRecord 体对榫：a()=vt.a[] 索引、
+        // b()=duration>20、c()=potion.potency 拼接）。cauldron 存在性（不入槽，留档）：
+        // TileEntityCauldron=yf（extends je，双 private int+clickedOnCauldron a(wc)Z+
+        // uk.e itemsList 直引）/BlockCauldron=to（extends abv BlockContainer，d()I=24
+        // 渲染型+o_()Lje; new yf+blockActivated 状态机——**无 <init>**=从未实例化死代码，
+        // 权威文档 §6"无方块 ID"实锤）；"Cauldron" 字符串全 jar 仅 je@78 一处（TileEntity
+        // addMapping 注册面）。
+        t.capPotionTest = Boolean.TRUE;
+        t.potHelperClassG = "go";
+        t.potDddM = "d";
+        t.potDddDesc = "(I)Ljava/util/List;";
+        t.potReqMapF = "a";        // go.a=potionRequirements（size=20 判决指纹）
+        t.itemPotionClassG = "dn";
+        t.itemPotionOnEatM = "b";
+        t.itemStackClassG = "wc";
+        t.potionItemF = "bs";      // uk.bs=Item.potion（dn.getRecord getstatic 对榫）
+        t.peIdM = "a";             // afk 三 getter 同 pre3 agp 字母（getRecord 体逐锚）
+        t.peDurM = "b";
+        t.peAmpM = "c";
+
         // D11 饥饿面（19pre2 转正批补钉——锚件 ops 段原缺，tiny L4896 块实锤：
         // uo.av()Lla;=getFoodStats（tiny L9418；⚠️181=at()Lkc 断代）；
         // la 字段面 a=foodLevel:I(默认 20)/b=foodSaturationLevel:F/c=foodExhaustion:F/
@@ -1311,6 +1340,88 @@ public final class VersionRegistry {
         t.capGamemode = Boolean.TRUE;
         t.gameTypeF = "p";        // sx.p=gameType private int
 
+        return t;
+    }
+
+    /** b1.9-pre3-1402 内建表——G3 家族第 4 例（药水活体落地批 2026-11-28 **最小转正**，
+     *  非全 76 槽：仅钉 potiontest 依赖面（药水链 12 槽+效果回读面+worldPlayer 取玩家链）
+     *  与身份三元组；其余槽 null=对应 op 响亮 UNSUPPORTED，后续批按取证补钉。
+     *  取证=potcmp all-p3.txt javap 全量逐类对榫（%APPDATA%\.attic\versions\
+     *  b1.9-pre3-1402.jar sha1=5b7fe76a… 本窗 Get-FileHash 实算对榫）；
+     *  mainClass=net.minecraft.client.Minecraft 不混淆（TARGETS_19pre3 类名即证，
+     *  VersionTable 无 mainClass 槽——launcher 侧由 versionId 解析）。 */
+    private static VersionTable build19pre3() {
+        VersionTable t = new VersionTable();
+        t.versionId = "b1.9-pre3-1402";   // launcher id 对齐（attic 文件名同源）
+        t.family = "G3";
+        t.jarSha1 = "5b7fe76a602b7511c97740e36dc25040ccb6e76b"; // Get-FileHash 实算
+
+        // ===== 药水链全钉（T1 取证，判决注释详 VersionTable 药水链段）=====
+        // PotionHelper=gv：static String×9+potionRequirements/potionAmplifiers 双 HashMap
+        // (j/k)+String[] l+解释器 a(String,III)I 全形同构；dd_d 重构为 aaaa_Aaa_(int,
+        // boolean)→混淆 **a(IZ)Ljava/util/List;**（do.b_ 体 invokestatic gv.a:(IZ) 直接
+        // 对榫，iconst_0=非坏效果门）。静态块 j 收 8 put/k 收 7 put——**reqTableSize=8
+        // 判决指纹**（vs pre2=20，配方表 one-hot 重构的表尺寸证据）。
+        t.capPotionTest = Boolean.TRUE;
+        t.potHelperClassG = "gv";
+        t.potDddM = "a";
+        t.potDddDesc = "(IZ)Ljava/util/List;";
+        t.potReqMapF = "j";       // gv.j=potionRequirements（声明序：9 常量串后首位）
+        // ItemPotion=do（extends vf=Item）；onFoodEaten=**b(wy,uc,vj)Lwy;**——b 体
+        // wy.a isub(stackSize--)/uc.I(multiplayerWorld)/new agp(Lagp;)V 拷贝构造/
+        // vj.a(Lagp;)V 挂载/vf.bt glassBottle 五锚与 pre2 dn.b 逐指令同构；
+        // a(wy,uc,vj) 同形=onItemRightClick 陷阱（体仅 b(wy)I+vj.c(Lwy;I)V）。
+        t.itemPotionClassG = "do";
+        t.itemPotionOnEatM = "b";
+        t.itemStackClassG = "wy";
+        t.itemClassG = "vf";      // Item 类名（vf[]=e itemsList 注册表+bs/bt 字段面与
+                                  // pre2 uk 逐字母同构——do extends vf 声明即证）
+        t.potionItemF = "bs";     // vf.bs=Item.potion **Ldo;** 收窄声明=类字双证
+        t.peIdM = "a";            // agp 三 getter 与 pre2 afk 撞同字母（do.getRecord 体
+        t.peDurM = "b";           // a()=wo.a[] 索引/b()=duration>20/c()=potency 逐锚对榫）
+        t.peAmpM = "c";
+
+        // ===== 效果回读面（potiontest readback=activePotionsMap 遍历依赖）=====
+        // EntityLiving=yv（与 pre2 xx 字段面逐字母同构：bP=activePotionsMap **撞同字母**
+        // protected HashMap；addPotionEffect=a(Lagp;)V；removePotionEffect=i(I)V；
+        // isPotionActive=a(Lwo;)Z；getPotionEffect=b(Lwo)Lagp;——yv 全类声明比对实锤）。
+        // Potion=wo（wo[] a=potionTypes 32 槽+protected wo(IZI)V+static a(Lagp;)String——
+        // 与 pre2 vt 同构，pre3 新增 L/M/N 三字段=effectiveness 面）。
+        t.capEffect = Boolean.TRUE;
+        t.addEffectM = "a";
+        t.addEffectDesc = "(Lagp;)V";
+        t.removeEffectM = "i";
+        t.effectsMapF = "bP";
+        t.potionClassG = "wo";
+        t.potionEffectClassG = "agp";
+        t.potionEffectCtorDesc = "(III)V";   // agp(int,int,int) 声明序首构对榫
+
+        // ===== worldPlayer 取玩家链（potiontest applied 段依赖）=====
+        t.playerListF = "i";     // uc.i=playerEntities——uc.a(Llu;)Z 实体入列体内
+                                 // instanceof vj→checkcast→getfield i→List.add 与 pre2
+                                 // ti.a(Llh;)Z 逐指令同构（本窗 javap -c 对榫，非猜字母）
+        t.entityClassG = "lu";   // Entity 抽象基类（yv extends lu 声明即证）
+
+        // ===== 钩面所需（TARGETS_19pre3 对榫，HookTargets 消费非本表槽，此处留档注释）：
+        // SAVE_WORLD=uc.a(Lpr;)V public（体 iconst_1→a(ZLpr;)V 核心=pre2 ti.a(Lpd;)V
+        //   同包装配方；pr=IProgressUpdate）
+        // LOAD_WORLD=Minecraft.a(Luc;Ljava/lang/String;Lvj;)V public 3 参实体
+        // RUN_TICK=Minecraft.k()V public（体首串 z()V→kg.a→ago.d→aeo.a()V→kd.a(F)V→
+        //   uc.w()Lbi; 与 pre2 k() 的 z/afj.d/adm.a/jt.a/ti.w 调用序列同构；i/j 为
+        //   初始化小体排除）
+        // HUD_RENDER=aeo.a(FZII)V public（aeo extends mr+ctor aeo(Minecraft)=pre2 adm
+        //   同形；k() 体调用 a(FZII)V 实锤）
+        // cauldron 存在性（不入槽，留档）：TileEntityCauldron **已删**——jm 子类无
+        // 双 int+clickedOnCauldron 同形类，且 TileEntity.java L128 addMapping
+        // (TileEntityBrewingStand.class,"Cauldron")（映射名保留换指向类）；
+        // BlockCauldron=ui（extends nd 非 abv！pre3 降级为元数据方块：ui(int)→
+        // nd(int,yr.f=iron)+154 纹理、d()I=24、a(II)I=138/155/154、b(uc,iii,vj)Z
+        // 简化 bucketWater/glassBottle 元数据状态机、0.3125f/0.125f 包围盒）；
+        // 补注册面实锤：nd@4045 ldc "cauldron"（Block.java L141 setBlockName）+
+        // vf@3348 ldc "cauldron"（Item.java L133 Item.cauldron=ItemReed(118)）。
+
+        // 其余槽（物品栏/方块表/世界目录/实体列表/经验饥饿面等）本批未取证——
+        // 保持 null，对应 op 经 require()/resolve() 响亮 UNSUPPORTED。
         return t;
     }
 

@@ -61,7 +61,9 @@ public final class CommandChannel {
                     // D14 读面扩展（b1.8+ 门控，复用 xp/hunger 已钉字段）
                     "getxp", "gethunger",
                     // T2 sleep 面（无头窗 2026-11-26，b1.5+ 门控，pre2 首钉）
-                    "sleep"));
+                    "sleep",
+                    // 药水活体落地批（2026-11-28，b1.9-pre2/pre3 门控 capPotionTest）
+                    "potiontest"));
 
     /** op 自表面（op=listops，agent 侧零游戏调用）：与 runOp 分支同步维护。包内可见=守卫批一致性直测面。 */
     static final String LISTOPS =
@@ -99,6 +101,7 @@ public final class CommandChannel {
           + "getxp r[b1.8+ gated capXp;level/xp/total/score];"
           + "gethunger r[b1.8+ gated capHunger;food/sat];"
           + "sleep(on bool,x,y,z)w[b1.5+ gated capSleep;on=sleepInBedAt(bed coords,night+dist+provider gates),off=wakeUpPlayer];"
+          + "potiontest(damage0..32767)r[b1.9-pre2/pre3 gated capPotionTest;predicted=dd_d,applied=onFoodEaten,readback=activePotionsMap,reqTableSize];"
           + "getbiome(x,z)r[a1.2.0+;beta 前版本 UNSUPPORTED]";
 
     private static String cmdDirArg;
@@ -612,6 +615,12 @@ public final class CommandChannel {
         }
         if ("gethunger".equals(c.op)) {
             return WorldOps.getHunger(world);
+        }
+        // 药水活体落地批（2026-11-28）：三段回包 predicted/applied/readback+reqTableSize，
+        // 只读观察不存盘（saveSuffix 忽略）；damage 域校验在 WorldOps.potionTest 内。
+        if ("potiontest".equals(c.op)) {
+            int damage = intArg(a, "damage");
+            return WorldOps.potionTest(world, damage);
         }
         if ("listops".equals(c.op)) {
             return LISTOPS; // agent 侧自省，零游戏调用（世界未捕获仍 not-ready——v1 从简）

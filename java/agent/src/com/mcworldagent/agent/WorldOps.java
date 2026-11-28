@@ -1966,6 +1966,154 @@ public final class WorldOps {
         return "removeeffect id=" + id;
     }
 
+    // ===== 药水活体落地批（2026-11-28，potiontest 消费；槽取证详 VersionTable 药水链段）=====
+    private static final Boolean CAP_POTION_TEST = VersionRegistry.current().capPotionTest;
+    private static final String G_POT_HELPER = VersionRegistry.current().potHelperClassG;
+    private static final String M_POT_DDD = VersionRegistry.current().potDddM;
+    private static final String D_POT_DDD = VersionRegistry.current().potDddDesc;
+    private static final String F_POT_REQ = VersionRegistry.current().potReqMapF;
+    private static final String G_ITEM_POTION = VersionRegistry.current().itemPotionClassG;
+    private static final String M_ITEM_POTION_EAT = VersionRegistry.current().itemPotionOnEatM;
+    private static final String G_ITEM_STACK = VersionRegistry.current().itemStackClassG;
+    private static final String F_POTION_ITEM = VersionRegistry.current().potionItemF;
+    private static final String F_EFFECTS_MAP = VersionRegistry.current().effectsMapF;  // bP 回读面
+    private static final String M_PE_ID = VersionRegistry.current().peIdM;
+    private static final String M_PE_DUR = VersionRegistry.current().peDurM;
+    private static final String M_PE_AMP = VersionRegistry.current().peAmpM;
+    /** Item.potion 固定 id（两版同值 373，反编译源 Item.java 直钉）。 */
+    private static final int ITEM_POTION_ID = 373;
+
+    /**
+     * potiontest(damage)：药水链三段回包（predicted/applied/readback）。
+     * ①predicted——反射 PotionHelper.dd_d(damage)（pre2=go.d(I)/pre3=gv.a(IZ) 传 false
+     *   与 ItemPotion.getEffects 同参，两径同构）取预测效果表；
+     * ②applied——new ItemStack(373,1,damage) + Item.potion.onFoodEaten(stack,world,
+     *   player) 反射直调=程序化喝药（pre2=dn.b/pre3=do.b，五锚方法体对榫；
+     *   onItemRightClick 同形陷阱已按方法体排除）；
+     * ③readback——activePotionsMap（bP，两版撞同字母）遍历=实际挂载终态。
+     * 判决点=applied 后 bP 立即含 predicted 效果（onFoodEaten 走引擎非查表）。
+     * damage 校验 0..32767（ItemStack damage 域）；版本门控 capPotionTest。
+     * 游戏线程调用（经 CommandChannel）。 */
+    public static String potionTest(Object world, int damage) throws Exception {
+        if (!Boolean.TRUE.equals(CAP_POTION_TEST)) {
+            throw new UnsupportedOp("potiontest: version-gated b1.9-pre2/pre3 (capPotionTest unset for "
+                    + T.versionId + ")");
+        }
+        require("potHelperClassG", G_POT_HELPER);
+        require("potDddM", M_POT_DDD);
+        require("potReqMapF", F_POT_REQ);
+        require("itemPotionClassG", G_ITEM_POTION);
+        require("itemPotionOnEatM", M_ITEM_POTION_EAT);
+        require("itemStackClassG", G_ITEM_STACK);
+        require("potionItemF", F_POTION_ITEM);
+        require("peIdM", M_PE_ID);
+        require("peDurM", M_PE_DUR);
+        require("peAmpM", M_PE_AMP);
+        require("effectsMapF", F_EFFECTS_MAP);
+        if (damage < 0 || damage > 32767) {
+            throw new Rejected("damage-out-of-range [0,32767]: " + damage);
+        }
+        Object p = worldPlayer(world);
+        if (p == null) {
+            throw new Rejected("no-player");
+        }
+        // ①predicted：dd_d 混淆方法字按 potDddDesc 档位二分流（(I)=pre2 / (IZ)=pre3）
+        Class<?> helper = Class.forName(G_POT_HELPER);
+        java.lang.reflect.Method ddd;
+        Object[] dargs;
+        if (D_POT_DDD != null && D_POT_DDD.indexOf('Z') >= 0) {
+            ddd = helper.getMethod(M_POT_DDD, int.class, boolean.class);
+            dargs = new Object[] { Integer.valueOf(damage), Boolean.FALSE };
+        } else {
+            ddd = helper.getMethod(M_POT_DDD, int.class);
+            dargs = new Object[] { Integer.valueOf(damage) };
+        }
+        Object pred = ddd.invoke(null, dargs);
+        // reqTableSize 判决指纹（pre2=20/pre3=8——one-hot 重构表尺寸）
+        java.lang.reflect.Field reqF = helper.getDeclaredField(F_POT_REQ);
+        reqF.setAccessible(true);
+        int reqSize = ((java.util.Map<?, ?>) reqF.get(null)).size();
+        // ②applied：直构 ItemStack(373,1,damage) + Item.potion.onFoodEaten 反射直调
+        Class<?> stackCls = Class.forName(G_ITEM_STACK);
+        Object stack = stackCls.getConstructor(int.class, int.class, int.class)
+                .newInstance(Integer.valueOf(ITEM_POTION_ID), Integer.valueOf(1), Integer.valueOf(damage));
+        require("itemClassG", T.itemClassG);   // Item.potion 静态字段宿主（pre2=uk/pre3=vf）
+        Object potionItem = Class.forName(T.itemClassG).getField(F_POTION_ITEM).get(null);
+        java.lang.reflect.Method eat = null;
+        for (java.lang.reflect.Method m : potionItem.getClass().getMethods()) {
+            if (!m.getName().equals(M_ITEM_POTION_EAT) || m.getParameterTypes().length != 3) {
+                continue;
+            }
+            Class<?>[] pt = m.getParameterTypes();
+            if (pt[0].isInstance(stack) && pt[1].isInstance(world) && pt[2].isInstance(p)) {
+                eat = m;
+                break;
+            }
+        }
+        if (eat == null) {
+            throw new UnsupportedOp("onFoodEaten-method-not-found " + M_ITEM_POTION_EAT
+                    + " on " + potionItem.getClass().getName());
+        }
+        Object consumed = eat.invoke(potionItem, stack, world, p);
+        // ③readback：activePotionsMap 遍历（bP protected——沿父链找声明类）
+        java.util.Map<?, ?> bP = null;
+        for (Class<?> c = p.getClass(); c != null && bP == null; c = c.getSuperclass()) {
+            try {
+                java.lang.reflect.Field f = c.getDeclaredField(F_EFFECTS_MAP);
+                f.setAccessible(true);
+                bP = (java.util.Map<?, ?>) f.get(p);
+            } catch (NoSuchFieldException nsf) {
+                // 继续沿父链（EntityLiving 声明面）
+            }
+        }
+        if (bP == null) {
+            throw new UnsupportedOp("activePotionsMap-field-not-found " + F_EFFECTS_MAP
+                    + " on " + p.getClass().getName());
+        }
+        return "potiontest damage=" + damage
+                + " predicted=" + formatEffects(pred)
+                + " applied=" + (consumed == null ? "null" : "stack")
+                + " readback=" + formatEffectsMap(bP)
+                + " reqTableSize=" + reqSize;
+    }
+
+    /** PotionEffect 列表序列化 [{id/dur/amp}]（getter 字母钉表，两版 a/b/c 撞同字母）。 */
+    private static String formatEffects(Object list) throws Exception {
+        StringBuilder sb = new StringBuilder("[");
+        if (list instanceof java.util.List) {
+            for (Object e : (java.util.List<?>) list) {
+                if (sb.length() > 1) {
+                    sb.append(',');
+                }
+                sb.append('{').append(effectTriple(e)).append('}');
+            }
+        }
+        return sb.append(']').toString();
+    }
+
+    /** activePotionsMap 序列化（键=Integer potion id，值=PotionEffect——两版同构）。 */
+    private static String formatEffectsMap(java.util.Map<?, ?> map) throws Exception {
+        StringBuilder sb = new StringBuilder("[");
+        for (java.util.Map.Entry<?, ?> en : map.entrySet()) {
+            if (sb.length() > 1) {
+                sb.append(',');
+            }
+            sb.append('{').append(en.getKey()).append(':').append(effectTriple(en.getValue())).append('}');
+        }
+        return sb.append(']').toString();
+    }
+
+    /** PotionEffect 三元组 id/duration/amplifier（getRecord 体逐锚对榫的三 getter）。 */
+    private static String effectTriple(Object effect) throws Exception {
+        if (effect == null) {
+            return "null";
+        }
+        Class<?> ec = effect.getClass();
+        return String.valueOf(ec.getMethod(M_PE_ID).invoke(effect)) + '/'
+                + String.valueOf(ec.getMethod(M_PE_DUR).invoke(effect)) + '/'
+                + String.valueOf(ec.getMethod(M_PE_AMP).invoke(effect));
+    }
+
     /**
      * 饥饿直写（op=sethunger，D11 门控，案卷 §6.1：b1.8+ FoodStats 挂 EntityPlayer）。
      * 门=capHunger。配方=sz.at()Lkc; 取 FoodStats 实例 → getDeclaredField+setAccessible

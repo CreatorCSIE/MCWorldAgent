@@ -361,6 +361,36 @@ public final class HookTargets {
     };
 
     /**
+     * b1.9-pre3-1402 钩组（Beta 1.9 pre-release 3，药水活体落地批 2026-11-28 最小转正）。
+     * 取证=%TEMP%\mcaut\exp\potcmp\all-p3.txt javap 全量，按 pre2 ti/pd/uo/adm 同族
+     * 签名匹配逐字对榫（非字母规律猜）：
+     * SAVE_WORLD：uc.a(Lpr;)V public 包装（体 iconst_1→a(ZLpr;)V 核心委托=pre2
+     * ti.a(Lpd;)V 同包装配方实锤；uc=World 特征四参构造 uc(agr,String,agk,em)+
+     * 切片构造 uc(uc,agk)；IProgressUpdate pd→**pr** 断代）。
+     * LOAD_WORLD：Minecraft.a(Luc;Ljava/lang/String;Lvj;)V public 0x0001——3 参实体
+     * （2 参壳 a(Luc;Ljava/lang/String;)V 同在，pre2 陷阱教训复用=按实体钉）；
+     * 注入位=EXIT，slot1=活体 World。
+     * RUN_TICK：Minecraft.k()V public（判决法=体首调用序列与 pre2 k() 对榫：
+     * z()V→ago.d()V→aeo.a()V→kd.a(F)V→uc.w()Lbi; 五连同构 pre2 的
+     * z/afj.d/adm.a/jt.a/ti.w；i()V/j()V 为初始化小体排除——本窗 javap -c 实锤）。
+     * HUD_RENDER：aeo.a(FZII)V public EXIT（aeo extends mr+唯一构造 aeo(Minecraft)
+     * =pre2 adm 同形；Minecraft.k() 体 invokevirtual aeo.a:(FZII)V 调用点实锤；
+     * GuiIngame adm→**aeo** 断代）。
+     * 省略：WORLD_CTOR（uc 构造族=(agr,String,agk,em) 系，dir 面走 cmd=，
+     * 173/181/pre2 先例）、LOAD_CHUNK/GEN_HEIGHT/GIANT_CTOR（同族判决免钉）。
+     */
+    public static final Target[] TARGETS_19pre3 = {
+        new Target("uc", "a", "(Lpr;)V",
+                0x0001, 1, ENTRY, SAVE_WORLD, "World.saveWorld(progress) public wrapper"),
+        new Target("net/minecraft/client/Minecraft", "a", "(Luc;Ljava/lang/String;Lvj;)V",
+                0x0001, 1, EXIT, LOAD_WORLD, "Minecraft.changeWorld(World,String,EntityPlayer)"),
+        new Target("net/minecraft/client/Minecraft", "k", "()V",
+                0x0001, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
+        new Target("aeo", "a", "(FZII)V",
+                0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
+    };
+
+    /**
      * b1.5_01 钩组（Beta 1.5_01，活体批转正 2026-11-28）。
      * 锚库 java/agent/registry/fingerprints/b1.5_01.json hooks 段四节对榫
      * （A2Table1501Test 六元组断言在案）；取证=%TEMP%\mcaut\exp\b1501\。
@@ -459,6 +489,7 @@ public final class HookTargets {
         GROUPS.put("b1.7.3", TARGETS_173);
         GROUPS.put("b1.8.1", TARGETS_181);
         GROUPS.put("b1.9-pre2", TARGETS_19pre2);
+        GROUPS.put("b1.9-pre3-1402", TARGETS_19pre3);
         GROUPS.put("b1.5_01", TARGETS_1501);
         GROUPS.put("b1.4_01", TARGETS_1401);
         GROUPS.put("b1.6", TARGETS_16);
