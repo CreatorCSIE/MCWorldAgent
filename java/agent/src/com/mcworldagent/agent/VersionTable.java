@@ -24,7 +24,10 @@ public final class VersionTable {
     // World 写读面
     public String setBlockM;        // setBlockWithNotify (IIII)Z
     public String getBlockM;        // getBlockId (III)I
-    public String saveWorldM;       // saveWorld（0327 (Z)V / 0618 ()V——签名漂移见 desc 字段）
+    public String saveWorldM;
+    public Boolean saveNullArgOk; // 单参进度类档 saveWorld 裸传 null 的守卫验证态：
+                                  // FALSE=未取证响亮拒绝（pre3 最小转正专例，2026-11-28
+                                  // save 腿 NPE 缺陷二修复）；null/TRUE=沿用既有已验代       // saveWorld（0327 (Z)V / 0618 ()V——签名漂移见 desc 字段）
     /** saveWorld 描述符（档位二·签名差异，A2；null=按 0327 (Z)V 处理）。 */
     public String saveWorldDesc;
     public String worldTimeF;       // public long worldTime（NBT "Time"）

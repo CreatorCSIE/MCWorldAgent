@@ -271,6 +271,7 @@ public final class WorldOps {
         if (resolved) {
             return;
         }
+        cachedBlockList = null; // 跨代激活防缓存污染（守卫的 Block[] 属当前代 JVM）
         try {
             if (M_SET_BLOCK != null) {
                 setBlock = wc.getMethod(M_SET_BLOCK, int.class, int.class, int.class, int.class);
@@ -2374,9 +2375,9 @@ public final class WorldOps {
                     Integer id = (Integer) getBlock.invoke(world,
                             Integer.valueOf(x), Integer.valueOf(y), Integer.valueOf(z));
                     if (id.intValue() == oldId) {
-                        Boolean ok = (Boolean) setBlock.invoke(world, Integer.valueOf(x),
-                                Integer.valueOf(y), Integer.valueOf(z), Integer.valueOf(newId));
-                        if (ok.booleanValue()) {
+                        // 走 setBlock 包装=未注册 newId 守卫（缺陷一修复同链路）
+                        boolean ok = setBlock(world, x, y, z, newId);
+                        if (ok) {
                             changed++;
                         }
                     }
@@ -2519,12 +2520,54 @@ public final class WorldOps {
         return ((Integer) getBlock.invoke(world, x, y, z)).intValue();
     }
 
-    /** 放置/挖除（blockId=0 即挖除——与游戏自身删除路径同入口，PlayerController L27 实锤）。 */
+    /** 放置/挖除（blockId=0 即挖除——与游戏自身删除路径同入口，PlayerController L27 实锤）。
+     *  未注册方块守卫（缺陷一修复 2026-11-28，pre2 锅腿崩溃实锤：blocksList[id]=null 的
+     *  垃圾 ID 写进 chunk → 游戏线程渲染/tick 引用 null 方块 → 崩，命令侧捕获救不了）。
+     *  导出零新槽：beta Item extends Block → itemClassG.getSuperclass()=Block 类，
+     *  其唯一 static Block[] 字段=blocksList；id=0 空气 blocksList[0]=null 为常态特判合法；
+     *  itemClassG 未钉代（inf 老代）=不守卫维持原行为。 */
     public static boolean setBlock(Object world, int x, int y, int z, int blockId) throws Exception {
+        requireRegisteredBlock(blockId);
         return ((Boolean) setBlock.invoke(world, x, y, z, blockId)).booleanValue();
     }
 
+    private static volatile Object[] cachedBlockList;
+
+    static void requireRegisteredBlock(int blockId) throws Rejected, UnsupportedOp,
+            ClassNotFoundException, IllegalAccessException {
+        if (blockId == 0 || T.itemClassG == null) {
+            return;
+        }
+        Object[] list = cachedBlockList;
+        if (list == null) {
+            Class<?> block = Class.forName(T.itemClassG).getSuperclass();
+            Class<?> arrType = java.lang.reflect.Array.newInstance(block, 0).getClass();
+            Object[] found = null;
+            for (java.lang.reflect.Field f : block.getDeclaredFields()) {
+                if (java.lang.reflect.Modifier.isStatic(f.getModifiers()) && f.getType() == arrType) {
+                    f.setAccessible(true);
+                    Object v = f.get(null);
+                    if (v != null && ((Object[]) v).length > 64) {
+                        found = (Object[]) v;
+                        break;
+                    }
+                }
+            }
+            if (found == null) {
+                // 假件/异常环境降级=不守卫（真游戏 Block 恒有 static Block[] blocksList；
+                // FakeOps 假类无此面，响亮拒绝会误伤无头测试）
+                return;
+            }
+            cachedBlockList = list = found;
+        }
+        if (blockId >= list.length || list[blockId] == null) {
+            throw new Rejected("unregistered-block id=" + blockId);
+        }
+    }
+
     public static void saveWorld(Object world) throws Exception {
+        // 缺陷二修复（2026-11-28 pre3 save 腿 NPE）：未钉代响亮 UNSUPPORTED 而非盲调 null Method
+        require("saveWorldM", T.saveWorldM);
         // 档位二（spec §3）：0327 a(Z)V 传 FALSE=现行为；0618 f()V 零参；
         // 0629 a(Liw;)V 传 null（el0629-2 活体翻案：iw=具体类非接口，Proxy 作废；
         // 本体 a(boolean,iw) 有完整 null 守卫 ifnull@13/25，游戏构造器尾 490 处自身裸传 null——
@@ -2539,6 +2582,14 @@ public final class WorldOps {
         } else if (pt[0] == boolean.class) {
             saveWorld.invoke(world, Boolean.FALSE);
         } else {
+            // 单参进度类档（0629 iw/1121 nu/a1.2.0 ph/a1.2.3 ru/b1.2_02 yb/
+            // b1.7.3 ny/b1.8.1 pd 诸代均已 javap null 守卫取证=直传合法）；
+            // 缺陷二修复 2026-11-28：未取证代（pre3 最小转正 pr 档=save 腿 NPE
+            // 实锤）以 saveNullArgOk=FALSE 响亮拒绝，不再盲传 null
+            if (Boolean.FALSE.equals(T.saveNullArgOk)) {
+                throw new UnsupportedOp("saveWorld progress-arg class unverified for "
+                        + T.versionId + " (" + T.saveWorldDesc + ")");
+            }
             saveWorld.invoke(world, (Object) null);
         }
     }

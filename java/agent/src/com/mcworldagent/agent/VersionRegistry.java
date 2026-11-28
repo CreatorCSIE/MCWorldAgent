@@ -1402,6 +1402,11 @@ public final class VersionRegistry {
                                  // ti.a(Llh;)Z 逐指令同构（本窗 javap -c 对榫，非猜字母）
         t.entityClassG = "lu";   // Entity 抽象基类（yv extends lu 声明即证）
 
+        // 缺陷二修复显式声明（2026-11-28 save 腿 NPE 实锤批）：op 面 saveWorldM 未钉
+        // （最小转正），且 pr 档 null 守卫未取证——即便未来补钉也先响亮拒绝，
+        // javap a(ZLpr)V 守卫核实后方可撤 FALSE（pre2 pd 档先例=守卫齐全可直传）
+        t.saveNullArgOk = Boolean.FALSE;
+
         // ===== 钩面所需（TARGETS_19pre3 对榫，HookTargets 消费非本表槽，此处留档注释）：
         // SAVE_WORLD=uc.a(Lpr;)V public（体 iconst_1→a(ZLpr;)V 核心=pre2 ti.a(Lpd;)V
         //   同包装配方；pr=IProgressUpdate）
