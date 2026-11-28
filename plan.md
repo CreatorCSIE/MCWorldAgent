@@ -1114,8 +1114,14 @@ V-6..V-8 续账终态（用户「继续下一步，还没到截止时间」驱�
     · `locate biome` ≥ **a1.2.0**——`WorldChunkManager.java`+`getBiomeFromLookup` a1.2.0 首现（a1.1.2 零命中）；**与 getbiome 同数据源同下确界自洽（用户指正）→门控复用 biome 槽面零新门**；
     · `locate structure(dungeon)` ≥ **inf-20100625-1917**——WorldGenDungeons 阶梯 624 no/625-1 no/**625-2 YES**（同日晚 build，jar inf-20100625-1917 在位；该版未转正=未来转正批顺带补 Infdev 锚）；已钉代中 0629/1121 起可用，0327/0618 在界下；
     · `locate structure(村庄/矿井/要塞)` ≥ **b1.8**（MapGen 三族；625-1917~b1.7.3 区间=仅地牢，与「b1.8 前只有地牢」修正账自洽）；
-  - **Infdev~Beta 覆盖评估（同日批）**：产线 13 代≈全谱 51 版 26%（Infdev 4/~20、Alpha 2/~14、Beta 8/~17）——采样代表策略产物；活体=Beta 六代+Infdev 三件+pre3 药水面，**Alpha 家族锚零**；全覆盖=37 版 headless 三件套批产排期候选；
+  - **Infdev~Beta 覆盖评估（同日批，**全谱规模勘正 2026-11-28**：旧「37 版」账作废——按姊妹仓 `indexes/version-index.md` 官方索引，Infdev 32+Alpha 59+Beta 22+ 行，剔除「已丢失，无原始副本」与 dev 快照后≈**110 版**（Infdev ~27+Alpha ~48+Beta ~35）；产线转正 13 代+registry 25 JSON（2 运行时+23 草稿锚），待转正≈**91 版**——逐版人工取证不可行，批产策略见 L-12）；产线 13 代≈全谱 12%（Infdev 4/~27、Alpha 2/~48、Beta 8/~35）——采样代表策略产物；活体=Beta 六代+Infdev 三件+pre3 药水面，**Alpha 家族锚零**；
   - 关键判决（剖树实锤）：b1.8.1 结构**生成即弃零落盘**（五重证据，StructureStart 无 NBT 方法/区块键全集无结构项/无 VillageCollection/jar 常量池零命中）；**26.3 现代格式=区块 NBT `structures→starts→<资源ID>`+References LongArray（level.dat 不参与，"(cx,cz)" 键式属 1.16-1.18 旧格式）**；b1.8.1 无神庙（Temple 类零命中，沙岩=自然生成不可作指纹）；
   - 新表槽 ≈8（adp/zo/lu/mp/sd/nu/vh/cq）；W181 真盘指纹旁证在位（村庄 door4+planks148@chunk(-21,8)、矿井三例、要塞超探索圈符合预期）；
   - headless 备选=.mcr 指纹簇扫描（spawner/door/rail 判据，Python stdlib 原型 mcr_probe.py 已验）——视野=已探索区。
 - **L-11.5 守卫复验活体批（2026-11-28，pre2 w16，c6c5ccf 销案）**：place 118→**REJECTED unregistered-block**（写前拦截，后续 7 腿连跑游戏存活——二次崩溃根因案全链闭环）；place 999→out of range（校验层分工正常）；**give 373 1 18496→OK saved=true**（物品入包腿闭环）；sanitize place 0→returned false=**w16 本无脏 chunk 落盘自证**；potiontest 18496 双效回归复现（守卫零连坐）；save OK。
+- **L-12 全覆盖批产试点批（2026-11-28，b1.6 家族六版，SlotVerify v1 定型）**：全谱 ~110 版逐版人工取证不可行→**「家族锚人工取证+邻版 SlotVerify 自动继承校验」流水线**经 b1.6 家族试点验证成功——
+  - **工具**=`java/agent/tools/SlotVerify.java`（包 mca.tools，~530 行，ASM 全量载 jar）：宿主类派生链八钉（World=hooks.SAVE_WORLD 类、EntityPlayer=LOAD_WORLD desc 末位 L 参、EntityLiving=EP.super **非 Entity.super**、TileEntity=World.teGetM 按 `III)` 前缀匹配返回型防同名重载、WorldInfo/InventoryPlayer/ItemStack/EnumStatus/Chest 各按语义谓词）；**字节码语义锚三腿**（防移位假绿核心）：healthF=LDC "Health" 后首个 int GETFIELD、yawF/pitchF=**全部 (DDDFF)V 方法** FLOAD 7/8 后首个 PUTFIELD F（b=委托壳、c=实体写者，不限方法名扫）；check 后语义≠表值→草稿 ops 自动采纳新字+ADOPTED 打印；自带全功能 J 解析器（MiniJson 4096B/256 字符子集不敷工具侧）；exit=0 全绿/1 有 MISS；
+  - **六版判决**：1.6.1/1.6.2/1.6.3/1.6.4=**69/69 全绿零断代**（b1.6 自对榫复验通过）；**1.6.5/1.6.6=三槽断代**——healthF X→**Y**（lo int 组整体右移+1：D→E/S→T/X→Y/Z→aa/aa→ab/ac→ad）、yawF aR→**aS**、pitchF aS→**aT**（si float 组整体右移+1：aR→aS/aS→aT/aT→aU/be→bf）；double 组 aL-aQ 不动=**插入点在 aQ 与原 aR 之间**；断代起点=**b1.6.5**；
+  - **首版教训入账**：pitchF=aS 移位后**字母存在性假绿**，唯语义腿抓到真断代——语义锚为批产防假绿的必要条件；
+  - **六草稿锚入 registry**（b1.6.1-1.6.6.json，补详账 note 后 5762/6321B>4096 运行时不消费；1.6.5/6.6 ops 已带语义采纳新字；jarSha1 实算）；GuardTest 19→**25 JSON 闸**升账，复验 **116/0 全绿**；文档落点=b1.6.md §12；
+  - **批产推广账**：待转正 ≈91 版按断代带分家族（Infdev/Alpha/Beta 各带选一家族锚人工取证→带内 SlotVerify 批产）；活体降级=**家族锚抽样+可疑槽升级**（用户认可）；b1.6.1-1.6.6 转正批（内建表转写+TARGETS+InjectSmoke+1.6.5/6.6 活体腿=sethealth 写 Y+tp 转向）留后续批。

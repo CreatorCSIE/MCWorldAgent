@@ -79,7 +79,7 @@ public final class GuardTest {
         List<VersionTable> lenient = FingerprintLoader.loadAll();
         eq("lenient size", Integer.valueOf(2), Integer.valueOf(lenient.size()));
 
-        // ---------- B. 19 JSON 闸（扩版首波 +3 锚：b1.5_01/b1.9-pre2/b1.3_01；V-1 批 +1 锚：b1.4_01；V-6 批 +1 锚：b1.6） ----------
+        // ---------- B. 25 JSON 闸（扩版首波 +3 锚：b1.5_01/b1.9-pre2/b1.3_01；V-1 批 +1 锚：b1.4_01；V-6 批 +1 锚：b1.6；全覆盖批产 +6 锚：b1.6.1-1.6.6 SlotVerify 草稿） ----------
         File[] all = fpDir.listFiles();
         List<File> jsons = new ArrayList<File>();
         for (File f : all) {
@@ -87,7 +87,7 @@ public final class GuardTest {
                 jsons.add(f);
             }
         }
-        eq("json count", Integer.valueOf(19), Integer.valueOf(jsons.size()));
+        eq("json count", Integer.valueOf(25), Integer.valueOf(jsons.size()));
         int marked = 0;
         for (File f : jsons) {
             String text = readUtf8(f);
