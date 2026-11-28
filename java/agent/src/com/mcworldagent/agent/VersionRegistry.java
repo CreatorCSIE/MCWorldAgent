@@ -1674,8 +1674,8 @@ public final class VersionRegistry {
      * 严格成立）；entityJoinedWorld=b/setEntityDead=e/entityList=o 三件全回摆
      * 1501 字母（1401 a/d/n 断代带止于 1501）；getWorldInfoM=x（1401=w 断代）；
      * invGetM=d_（1401 c_ 断代带止于 1401，严禁借表）；hudDebugGateF=B
-     * （kr.B=showDebugInfo @1142——1401=A 翻面）；healthF=Y（lo public int——
-     * 173 同字母；1401=V/1501=W 洗牌链）；difficultyF=q（1401=j/1501=l 再洗牌）；
+     * （kr.B=showDebugInfo @1142——1401=A 翻面）；healthF=X（lo public int——
+     * 活体勘误件，173=Y 非同字母；1401=V/1501=W 洗牌链 +1/版严格成立）；difficultyF=q（1401=j/1501=l 再洗牌）；
      * setBlockM=f/getLightM=n（1401/1501=e/l 断代）；setMetaSilentM=e(IIII)Z
      * （1501 d(IIII)V 断代回摆 boolean，与 getMetaM=e(III)I 同字母异描述符共存；
      * WorldOps 名+形解析不依赖返回型，setmeta OK 判决成立）。主类六字段全洗牌
@@ -1748,7 +1748,12 @@ public final class VersionRegistry {
         t.motZF = "aQ";
         t.yawF = "aR";
         t.pitchF = "aS";
-        t.healthF = "Y";          // lo.Y public int（⚠️173 同字母；1401=V/1501=W 洗牌链）
+        t.healthF = "X";          // lo.X public int（⚠️活体勘误批 2026-11-28：原钉 Y 系
+        // 抄 173 字母违 +1/版规律——1401=V/1501=W/16=X/173=Y。三重实锤：
+        // NBT 写读双向 b(nq)/a(nq) ldc "Health"↔getfield/putfield X:I +
+        // 构造器 bipush 10→X 保底 + heal clamp 20；活体反证=sethealth 写 Y
+        // 心形 HUD 不动。Y=hurt 快照备份（attackEntityFrom @90 getfield X→
+        // putfield Y），非 health 本尊）
         t.iframesF = null;        // 全 tiny 零 heartsLife 命中→invulnerable UNSUPPORTED
                                   // （同 1401/1501 惯例）
 

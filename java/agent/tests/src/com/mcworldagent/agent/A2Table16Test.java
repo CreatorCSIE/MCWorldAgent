@@ -172,7 +172,7 @@ public class A2Table16Test {
                 "pos aL/aM/aN（+1/版规律 16 站——⚠️sister tiny 错位一位 aM.. 勿借）");
         ok("aO".equals(t.motXF) && "aP".equals(t.motYF) && "aQ".equals(t.motZF), "mot aO/aP/aQ");
         ok("aR".equals(t.yawF) && "aS".equals(t.pitchF), "look aR/aS");
-        ok("Y".equals(t.healthF), "healthF Y（lo public int——173 同字母；1401=V/1501=W 链）");
+        ok("X".equals(t.healthF), "healthF X（lo public int——活体勘误件：NBT Health 双向+保底 10+clamp 20 三重实锤；原稿 Y=抄 173 字母违 +1/版规律，1401=V/1501=W/16=X/173=Y）");
         ok("si".equals(t.entityClassG) && "d".equals(t.playerListF), "entityClassG si/playerListF d 三版稳定");
         ok("c".equals(t.invF) && "a".equals(t.invMainF) && "b".equals(t.invArmorF) && "c".equals(t.invCurF),
                 "inv 面 c/a/b/c（iu=InventoryPlayer——⚠️1401/1501=f 断代，iu.d 回指）");
@@ -400,7 +400,7 @@ public class A2Table16Test {
         Class.forName("bp").getConstructor(int.class, int.class, int.class);
         checks++;
         ok(Class.forName("bp").getField("a").getType() == int.class, "bp.a public int");
-        ok(Class.forName("lo").getField("Y").getType() == int.class, "lo.Y public int health");
+        ok(Class.forName("lo").getField("X").getType() == int.class, "lo.X public int health（勘误件）");
         ok(Class.forName("gq").getField("c").getType() == Class.forName("iu"), "gq.c public iu inventory");
         // 9) 睡眠方法形：gq.b(III)Lcu;（isEnum 门）+ gq.a(ZZZ)V + N()Z + O()Z
         ok(Class.forName("gq").getDeclaredMethod("b", int.class, int.class, int.class)
