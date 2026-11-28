@@ -1809,7 +1809,7 @@ public final class WorldOps {
             ok.setAccessible(true);
             if (st == ok.get(null)) {
                 return "sleep on @" + x + "," + y + "," + z
-                        + " -> OK (sleepInBedAt: timer=0, bed=v set, flag refresh"
+                        + " -> OK (sleepInBedAt: timer=0, bed coords set, flag refresh"
                         + " by game; dawn-skip=tick loop)";
             }
             throw new Rejected("sleep-status=" + enumConstName(sc, st));

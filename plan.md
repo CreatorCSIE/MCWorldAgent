@@ -1093,3 +1093,10 @@ Disciplines unchanged: live runs require per-batch user approval; evidence chain
 收尾终态：run.ps1 **37/37 GREEN**（A2Table1401 335/FakeOps1401 45 新增，GuardTest 102/StorageTest 60 无回归）；git status 残留恰 **14 件** EOL 噪音未混入（b1.9-pre2.json 禁改件未触）；队列零触碰、游戏零启动；V 批五笔提交全中文详账（fce2620→35de5d6→ed4ef2c→badc154→f01be2c，未 push）。
 
 V-6..V-8 续账终态（用户「继续下一步，还没到截止时间」驱动的第二波）：run.ps1 **39/39 GREEN**（A2Table16Test 327/FakeOps16Test 50 新增首跑即过，GuardTest checks=104/StorageTest 60 无回归）；git status 残留恰 **14 件** EOL 噪音（禁改件未触）；队列零触碰、游戏零启动；续账三笔全中文详账（d16bdaf→b7913f2→V-8 本笔，未 push）。窗口内 b1.6 链闭环=V-5 复验→V-6 表化→V-7 测试化→V-8 文档化+判决改口；窗口外欠账不变（1501/1401/b1.6 活体执行、两份 JSON 精简转正、b1.3/b1.2 系回扩）。
+
+### 14.5 活体批（2026-11-28，用户「可以活体测试了」解禁）
+- **L-1/L-2 1501 转正（8a084bb）**：活体前置=运行时消费面（草稿锚不消费）。VersionRegistry.build1501() 内建表（76 槽+mobs 9+hudXyzPaint=FALSE 边界线，仿 pre2 体例）+HookTargets.TARGETS_1501 钩组（SAVE_WORLD=et 双参实体 ENTRY/RUN_TICK=**j()V**/LOAD_WORLD 3 参 EXIT/HUD tl EXIT）+A2Table1501Test 转正对榫段（314→432 checks：内建表 vs 锚库逐槽+TARGETS 六元组）+InjectSmoke1501Test（37 checks：织入 et/Minecraft/tl 实形+跨组隔离双验+双参实体钩 ILOAD 1 观察位）+root1501 补 tl/Minecraft 桩两件；run.ps1 39→**40 全绿**。
+- **L-3/L-4 启动链**：build.ps1 重建 jar（19 资源件）；sidecar 首轮破碎=legacyfix javaagent 参数 gameDir 空格未引号（主类位空）→手工直组命令行成功；`.attic\versions\b1.5_01.jar` 首启自动装件（SHA1=e2a692e5 对榫原件）；**VERSION SHA1 自动对榫命中（未钉强制保险丝=戒律 14 活体半区证据）**；computer-use 建世界 w1501（press_key 逐字符入名，type_text 后台键入对 raw-input 游戏无效）。
+- **L-5 活体 16/16 全中**：钩四项 HOOKED（j()V 首证/HUD xyz-injection-exempt）；SAVE_WORLD 双形态（#1 indirect=true 游戏直调、#10 =false ops 配方）；四门 d-far=d/h-dayon=c 恰拒、e-on OK、**f-alive 190 tick 存活（am() NPE 红线未触）**；setchest→getchest `slots=27 0=2x5 d3` 回环；**weather 双写 OK+level.dat 四键终核（raining/thundering Byte=1+rainTime/thunderTime Int 在位——判决②活体闭环）**；**getbiome=Seasonal Forest 首证**；RandomSeed 与 getinfo 逐位同。**副作用实录=game-dir 重定向未生效，世界落 `C:\Users\GAME\saves\w1501`**。
+- **产线小修（随本批提交）**：WorldOps setSleep OK 消息「bed=v set」硬编码 173 字母→「bed coords set」通用措辞（零行为变更）。
+- 未销：mob spawn 实报/invulnerable 实报/region 文件头细验；**1401/b1.6 转正+活体=同配方待跑**（build1401/build16+TARGETS+InjectSmoke+launch）。
