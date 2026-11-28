@@ -10,8 +10,9 @@ import java.util.Map;
  *    JSON 实算值）；
  * 2. 76 ops 槽逐槽 vs registry/fingerprints/b1.6.{1..6}.json（含 null 槽）+
  *    mobClasses 9 键——派生转写零漂移实证；
- * 3. 三断代槽钉值：1.6.1-1.6.4=X/aR/aS（零断代继承）；1.6.5/1.6.6=Y/aS/aT
- *    （lo int 组+si float 组各右移一位，语义锚判决采纳——断代起点=b1.6.5）；
+ * 3. 断代槽钉值：1.6.1-1.6.4=X/aR/aS+pos aL-aN/mot aO-aQ（零断代继承）；
+ *    1.6.5/1.6.6=Y/aS/aT+pos aM-aO / mot aP-aR（si aD 起整段右移——
+ *    b1.6.5 活体翻案批 2026-11-28 补 double 组位移，断代起点=b1.6.5）；
  * 4. 单源继承面：family=G3+hudXyzPaint=false+capWeather/capSleep+pos aL..aQ
  *    double 组不动（vs 1.6.5 断代判决自洽）；
  * 5. TARGETS_16 复用：六版 activate 后 forClass 三组命中=同数组对象
@@ -33,14 +34,16 @@ public class A2Table16FamilyTest {
 
     static final String FP = "E:/4k/github-projects/MCWorldAgent/java/agent/registry/fingerprints/";
 
-    /** {versionId, jarSha1, healthF, yawF, pitchF}——sha 对榫草稿 JSON 实算值。 */
+    /** {versionId, jarSha1, healthF, yawF, pitchF, posX, motX}——sha 对榫草稿
+     *  JSON 实算值；posX/motX=double 组位移钉值（b1.6.5 活体翻案批：1.6.5/6.6
+     *  aM/aP，1.6.1-4 继承 aL/aO——si aD 起整段右移，pos aM-aO/mot aP-aR）。 */
     static final String[][] SIX = {
-        {"b1.6.1", "63a66d6d145696296bdaaeaba0a42f738b87a362", "X", "aR", "aS"},
-        {"b1.6.2", "e8aa50949b077b672be2e651ea3f7b1bbd9020e1", "X", "aR", "aS"},
-        {"b1.6.3", "924e36dbb7c64abb30a95fe35f5affb5176f6cbc", "X", "aR", "aS"},
-        {"b1.6.4", "b5d3bdb8a7b12d163651f4787ac6ca14689aab9e", "X", "aR", "aS"},
-        {"b1.6.5", "90ed9854b43c4d031ed07381ea3ae3071a8bba6f", "Y", "aS", "aT"},
-        {"b1.6.6", "f95fe05711d09553ca2a9089f981741c13d6b8c4", "Y", "aS", "aT"},
+        {"b1.6.1", "63a66d6d145696296bdaaeaba0a42f738b87a362", "X", "aR", "aS", "aL", "aO"},
+        {"b1.6.2", "e8aa50949b077b672be2e651ea3f7b1bbd9020e1", "X", "aR", "aS", "aL", "aO"},
+        {"b1.6.3", "924e36dbb7c64abb30a95fe35f5affb5176f6cbc", "X", "aR", "aS", "aL", "aO"},
+        {"b1.6.4", "b5d3bdb8a7b12d163651f4787ac6ca14689aab9e", "X", "aR", "aS", "aL", "aO"},
+        {"b1.6.5", "90ed9854b43c4d031ed07381ea3ae3071a8bba6f", "Y", "aS", "aT", "aM", "aP"},
+        {"b1.6.6", "f95fe05711d09553ca2a9089f981741c13d6b8c4", "Y", "aS", "aT", "aM", "aP"},
     };
 
     static byte[] readTmp(String rel) throws Exception {
@@ -69,11 +72,17 @@ public class A2Table16FamilyTest {
             ok(Boolean.FALSE.equals(t.hudXyzPaint), id + " hudXyzPaint=false 继承");
             ok(Boolean.TRUE.equals(t.capWeather) && Boolean.TRUE.equals(t.capSleep),
                     id + " capWeather/capSleep 继承");
-            ok("aL".equals(t.posXF) && "aQ".equals(t.motZF), id + " double 组 aL-aQ 不动");
-            // ---- 3. 三断代槽钉值 ----
+            // ---- 3. 断代槽钉值（三语义槽+double 组位移锚——b1.6.5 活体翻案批：
+            // 1.6.5/6.6 pos aM-aO/mot aP-aR，1.6.1-4 继承 aL-aN/aO-aQ） ----
             ok(SIX[i][2].equals(t.healthF) && SIX[i][3].equals(t.yawF)
                     && SIX[i][4].equals(t.pitchF),
                     id + " 三槽 healthF/yawF/pitchF=" + SIX[i][2] + "/" + SIX[i][3] + "/" + SIX[i][4]);
+            boolean shift = "aM".equals(SIX[i][5]);
+            ok(SIX[i][5].equals(t.posXF) && SIX[i][6].equals(t.motXF)
+                    && (shift ? "aO" : "aN").equals(t.posZF)
+                    && (shift ? "aR" : "aQ").equals(t.motZF),
+                    id + " double 组位移锚 pos " + SIX[i][5] + ".." + (shift ? "aO" : "aN")
+                    + "/mot " + SIX[i][6] + ".." + (shift ? "aR" : "aQ"));
             // ---- 4. 76 ops 槽 vs 草稿 JSON ----
             Map j = A2TableTest.obj(A2TableTest.parseJson(new String(
                     java.nio.file.Files.readAllBytes(new File(FP + id + ".json").toPath()),

@@ -193,10 +193,14 @@ public class SlotVerify {
     }
 
     /** 语义锚 2：setPosRotM (DDDFF)V 方法体**参数槽追踪**——(this=0,d1@1,d2@3,
-     *  d3@5,f1@7,f2@8)：ALOAD 7 后首个 PUTFIELD F=yaw、ALOAD 8 后=pitch
-     *  （防 fallDistance=0 等旁路 PUTFIELD 混入序列位）。 */
+     *  d3@5,f1@7,f2@8)：DLOAD 1/3/5 后首个 PUTFIELD D=posX/Y/Z、FLOAD 7 后首个
+     *  PUTFIELD F=yaw、FLOAD 8 后=pitch（防 fallDistance=0 等旁路 PUTFIELD 混入
+     *  序列位）。**pos 三腿=b1.6.5 活体翻案批补**（2026-11-28：si 整段右移时
+     *  double 组同样 +1，仅查字母存在=假绿——活体 getplayer 回读 (x,y,z) 循环
+     *  错位 (z,x,y)+motX≡posZ 实锤；本腿后 pos 断代自动采纳）。
+     *  返回 [yaw,pitch,posX,posY,posZ]。 */
     static String[] semanticYawPitch(String entity, String mname) {
-        final String[] hit = new String[2];
+        final String[] hit = new String[5];
         final int[] pend = new int[]{-1};
         byte[] b = (byte[]) CLS.get(entity);
         if (b == null) {
@@ -205,32 +209,82 @@ public class SlotVerify {
         new ClassReader(b).accept(new ClassVisitor(Opcodes.ASM9) {
             public MethodVisitor visitMethod(int acc, String n, String d, String s, String[] e) {
                 // 不限方法名：b(DDDFF)V 可能是委托壳（真写字段在 c(DDDFF)V）——
-                // 扫全部 (DDDFF)V 找 FLOAD 7/8→PUTFIELD F 的实体写者
+                // 扫全部 (DDDFF)V 找 DLOAD 1/3/5→PUTFIELD D、FLOAD 7/8→PUTFIELD F
+                // 的实体写者
                 if (!"(DDDFF)V".equals(d)) {
                     return null;
                 }
                 return new MethodVisitor(Opcodes.ASM9) {
                     public void visitVarInsn(int op, int v) {
-                        // float 参入栈=FLOAD（非 ALOAD）；f1@7、f2@8
-                        pend[0] = (op == Opcodes.FLOAD && (v == 7 || v == 8)) ? v : -1;
+                        // float 参入栈=FLOAD（非 ALOAD）；f1@7、f2@8；double 参 DLOAD 1/3/5
+                        pend[0] = (op == Opcodes.FLOAD && (v == 7 || v == 8)) ? v
+                                : (op == Opcodes.DLOAD && (v == 1 || v == 3 || v == 5)) ? v : -1;
                     }
                     public void visitFieldInsn(int op, String o, String fn, String fd) {
-                        if (op == Opcodes.PUTFIELD && "F".equals(fd)) {
-                            if (pend[0] == 7 && hit[0] == null) {
-                                hit[0] = fn;
-                            } else if (pend[0] == 8 && hit[1] == null) {
-                                hit[1] = fn;
+                        if (op == Opcodes.PUTFIELD) {
+                            if ("F".equals(fd)) {
+                                if (pend[0] == 7 && hit[0] == null) {
+                                    hit[0] = fn;
+                                } else if (pend[0] == 8 && hit[1] == null) {
+                                    hit[1] = fn;
+                                }
+                            } else if ("D".equals(fd)) {
+                                if (pend[0] == 1 && hit[2] == null) {
+                                    hit[2] = fn;
+                                } else if (pend[0] == 3 && hit[3] == null) {
+                                    hit[3] = fn;
+                                } else if (pend[0] == 5 && hit[4] == null) {
+                                    hit[4] = fn;
+                                }
                             }
                         }
                         pend[0] = -1;
                     }
                     public void visitInsn(int op) {
-                        pend[0] = -1;
+                        // DUP 族保留 pending（链式赋值 `bl=prev=pos=d1` 编译形=
+                        // DLOAD;DUP2_X1;PUTFIELD pos;DUP2_X1;PUTFIELD prev;PUTFIELD——
+                        // 首个 PUTFIELD D 即内层=posX，b1.6.5 si c(DDDFF)V @3-12 实锤）
+                        if (op < Opcodes.DUP || op > Opcodes.DUP2_X2) {
+                            pend[0] = -1;
+                        }
                     }
                 };
             }
         }, 0);
-        return (hit[0] != null && hit[1] != null) ? hit : null;
+        for (int i = 0; i < hit.length; i++) {
+            if (hit[i] == null) {
+                return null;
+            }
+        }
+        return hit;
+    }
+
+    /** 语义锚 3（声明序布局腿）：mot 三连 double=posZ 字段之后的三个 D 字段
+     *  （Entity 布局 pos..mot 连续；b1.6 系真 jar javap 复验）。pos 未钉=返回 null。 */
+    static String[] semanticMot(String entity, String posZF) {
+        Info i = load(entity);
+        if (i == null || posZF == null) {
+            return null;
+        }
+        int at = -1;
+        for (int k = 0; k < i.fields.size(); k++) {
+            if (((F) i.fields.get(k)).name.equals(posZF)) {
+                at = k;
+                break;
+            }
+        }
+        if (at < 0) {
+            return null;
+        }
+        String[] out = new String[3];
+        int n = 0;
+        for (int k = at + 1; k < i.fields.size() && n < 3; k++) {
+            F f = (F) i.fields.get(k);
+            if ("D".equals(f.desc)) {
+                out[n++] = f.name;
+            }
+        }
+        return n == 3 ? out : null;
     }
 
     /** name + 「单 L 类型参数返回 Z」精确匹配，抽参数类型（addStackM 派生）。 */
@@ -419,6 +473,21 @@ public class SlotVerify {
                 "semantic=" + (yp == null ? "?" : yp[0]) + " table=" + s(ops, "yawF"));
         check("pitchF", yp != null && yp[1].equals(s(ops, "pitchF")),
                 "semantic=" + (yp == null ? "?" : yp[1]) + " table=" + s(ops, "pitchF"));
+        // pos 语义腿（b1.6.5 活体翻案批补——double 组右移不再假绿）
+        check("posXF", yp != null && yp[2].equals(s(ops, "posXF")),
+                "semantic=" + (yp == null ? "?" : yp[2]) + " table=" + s(ops, "posXF"));
+        check("posYF", yp != null && yp[3].equals(s(ops, "posYF")),
+                "semantic=" + (yp == null ? "?" : yp[3]) + " table=" + s(ops, "posYF"));
+        check("posZF", yp != null && yp[4].equals(s(ops, "posZF")),
+                "semantic=" + (yp == null ? "?" : yp[4]) + " table=" + s(ops, "posZF"));
+        // mot 布局腿=posZ 后三连 double
+        String[] mm = semanticMot(entity, yp == null ? s(ops, "posZF") : yp[4]);
+        check("motXF", mm != null && mm[0].equals(s(ops, "motXF")),
+                "semantic=" + (mm == null ? "?" : mm[0]) + " table=" + s(ops, "motXF"));
+        check("motYF", mm != null && mm[1].equals(s(ops, "motYF")),
+                "semantic=" + (mm == null ? "?" : mm[1]) + " table=" + s(ops, "motYF"));
+        check("motZF", mm != null && mm[2].equals(s(ops, "motZF")),
+                "semantic=" + (mm == null ? "?" : mm[2]) + " table=" + s(ops, "motZF"));
         check("setPosRotM", hasMethod(entity, s(ops, "setPosRotM"), (String) ops.get("setPosRotDesc")), "");
         String hf = s(ops, "healthF");
         String sh = semanticHealth(eliving);

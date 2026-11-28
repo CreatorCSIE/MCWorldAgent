@@ -46,19 +46,22 @@ public final class VersionRegistry {
     // 全覆盖批产试点转正批（2026-11-28，L-12）：b1.6 家族六版=SlotVerify v1 自动
     // 继承校验草稿锚（registry/fingerprints/b1.6.{1..6}.json）转写转正。
     // 1.6.1-1.6.4=零断代（69/69 槽全绿，与 build16 全同形）；
-    // 1.6.5/1.6.6=三槽断代（lo int 组/si float 组各整体右移一位，double 组
-    // aL-aQ 不动=插入点在 aQ 与原 aR 之间；断代起点=b1.6.5）：healthF X→Y /
-    // yawF aR→aS / pitchF aS→aT——语义锚=字节码证据（LDC "Health"→GETFIELD I；
-    // (DDDFF)V 全体方法 FLOAD 7/8 参槽→PUTFIELD F），log=%TEMP%\mcaut\exp\
-    // fullcov\b1.6.*.log。单源=derive16 继承 build16()（76 槽+9 mob+mobs 全量），
+    // 1.6.5/1.6.6=断代（si aD 起整段右移一位+lo int 组右移一位；断代起点=b1.6.5）：
+    // healthF X→Y / yawF aR→aS / pitchF aS→aT / pos aL-aN→**aM-aO** / mot
+    // aO-aQ→**aP-aR**（pos/mot 位移=b1.6.5 活体翻案腿 2026-11-28——SlotVerify
+    // 原判「double 组不动」系字母存在性假绿，活体 getplayer 循环错位实锤后
+    // javap 三版对拍钉死；工具已补 pos DLOAD 语义腿+mot 布局腿）。语义锚=字节码
+    // 证据（LDC "Health"→GETFIELD I；(DDDFF)V 全体方法 DLOAD 1/3/5→PUTFIELD D、
+    // FLOAD 7/8→PUTFIELD F），log=%TEMP%\mcaut\exp\fullcov\b1.6.*.log。
+    // 单源=derive16 继承 build16()（76 槽+9 mob+mobs 全量），
     // 对榫=A2Table16FamilyTest 六版逐槽 vs 草稿 JSON+BY_SHA1 反查+TARGETS_16
     // 复用（钩四项 class/method/desc/access 六版全等，SlotVerify 已验）。
-    private static final VersionTable T_161 = derive16("b1.6.1", "63a66d6d145696296bdaaeaba0a42f738b87a362", "X", "aR", "aS");
-    private static final VersionTable T_162 = derive16("b1.6.2", "e8aa50949b077b672be2e651ea3f7b1bbd9020e1", "X", "aR", "aS");
-    private static final VersionTable T_163 = derive16("b1.6.3", "924e36dbb7c64abb30a95fe35f5affb5176f6cbc", "X", "aR", "aS");
-    private static final VersionTable T_164 = derive16("b1.6.4", "b5d3bdb8a7b12d163651f4787ac6ca14689aab9e", "X", "aR", "aS");
-    private static final VersionTable T_165 = derive16("b1.6.5", "90ed9854b43c4d031ed07381ea3ae3071a8bba6f", "Y", "aS", "aT");
-    private static final VersionTable T_166 = derive16("b1.6.6", "f95fe05711d09553ca2a9089f981741c13d6b8c4", "Y", "aS", "aT");
+    private static final VersionTable T_161 = derive16("b1.6.1", "63a66d6d145696296bdaaeaba0a42f738b87a362", "X", "aR", "aS", false);
+    private static final VersionTable T_162 = derive16("b1.6.2", "e8aa50949b077b672be2e651ea3f7b1bbd9020e1", "X", "aR", "aS", false);
+    private static final VersionTable T_163 = derive16("b1.6.3", "924e36dbb7c64abb30a95fe35f5affb5176f6cbc", "X", "aR", "aS", false);
+    private static final VersionTable T_164 = derive16("b1.6.4", "b5d3bdb8a7b12d163651f4787ac6ca14689aab9e", "X", "aR", "aS", false);
+    private static final VersionTable T_165 = derive16("b1.6.5", "90ed9854b43c4d031ed07381ea3ae3071a8bba6f", "Y", "aS", "aT", true);
+    private static final VersionTable T_166 = derive16("b1.6.6", "f95fe05711d09553ca2a9089f981741c13d6b8c4", "Y", "aS", "aT", true);
 
     private static final Map<String, VersionTable> BY_ID = new HashMap<String, VersionTable>();
     private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
@@ -2014,22 +2017,39 @@ public final class VersionRegistry {
 
     /**
      * b1.6 家族派生表（全覆盖批产试点转正批 2026-11-28）：单源=build16() 全 76 槽
-     * +9 mob+钩能力面继承，覆写 versionId/jarSha1+三语义锚槽。1.6.1-1.6.4 传
-     * X/aR/aS=零断代继承（SlotVerify 69/69 全绿）；1.6.5/1.6.6 传 Y/aS/aT=三槽
-     * 断代采纳（lo int 组 D→E/S→T/X→Y/Z→aa/aa→ab/ac→ad 与 si float 组
-     * aR→aS/aS→aT/aT→aU/aU→aV/be→bf 各整体右移一位；double 组不动）。
+     * +9 mob+钩能力面继承，覆写 versionId/jarSha1+语义锚槽；dblShift=true 时
+     * si double 组同步右移（pos aM-aO/mot aP-aR）。1.6.1-1.6.4 传
+     * X/aR/aS+false=零断代继承（SlotVerify 69/69 全绿）；1.6.5/1.6.6 传
+     * Y/aS/aT+**true**=断代采纳（lo int 组 D→E/S→T/X→Y/Z→aa/aa→ab/ac→ad 与
+     * si aD 起整段右移：double aD,aI-aQ→aE,aJ-aR、float aR-aU→aS-aV）。
      * 证据=SlotVerify v1 语义锚（java/agent/tools/SlotVerify.java，防移位假绿
-     * 首案：pitchF=aS 字母存在性假绿唯语义腿抓到）；活体复验腿（待跑）=
-     * sethealth 写 Y 回读+tp 转向判决。
+     * 两案：pitchF=aS 字母假绿唯语义腿抓到=首案；「double 组不动」字母假绿被
+     * b1.6.5 活体 getplayer 循环错位戳破=二案，工具已补 pos DLOAD 1/3/5→
+     * PUTFIELD D 语义腿+mot 声明序布局腿）；活体复验腿（b1.6.5 已跑）=
+     * sethealth 写 Y 回读+setlook aS/aT 转向+tp 错位对榫。
      */
     private static VersionTable derive16(String versionId, String jarSha1,
-            String healthF, String yawF, String pitchF) {
+            String healthF, String yawF, String pitchF, boolean dblShift) {
         VersionTable t = build16();
         t.versionId = versionId;
         t.jarSha1 = jarSha1;
         t.healthF = healthF;
         t.yawF = yawF;
         t.pitchF = pitchF;
+        if (dblShift) {
+            // 活体翻案腿（b1.6.5 W1.6.5 批 2026-11-28）：si aD 起整段右移 +1——
+            // javap 三版对拍 double aD,aI-aQ→aE,aJ-aR（float aR-aU→aS-aV 同批
+            // 采纳）；SlotVerify 原判「double 组 aL-aQ 不动」=字母存在性假绿
+            // （pos/mot 缺语义腿）。活体铁证=getplayer 回读 (x,y,z) 循环错位
+            // (z,x,y)+motX≡posZ；tp(-100,68,103) 后回读 (103.5,-99.5,68.0) 逐位
+            // 对榫。修正=pos aM/aN/aO、mot aP/aQ/aR（posZ 后三连 double 布局腿）。
+            t.posXF = "aM";
+            t.posYF = "aN";
+            t.posZF = "aO";
+            t.motXF = "aP";
+            t.motYF = "aQ";
+            t.motZF = "aR";
+        }
         return t;
     }
 }

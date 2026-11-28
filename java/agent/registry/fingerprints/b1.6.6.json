@@ -7,7 +7,7 @@
   "provenance": {
     "evidence": "SlotVerify v1（java/agent/tools/SlotVerify.java）对 b1.6.6 真 jar 全槽校验；log=%TEMP%/mcaut/exp/fullcov/b1.6.6.log",
     "mode": "slotverify-auto",
-    "note": "b1.6.6 SlotVerify v1 自动继承校验草稿（2026-11-28 全覆盖批产批，base=b1.6 转正表）：69/69 槽 PASS 零断代——校验=类存在+成员全签名（宿主类从目标 jar 实际类层次派生：World=SAVE_WORLD.class、EntityPlayer=LOAD_WORLD 末位 L 参、EntityLiving=EP.super、TileEntity/WorldInfo=World 方法返回类型、InventoryPlayer=EP.invF 字段类型、ItemStack=addStackM 单 L 参、EnumStatus=sleepInBedM 返回类型、Chest=TE 子类带 [LIS; 字段）+字节码语义锚三腿（healthF=LDC \"Health\" 后 int GETFIELD；yawF/pitchF=全部 (DDDFF)V 实体写者 FLOAD 7/8 参槽后 PUTFIELD F——b=委托壳/c=实体写者，b1.6 同形）+hooks 四项 class/method/desc/access 全等+mob 九类 ctor(LWorld;*) 命中。本表=草稿锚，运行时不消费（>4096B 静默跳过纪律）——转正批转写内建表+TARGETS 组时以本表为基准。 ⚠️三槽断代（草稿 ops 已采纳语义锚判决值）：healthF X→Y——lo int 组整体右移一位（D→E/S→T/X→Y/Z→aa/aa→ab/ac→ad，D 前插一 int 系字段）；yawF aR→aS、pitchF aS→aT——si float 组整体右移一位（aR→aS/aS→aT/aT→aU/aU→aV/be→bf，aR 前插一 float 系字段）；double 组 aL-aQ（pos/mot）不动全绿——插入点在 aQ 与原 aR 之间。断代起点=b1.6.5（1.6.4 及以前无）。语义锚=字节码证据独立成立，活体复验腿=sethealth 写 Y 回读+tp 转向判决。"
+    "note": "b1.6.6 SlotVerify v1 自动继承校验草稿（2026-11-28 全覆盖批产批，base=b1.6 转正表）：69/69 槽 PASS 零断代——校验=类存在+成员全签名（宿主类从目标 jar 实际类层次派生：World=SAVE_WORLD.class、EntityPlayer=LOAD_WORLD 末位 L 参、EntityLiving=EP.super、TileEntity/WorldInfo=World 方法返回类型、InventoryPlayer=EP.invF 字段类型、ItemStack=addStackM 单 L 参、EnumStatus=sleepInBedM 返回类型、Chest=TE 子类带 [LIS; 字段）+字节码语义锚三腿（healthF=LDC \"Health\" 后 int GETFIELD；yawF/pitchF=全部 (DDDFF)V 实体写者 FLOAD 7/8 参槽后 PUTFIELD F——b=委托壳/c=实体写者，b1.6 同形）+hooks 四项 class/method/desc/access 全等+mob 九类 ctor(LWorld;*) 命中。本表=草稿锚，运行时不消费（>4096B 静默跳过纪律）——转正批转写内建表+TARGETS 组时以本表为基准。 ⚠️三槽断代（草稿 ops 已采纳语义锚判决值）：healthF X→Y——lo int 组整体右移一位（D→E/S→T/X→Y/Z→aa/aa→ab/ac→ad，D 前插一 int 系字段）；yawF aR→aS、pitchF aS→aT——si float 组整体右移一位（aR→aS/aS→aT/aT→aU/aU→aV/be→bf，aR 前插一 float 系字段）；double 组 aL-aQ（pos/mot）不动全绿——插入点在 aQ 与原 aR 之间【此句已被活体翻案，见下】。断代起点=b1.6.5（1.6.4 及以前无）。语义锚=字节码证据独立成立，活体复验腿=sethealth 写 Y 回读+tp 转向判决。 ⚠️活体翻案腿（2026-11-28，b1.6.5 W1.6.5 新世界批，1.6.6 同断代带沿用）：原判「double 组不动」=字母存在性假绿（pos/mot 当时无语义腿）——活体 getplayer 回读 (x,y,z) 循环错位 (z,x,y)+motX≡posZ 戳破，javap 三版对拍实锤 si aD 起整段右移（double aD,aI-aQ→aE,aJ-aR），posXF..motZF 已改 aM/aN/aO/aP/aQ/aR；铁证=tp(-100,68,103) 后回读 (103.5,-99.5,68.0) 逐位对榫。工具已补 pos DLOAD 1/3/5→PUTFIELD D 语义腿+mot 声明序布局腿。"
   },
   "ops": {
     "setBlockM": "f",
@@ -29,12 +29,12 @@
     "entityClassG": "si",
     "setPosRotM": "b",
     "setPosRotDesc": "(DDDFF)V",
-    "posXF": "aL",
-    "posYF": "aM",
-    "posZF": "aN",
-    "motXF": "aO",
-    "motYF": "aP",
-    "motZF": "aQ",
+    "posXF": "aM",
+    "posYF": "aN",
+    "posZF": "aO",
+    "motXF": "aP",
+    "motYF": "aQ",
+    "motZF": "aR",
     "yawF": "aS",
     "pitchF": "aT",
     "healthF": "Y",
