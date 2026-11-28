@@ -360,6 +360,34 @@ public final class HookTargets {
                 0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
     };
 
+    /**
+     * b1.5_01 钩组（Beta 1.5_01，活体批转正 2026-11-28）。
+     * 锚库 java/agent/registry/fingerprints/b1.5_01.json hooks 段四节对榫
+     * （A2Table1501Test 六元组断言在案）；取证=%TEMP%\mcaut\exp\b1501\。
+     * SAVE_WORLD：et.a(ZLwr;)V public **双参实体**——⚠️ 本版无 1 参包装
+     * （173/181/pre2 包装配方不适用；wr null 守卫 @14/@30 实锤；a(Z)Z=
+     * TickUpdates 禁钩同形预避）。WorldOps save (false,null) 双参分支直触本钩。
+     * LOAD_WORLD：Minecraft.a(Let;Ljava/lang/String;Lgh;)V public 0x0001——
+     * 3 参实体（判决 B 同 173：2 参壳 aconst_null 委托 3 参实锤 mc_c@3398，
+     * 三径全汇超集）；注入位=EXIT，slot1=活体 World。
+     * RUN_TICK：Minecraft.j()V public（⚠️ 173/181/pre2=k 断代——j→k 翻面
+     * 下界=b1.6，本版仍 j；et.l:()V=World.tick 调用点 @1239 实锤）。
+     * HUD_RENDER：tl.a(FZII)V public EXIT（GuiIngame uq→tl 断代；onHud 链
+     * h/p/y/B 已钉=观测+降级双路；≥a1.2.3 边界线 XYZ 注入免做）。
+     * 省略：WORLD_CTOR（et 构造族=(wt,String,J) 系，dir 面走 cmd=，173 先例）、
+     * LOAD_CHUNK/GEN_HEIGHT/GIANT_CTOR（同族判决，mx 构造健在）。
+     */
+    public static final Target[] TARGETS_1501 = {
+        new Target("et", "a", "(ZLwr;)V",
+                0x0001, 1, ENTRY, SAVE_WORLD, "World.saveWorld(boolean,IProgressUpdate) two-arg entity"),
+        new Target("net/minecraft/client/Minecraft", "a", "(Let;Ljava/lang/String;Lgh;)V",
+                0x0001, 1, EXIT, LOAD_WORLD, "Minecraft.changeWorld(World,String,Entity)"),
+        new Target("net/minecraft/client/Minecraft", "j", "()V",
+                0x0001, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
+        new Target("tl", "a", "(FZII)V",
+                0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
+    };
+
     private static final Map<String, Target[]> GROUPS = new HashMap<String, Target[]>();
 
     static {
@@ -372,6 +400,7 @@ public final class HookTargets {
         GROUPS.put("b1.7.3", TARGETS_173);
         GROUPS.put("b1.8.1", TARGETS_181);
         GROUPS.put("b1.9-pre2", TARGETS_19pre2);
+        GROUPS.put("b1.5_01", TARGETS_1501);
     }
 
     private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);

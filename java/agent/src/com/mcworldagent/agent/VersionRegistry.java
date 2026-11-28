@@ -39,12 +39,13 @@ public final class VersionRegistry {
     private static final VersionTable T_173 = build173();
     private static final VersionTable T_181 = build181();
     private static final VersionTable T_19pre2 = build19pre2();
+    private static final VersionTable T_1501 = build1501();
 
     private static final Map<String, VersionTable> BY_ID = new HashMap<String, VersionTable>();
     private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
 
     static {
-        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202, T_173, T_181, T_19pre2 };
+        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202, T_173, T_181, T_19pre2, T_1501 };
         for (VersionTable t : tables) {
             BY_ID.put(t.versionId, t);
             BY_SHA1.put(t.jarSha1, t);
@@ -1307,6 +1308,170 @@ public final class VersionRegistry {
         // mode∈[0,1]（adventure=2 系 b1.9 正式版后，pre2 越界 Rejected 同 181 判决）。
         t.capGamemode = Boolean.TRUE;
         t.gameTypeF = "p";        // sx.p=gameType private int
+
+        return t;
+    }
+
+    /**
+     * b1.5_01 表（Beta 1.5_01，天气/群系首例版——活体批转正 2026-11-28，仿
+     * build19pre2 体例）。值源=锚库 java/agent/registry/fingerprints/b1.5_01.json
+     * （mca-fingerprint-v1 草稿锚，A2Table1501Test 逐槽对榫在案）；取证=
+     * docs/compatibility/verscan/b1.5_01.md + %TEMP%\mcaut\exp\b1501\
+     * （javap 全量 9052 行+et_c/mc_c/tl_c 定向 -c+client.tiny 直钉；件 SHA1
+     * e2a692e5… 对榫版本索引行 L362）。三大边界判决：①WorldInfo 架构确立版
+     * （et 不再持 time/seed/spawn——dy 承载全 private，字母与 173 ei 全同）；
+     * ②天气引入首例（et 四浮值 B/C/D/E+dy 持久化四键 l/m/n/o 小写 NBT；
+     * ⑰批 javap -c 裁决 C=rainStrength/E=thunderStrength——getter 错位自食已销案）；
+     * ③saveWorld 无 1 参包装世代（仅 a(ZLwr;)V 双参实体，wr null 守卫 @14/@30
+     * 实锤——173/181/pre2 包装配方不适用，WorldOps (false,null) 双参分支）。
+     * vs 173 字母断代（详表 note）：World fd→et、Entity sn→rj、EntityLiving
+     * ls→kw、EntityPlayer gs→gh、InventoryPlayer ix→ih、ItemStack iz→ii、
+     * Item gm→gb、EntityList jc→ik、GuiIngame uq→tl、WorldInfo ei→dy、
+     * IProgressUpdate yb→wr。pos 面整体左移两位（aK..aR vs 173 aM..aT——
+     * 严禁借表；+1/版规律 1301=aI..→1401=aJ..→1501=aK..→16=aL..→173=aM..）。
+     * iframes=null（kw 无 heartsLife；⚠️rj.by=skinUrl 撞车位陷阱）→invulnerable
+     * UNSUPPORTED。RUN_TICK=j（⚠️173/181/pre2=k 断代——j→k 翻面下界=b1.7，
+     * V-5 批 b1.6 复验后修正为 b1.6=k/1501=j）。
+     */
+    private static VersionTable build1501() {
+        VersionTable t = new VersionTable();
+        t.versionId = "b1.5_01";
+        t.family = "G3"; // 扁平散件+未混淆主类（G3-beta，173 同族）
+        t.jarSha1 = "e2a692e5e8160c84b29c834ecbf398618db9749c"; // 对榫版本索引 L362
+
+        // World 写读面（et；详表 §2 javap 实锤）
+        t.setBlockM = "e";        // e(IIII)Z setBlockWithNotify（⚠️173=f/1401=e/16=f）
+        t.getBlockM = "a";        // a(III)I ✓历代同字母
+        t.getMetaM = "e";         // e(III)I getBlockMetadata（同字母异描述符共存）
+        t.setMetaSilentM = "d";   // d(IIII)V setBlockMetadata（⚠️16=e(IIII)Z 断代）
+        t.getLightM = "l";        // l(III)I（⚠️173=n/16=n 断代）
+        t.teGetM = "b";           // b(III)Lnx;（TileEntity=nx）
+        t.saveWorldM = "a";       // a(ZLwr;)V 双参实体——⚠️ 无 1 参 public 包装
+        t.saveWorldDesc = "(ZLwr;)V"; // （173/181/pre2 包装配方不适用；wr null 守卫
+                                  // @14/@30 实锤；a(Z)Z=TickUpdates 禁钩同形预避）
+        // WorldInfo 架构确立版（判决①）：字段在 dy 非 et——
+        t.getWorldInfoM = "x";    // et.x()Ldy; getWorldInfo（⚠️1401=w 断代/16=x 同）
+        t.worldTimeF = "e";       // dy.e:J=worldTime（NBT "Time"）
+        t.randSeedF = "a";        // dy.a:J=randomSeed（NBT "RandomSeed"）
+        t.spawnXF = "b";          // dy.b/c/d:I=SpawnX/Y/Z（五版同形链）
+        t.spawnYF = "c";
+        t.spawnZF = "d";
+
+        // 玩家/实体定位面（Entity=rj；档位三：World 无玩家直字段）
+        t.playerF = null;
+        t.playerListF = "d";      // et public List d=playerEntities（1401/16 同字母）
+        t.entityClassG = "rj";
+        t.setPosRotM = "b";       // b(DDDFF)V ✓历代同字母同形
+        t.setPosRotDesc = "(DDDFF)V";
+        t.posXF = "aK";           // ⚠️ 左移两位 vs 173 aM..（NBT "Pos" 配对）
+        t.posYF = "aL";
+        t.posZF = "aM";
+        t.motXF = "aN";           // NBT "Motion" 配对
+        t.motYF = "aO";
+        t.motZF = "aP";
+        t.yawF = "aQ";            // NBT "Rotation" 配对
+        t.pitchF = "aR";
+        t.healthF = "W";          // kw.W public int（⚠️173=Y/1401=V/16=Y 洗牌链）
+        t.iframesF = null;        // kw 无 heartsLife（⚠️rj.by=skinUrl 撞车位勿混）
+                                  // →invulnerable UNSUPPORTED
+
+        // HUD 面（GuiIngame=tl；门读面两点 @117 jz.A=thirdPersonView/@1142
+        // jz.B=showDebugInfo——偏移与 173 逐位同形；主类 h/p/y 字母同 173）
+        t.hudPlayerF = "h";
+        t.hudFontF = "p";         // ⚠️173=q 断代（fontRenderer=p(Lrf)）
+        t.hudSettingsF = "y";     // gameSettings=y(Ljz)
+        t.hudDebugGateF = "B";    // jz.B=showDebugInfo（非 173 kv.B=showFPS 语义——
+                                  // 同字母异名陷阱在案）
+        t.hudXyzPaint = Boolean.FALSE; // a1.2.3 边界线（§5.1）：F3 自带坐标=注入免做
+
+        // 物品栏面（EntityPlayer=gh.f→ih；⚠️ invF=f 同 1401/173=c 断代）
+        t.invF = "f";
+        t.invMainF = "a";         // ih.a=mainInventory[ii]
+        t.invArmorF = "b";
+        t.invCurF = "c";          // ⚠️ ih.d=player 回指非 cur（1401/16 同形陷阱）
+        t.isCountF = "a";         // ii a=stackSize/c=itemID public、d=itemDamage private
+        t.isIdF = "c";
+        t.isDmgF = "d";
+        t.addStackM = "a";        // ih.a(ii)Z addItemStackToInventory ✓
+        t.itemClassG = "gb";      // ⚠️ 撞车位：1401 gb=EntityItem↔1501 gb=Item
+        t.itemsF = "c";           // public static gb[] c ✓
+        t.itemEntityG = "gz";     // EntityItem (et,DDD,ii)V（ii 无 (II)V——newStack (III)V）
+
+        // 实体/世界事件面（⚠️ entityJoinedWorld/setEntityDead/entityList 三件
+        // 与 173 同字母——1401 a/d/n 断代带止于 1501，16 亦 b/e/o 同形）
+        t.explodeM = "a";         // a(Lrj;DDDF)Lpx;（返回值不消费）
+        t.spawnEntityM = "b";     // b(Lrj;)Z entityJoinedWorld
+        t.setEntityDeadM = "e";   // e(Lrj;)V
+        t.entityListM = "o";      // o()List getLoadedEntityList
+        t.entityTypeM = null;     // per-instance 命名面未钉（同族判决）
+        t.entityListClassG = "ik"; // ⚠️ 撞车位：1401 ik=…↔1501 ik=EntityList
+        t.entityListLookupM = "b"; // ik.b(rj)String static ✓同字母
+        t.playSoundM = "a";       // a(DDD,String,F,F)V ✓
+
+        // getinfo 面
+        t.difficultyF = "l";      // et.l=difficultySetting（⚠️1401=j/16=q/173=q 洗牌）
+
+        // D8 天气面（判决②首例版：et 四浮值 protected——B/D=prev 拷贝槽、
+        // C=rainStrength/E=thunderStrength（⑰批 javap -c 裁决，getter 错位自食销案）；
+        // dy 旗标 setter b(Z)V→l:Z=raining/a(Z)V→n:Z=thundering 全 public
+        // （四版 dy/ei/rl/sx 同形）——T1 双写机制直接适用）
+        t.capWeather = Boolean.TRUE;
+        t.rainStrF = "C";         // et.C=rainingStrength protected float
+        t.thunderStrF = "E";      // et.E=thunderingStrength protected float
+        t.wiSetRainM = "b";       // dy.b(Z)V setIsRaining
+        t.wiSetThunderM = "a";    // dy.a(Z)V setIsThundering
+
+        // 未钉面（同族判决：light6/observers 三件套未钉→setmeta 静默面走
+        // setMetaSilentM；genscatter 散布器未钉）
+        t.light6M = null;
+        t.observersF = null;
+        t.scatterClassG = null;
+
+        // TE 容器面（⑲批真 jar javap 对榫：la=IInventory a()I/d_(I)Lii/a(ILii)V；
+        // rg=TileEntityFurnace public a/c+private ii[] h；iy=TileEntityChest
+        // private ii[] a 27 槽——a 撞数组字段形，getFurnace int 门天然区分）
+        t.invSizeM = "a";
+        t.invGetM = "d_";         // ⚠️1401=c_ 断代（尾下划线链 1301/1401 c_→1501/16 d_）
+        t.invSetM = "a";
+        t.teBurnF = "a";          // rg.a=furnaceBurnTime public int
+        t.teCookF = "c";          // rg.c=furnaceCookTime public int
+
+        // h10 批 sleep 面（⑲批钉面：gh.b(III)Lco;=sleepInBedAt 四门 e→b→c→d
+        // （gh_disasm 实锤：O()Z||!W()Z→co.e/et.o:Lvr;.c:Z→co.b/et.f()Z→co.c/
+        // 距 aK/aL/aM 3/2/3→co.d；OK 尾 x=true(Sleeping protected)/b=0/
+        // a:Lbk;=new bk/动量 aN-aP 清零/!et.v→et.y()V/返 co.a）、
+        // gh.a(ZZZ)V=wakeUpPlayer（a:Lbk; ifnull @24 null-safe）。
+        // ⚠️ tick NPE 红线：gh.am()Z 裸解引用 a:Lbk;——T2 裸字段配方退役，
+        // 写面恒走 b(III) API（173 崩溃活体实锤同构，FakeOps1501Test 假件复刻）。
+        // updateAllPlayersSleepingFlag=et.y()V（1401=x 断代；173/16=y 同）。
+        t.capSleep = Boolean.TRUE;
+        t.sleepInBedM = "b";
+        t.wakeUpM = "a";
+        t.sleepOkF = "a";         // co.a=EnumStatus OK（1401 cb/16 cu 同字母 a）
+
+        // grow 面（骨粉 id 未钉——同 173 惯例 UNSUPPORTED）
+        t.idCrops = null;
+        t.idSapling = null;
+        t.cropsRipeMeta = null;
+
+        // biome 面（判决群系首例版：三锚链 et.a()Lwl→wl.a(II)Ljj→jj.m:String
+        // 全 public；⚠️ biomeNameF=m——173=n 断代，16=n 亦漂移）
+        t.biomeWcmM = "a";        // et.a()Lwl; getWorldChunkManager
+        t.biomeAtM = "a";         // wl.a(II)Ljj; getBiomeGenAt ✓
+        t.biomeNameF = "m";       // jj.m=biomeName public String
+
+        // spawn 白名单（EntityList=ik 注册表+tiny 直钉，ctor (et)V 全中；
+        // tnt=pw (et,DDD)V DDD 型同 173 fallback；giant=mx 构造健在；
+        // mob=ht=EntityCreature public 非 abstract（181 abstract 断代未到））
+        t.mobClasses.put("pig", "va");
+        t.mobClasses.put("sheep", "dd");
+        t.mobClasses.put("creeper", "fq");
+        t.mobClasses.put("skeleton", "fg");
+        t.mobClasses.put("zombie", "ts");
+        t.mobClasses.put("spider", "cg");
+        t.mobClasses.put("tnt", "pw");
+        t.mobClasses.put("giant", "mx");
+        t.mobClasses.put("mob", "ht");
 
         return t;
     }

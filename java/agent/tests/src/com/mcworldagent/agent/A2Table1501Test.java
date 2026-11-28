@@ -1,4 +1,8 @@
-// b1.5_01 A2 表对榫（JSON-only 版：无内建表，无头窗批 2026-11-27）。
+// b1.5_01 A2 表对榫（无头窗批 2026-11-27 建；**2026-11-28 活体批转正**——
+// VersionRegistry.build1501() 内建表+HookTargets.TARGETS_1501 钩组已落，
+// 本测试 main 首段先做内建表 vs 锚库 JSON 逐槽对榫（仿 A2Table19pre2Test
+// 戒律 14 双对榫），再走原 injectTable() 转写注入段（保留=锚库转写回归面，
+// 注入发生在对榫之后，BY_ID/BY_SHA1 覆盖不影响前置断言）。
 // 锚库 b1.5_01.json 为 mca-fingerprint-v1 档案 schema（null 字面量/三层嵌套/超
 // MiniJson 4096 限=FingerprintLoader 静默跳过，详注见本文件末尾 note 存档），
 // 故本测试自带测试侧转写注入 injectTable()：ops→VersionTable 槽、嵌套 hooks→
@@ -72,6 +76,63 @@ public class A2Table1501Test {
 
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
+        // ---- 转正对榫段（2026-11-28 活体批，注入前取内建表）----
+        VersionTable builtin = VersionRegistry.byJarSha1("e2a692e5e8160c84b29c834ecbf398618db9749c");
+        ok(builtin != null && "b1.5_01".equals(builtin.versionId), "builtin registered");
+        Map opsJ = A2TableTest.obj(A2TableTest.obj(A2TableTest.parseJson(new String(
+                java.nio.file.Files.readAllBytes(new java.io.File(
+                "E:/4k/github-projects/MCWorldAgent/java/agent/registry/fingerprints/b1.5_01.json").toPath()),
+                "UTF-8"))).get("ops"));
+        int bc = 0;
+        for (Object ko : opsJ.keySet()) {
+            String key = (String) ko;
+            if ("mobClasses".equals(key)) { continue; }
+            Object jv = opsJ.get(key);
+            ok(jv == null ? A2TableTest.slot(builtin, key) == null
+                    : jv.equals(A2TableTest.slot(builtin, key)), "builtin ops " + key);
+            bc++;
+        }
+        ok(bc == 76, "builtin 76 slots got " + bc);
+        Map mobJ = A2TableTest.obj(opsJ.get("mobClasses"));
+        for (Object mk : mobJ.keySet()) {
+            ok(A2TableTest.str(mobJ.get(mk)).equals(builtin.mobClasses.get(mk)), "builtin mob " + mk);
+        }
+        ok(builtin.mobClasses.size() == 9, "builtin mobClasses 9");
+        ok(Boolean.FALSE.equals(builtin.hudXyzPaint), "builtin hudXyzPaint=false（≥a1.2.3 边界线）");
+        // hooks 六元组 vs TARGETS_1501 硬编码组（激活=GROUPS 命中，非 hookSpecs）
+        HookTargets.activate("b1.5_01");
+        Map hooksJ = A2TableTest.obj(A2TableTest.obj(A2TableTest.parseJson(new String(
+                java.nio.file.Files.readAllBytes(new java.io.File(
+                "E:/4k/github-projects/MCWorldAgent/java/agent/registry/fingerprints/b1.5_01.json").toPath()),
+                "UTF-8"))).get("hooks"));
+        String[][] ids = {
+            {"SAVE_WORLD", HookTargets.SAVE_WORLD, "et"},
+            {"LOAD_WORLD", HookTargets.LOAD_WORLD, "net/minecraft/client/Minecraft"},
+            {"RUN_TICK", HookTargets.RUN_TICK, "net/minecraft/client/Minecraft"},
+            {"HUD_RENDER", HookTargets.HUD_RENDER, "tl"},
+        };
+        for (int i = 0; i < ids.length; i++) {
+            Map h = A2TableTest.obj(hooksJ.get(ids[i][0]));
+            HookTargets.Target tg = null;
+            HookTargets.Target[] all = HookTargets.forClass(ids[i][2]);
+            for (int k = 0; k < all.length; k++) {
+                if (ids[i][1].equals(all[k].hookId)) { tg = all[k]; }
+            }
+            ok(tg != null, "TARGETS_1501 has " + ids[i][0]);
+            ok(A2TableTest.str(h.get("class")).equals(tg.className), "builtin hook " + ids[i][0] + " class");
+            ok(A2TableTest.str(h.get("method")).equals(tg.methodName), "builtin hook " + ids[i][0] + " method");
+            ok(A2TableTest.str(h.get("desc")).equals(tg.desc), "builtin hook " + ids[i][0] + " desc");
+            ok(Integer.parseInt(A2TableTest.str(h.get("access")).substring(2), 16) == tg.access,
+                    "builtin hook " + ids[i][0] + " access");
+            ok(((Double) h.get("expectedHits")).intValue() == tg.expectedHits,
+                    "builtin hook " + ids[i][0] + " hits");
+            String mode = A2TableTest.str(h.get("injectMode"));
+            ok("ENTRY".equals(mode) ? tg.injectMode == HookTargets.ENTRY
+                    : "EXIT".equals(mode) && tg.injectMode == HookTargets.EXIT,
+                    "builtin hook " + ids[i][0] + " mode");
+        }
+        ok(HookTargets.forClass("et").length == 1, "TARGETS_1501 et 单钩");
+        // ---- 原 JSON-only 对榫段（injectTable 转写注入=锚库回归面，后置执行）----
         VersionTable t = injectTable();
         // ---- 身份三锚 ----
         VersionTable bySha = VersionRegistry.byJarSha1("e2a692e5e8160c84b29c834ecbf398618db9749c");
