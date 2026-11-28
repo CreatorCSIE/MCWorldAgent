@@ -1114,3 +1114,4 @@ V-6..V-8 续账终态（用户「继续下一步，还没到截止时间」驱�
   - 关键判决（剖树实锤）：b1.8.1 结构**生成即弃零落盘**（五重证据，StructureStart 无 NBT 方法/区块键全集无结构项/无 VillageCollection/jar 常量池零命中）；**26.3 现代格式=区块 NBT `structures→starts→<资源ID>`+References LongArray（level.dat 不参与，"(cx,cz)" 键式属 1.16-1.18 旧格式）**；b1.8.1 无神庙（Temple 类零命中，沙岩=自然生成不可作指纹）；
   - 新表槽 ≈8（adp/zo/lu/mp/sd/nu/vh/cq）；W181 真盘指纹旁证在位（村庄 door4+planks148@chunk(-21,8)、矿井三例、要塞超探索圈符合预期）；
   - headless 备选=.mcr 指纹簇扫描（spawner/door/rail 判据，Python stdlib 原型 mcr_probe.py 已验）——视野=已探索区。
+- **L-11.5 守卫复验活体批（2026-11-28，pre2 w16，c6c5ccf 销案）**：place 118→**REJECTED unregistered-block**（写前拦截，后续 7 腿连跑游戏存活——二次崩溃根因案全链闭环）；place 999→out of range（校验层分工正常）；**give 373 1 18496→OK saved=true**（物品入包腿闭环）；sanitize place 0→returned false=**w16 本无脏 chunk 落盘自证**；potiontest 18496 双效回归复现（守卫零连坐）；save OK。
