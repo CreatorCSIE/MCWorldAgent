@@ -504,6 +504,12 @@ public final class HookTargets {
         GROUPS.put("b1.6.4", TARGETS_16);
         GROUPS.put("b1.6.5", TARGETS_16);
         GROUPS.put("b1.6.6", TARGETS_16);
+        // 全覆盖批产 b1.7 带批（L-13 2026-11-28）：三版钩四项 class/method/
+        // desc/access 六元组与 b1.7.3 全等（SlotVerify v2.1 hooks 腿三版全绿），
+        // 复用 TARGETS_173 锚数组（同 TARGETS_16 家族先例）。
+        GROUPS.put("b1.7", TARGETS_173);
+        GROUPS.put("b1.7_01", TARGETS_173);
+        GROUPS.put("b1.7.2", TARGETS_173);
     }
 
     private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);

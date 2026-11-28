@@ -66,7 +66,7 @@ function Compile-Trio([string]$tag, [string[]]$trio) {
 }
 Compile-Trio '120' @('A2Table120Test', 'FakeOps120Test', 'InjectSmoke120Test')
 Compile-Trio '1202' @('A2Table1202Test', 'FakeOps1202Test', 'InjectSmoke1202Test')
-Compile-Trio '173' @('A2Table173Test', 'FakeOps173Test', 'InjectSmoke173Test')
+Compile-Trio '173' @('A2Table173Test', 'FakeOps173Test', 'InjectSmoke173Test', 'A2Table17FamilyTest')
 Compile-Trio '181' @('A2Table181Test', 'FakeOps181Test', 'InjectSmoke181Test')
 Compile-Trio '19pre2' @('A2Table19pre2Test', 'FakeOps19pre2Test', 'InjectSmoke19pre2Test')
 Compile-Trio '1501' @('A2Table1501Test', 'FakeOps1501Test', 'InjectSmoke1501Test')
@@ -127,6 +127,10 @@ foreach ($vtag in @('120', '1202', '173', '181', '19pre2')) {
     Invoke-Test $cls $cp $cls @()
   }
 }
+# b1.7 带家族批（2026-11-28 全覆盖批产 L-13: derive17 x3 vs 草稿 JSON+
+# TARGETS_173 复用+逐版织入冒烟；跑在 a2out173 件上=带内零断代同形实证）
+Invoke-Test 'com.mcworldagent.agent.A2Table17FamilyTest' `
+  "$O\a2out173;out\classes;libs\asm-9.7.jar" 'com.mcworldagent.agent.A2Table17FamilyTest' @()
 # b1.5_01 trio (2026-11-28 转正批: builtin build1501()+TARGETS_1501 in, InjectSmoke added;
 # A2Table1501Test keeps injectTable as anchor-regression leg after builtin cross-check)
 $cp1501 = "$O\a2out1501;out\classes;libs\asm-9.7.jar"

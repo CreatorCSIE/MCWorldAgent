@@ -62,13 +62,26 @@ public final class VersionRegistry {
     private static final VersionTable T_164 = derive16("b1.6.4", "b5d3bdb8a7b12d163651f4787ac6ca14689aab9e", "X", "aR", "aS", false);
     private static final VersionTable T_165 = derive16("b1.6.5", "90ed9854b43c4d031ed07381ea3ae3071a8bba6f", "Y", "aS", "aT", true);
     private static final VersionTable T_166 = derive16("b1.6.6", "f95fe05711d09553ca2a9089f981741c13d6b8c4", "Y", "aS", "aT", true);
+    // 全覆盖批产 b1.7 带批转正（2026-11-28，L-13）：b1.7/b1.7_01/b1.7.2 三版=
+    // SlotVerify v2.1 自动继承校验草稿锚（registry/fingerprints/b1.7*.json）
+    // 转写转正。三版 **75/75 零断代**（vs 基准锚 b1.7.3=T_173 转正件+h10 活体
+    // 判决在案）：hooks 四项六元组全等（TARGETS_173 复用）+派生链全同形
+    // （World=fd/EP=gs/Entity=sn/EntityLiving=ls/WI=ei…）。唯一首轮 MISS=
+    // setMetaSilentM=工具假红（(IIII)Z 硬码 vs 真件 void——tiny fd.d=
+    // setBlockMetadataWithNotify (IIII)V+b1.7↔1.7.3 方法体逐帧同+WorldOps
+    // getMethod 不校验返回型，v2.1 放宽 Z|V）。钉版=version-index L370-372
+    // （b1.7.1 不存在、b1.7.10 假件不收）。单源=derive17 继承 build173()
+    // 覆写 id/sha 两键，零槽位改动；对榫=A2Table17FamilyTest。
+    private static final VersionTable T_17 = derive17("b1.7", "ad7960853437bcab86bd72c4a1b95f6fe19f4258");
+    private static final VersionTable T_17_01 = derive17("b1.7_01", "b0f67f3105e32b1a905d934f1e56117ef45d7148");
+    private static final VersionTable T_172 = derive17("b1.7.2", "7dc50cc5e2ff204a7283f0c7d38cd0370b49875b");
 
     private static final Map<String, VersionTable> BY_ID = new HashMap<String, VersionTable>();
     private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
 
     static {
         VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202, T_173, T_181, T_19pre2, T_19pre3, T_1501, T_1401, T_16,
-                T_161, T_162, T_163, T_164, T_165, T_166 };
+                T_161, T_162, T_163, T_164, T_165, T_166, T_17, T_17_01, T_172 };
         for (VersionTable t : tables) {
             BY_ID.put(t.versionId, t);
             BY_SHA1.put(t.jarSha1, t);
@@ -2050,6 +2063,16 @@ public final class VersionRegistry {
             t.motYF = "aQ";
             t.motZF = "aR";
         }
+        return t;
+    }
+
+    /** b1.7 带单源派生（全覆盖批产 L-13 批 2026-11-28）：b1.7/b1.7_01/b1.7.2
+     *  三版 vs 基准锚 b1.7.3=75 槽零断代（SlotVerify v2.1 全绿+派生链同形
+     *  +hooks 六元组全等），仅覆写 id/sha 两键——同 b1.6.1-4 零断代案。 */
+    private static VersionTable derive17(String versionId, String jarSha1) {
+        VersionTable t = build173();
+        t.versionId = versionId;
+        t.jarSha1 = jarSha1;
         return t;
     }
 }
