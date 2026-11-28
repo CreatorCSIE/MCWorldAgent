@@ -43,12 +43,29 @@ public final class VersionRegistry {
     private static final VersionTable T_1501 = build1501();
     private static final VersionTable T_1401 = build1401();
     private static final VersionTable T_16 = build16();
+    // 全覆盖批产试点转正批（2026-11-28，L-12）：b1.6 家族六版=SlotVerify v1 自动
+    // 继承校验草稿锚（registry/fingerprints/b1.6.{1..6}.json）转写转正。
+    // 1.6.1-1.6.4=零断代（69/69 槽全绿，与 build16 全同形）；
+    // 1.6.5/1.6.6=三槽断代（lo int 组/si float 组各整体右移一位，double 组
+    // aL-aQ 不动=插入点在 aQ 与原 aR 之间；断代起点=b1.6.5）：healthF X→Y /
+    // yawF aR→aS / pitchF aS→aT——语义锚=字节码证据（LDC "Health"→GETFIELD I；
+    // (DDDFF)V 全体方法 FLOAD 7/8 参槽→PUTFIELD F），log=%TEMP%\mcaut\exp\
+    // fullcov\b1.6.*.log。单源=derive16 继承 build16()（76 槽+9 mob+mobs 全量），
+    // 对榫=A2Table16FamilyTest 六版逐槽 vs 草稿 JSON+BY_SHA1 反查+TARGETS_16
+    // 复用（钩四项 class/method/desc/access 六版全等，SlotVerify 已验）。
+    private static final VersionTable T_161 = derive16("b1.6.1", "63a66d6d145696296bdaaeaba0a42f738b87a362", "X", "aR", "aS");
+    private static final VersionTable T_162 = derive16("b1.6.2", "e8aa50949b077b672be2e651ea3f7b1bbd9020e1", "X", "aR", "aS");
+    private static final VersionTable T_163 = derive16("b1.6.3", "924e36dbb7c64abb30a95fe35f5affb5176f6cbc", "X", "aR", "aS");
+    private static final VersionTable T_164 = derive16("b1.6.4", "b5d3bdb8a7b12d163651f4787ac6ca14689aab9e", "X", "aR", "aS");
+    private static final VersionTable T_165 = derive16("b1.6.5", "90ed9854b43c4d031ed07381ea3ae3071a8bba6f", "Y", "aS", "aT");
+    private static final VersionTable T_166 = derive16("b1.6.6", "f95fe05711d09553ca2a9089f981741c13d6b8c4", "Y", "aS", "aT");
 
     private static final Map<String, VersionTable> BY_ID = new HashMap<String, VersionTable>();
     private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
 
     static {
-        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202, T_173, T_181, T_19pre2, T_19pre3, T_1501, T_1401, T_16 };
+        VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202, T_173, T_181, T_19pre2, T_19pre3, T_1501, T_1401, T_16,
+                T_161, T_162, T_163, T_164, T_165, T_166 };
         for (VersionTable t : tables) {
             BY_ID.put(t.versionId, t);
             BY_SHA1.put(t.jarSha1, t);
@@ -1992,6 +2009,27 @@ public final class VersionRegistry {
         t.mobClasses.put("giant", "np");     // 判决③翻面：GiantZombie 已到世
         t.mobClasses.put("mob", "if");
 
+        return t;
+    }
+
+    /**
+     * b1.6 家族派生表（全覆盖批产试点转正批 2026-11-28）：单源=build16() 全 76 槽
+     * +9 mob+钩能力面继承，覆写 versionId/jarSha1+三语义锚槽。1.6.1-1.6.4 传
+     * X/aR/aS=零断代继承（SlotVerify 69/69 全绿）；1.6.5/1.6.6 传 Y/aS/aT=三槽
+     * 断代采纳（lo int 组 D→E/S→T/X→Y/Z→aa/aa→ab/ac→ad 与 si float 组
+     * aR→aS/aS→aT/aT→aU/aU→aV/be→bf 各整体右移一位；double 组不动）。
+     * 证据=SlotVerify v1 语义锚（java/agent/tools/SlotVerify.java，防移位假绿
+     * 首案：pitchF=aS 字母存在性假绿唯语义腿抓到）；活体复验腿（待跑）=
+     * sethealth 写 Y 回读+tp 转向判决。
+     */
+    private static VersionTable derive16(String versionId, String jarSha1,
+            String healthF, String yawF, String pitchF) {
+        VersionTable t = build16();
+        t.versionId = versionId;
+        t.jarSha1 = jarSha1;
+        t.healthF = healthF;
+        t.yawF = yawF;
+        t.pitchF = pitchF;
         return t;
     }
 }

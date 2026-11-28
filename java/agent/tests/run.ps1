@@ -71,7 +71,7 @@ Compile-Trio '181' @('A2Table181Test', 'FakeOps181Test', 'InjectSmoke181Test')
 Compile-Trio '19pre2' @('A2Table19pre2Test', 'FakeOps19pre2Test', 'InjectSmoke19pre2Test')
 Compile-Trio '1501' @('A2Table1501Test', 'FakeOps1501Test', 'InjectSmoke1501Test')
 Compile-Trio '1401' @('A2Table1401Test', 'FakeOps1401Test', 'InjectSmoke1401Test')
-Compile-Trio '16' @('A2Table16Test', 'FakeOps16Test', 'InjectSmoke16Test')
+Compile-Trio '16' @('A2Table16Test', 'FakeOps16Test', 'InjectSmoke16Test', 'A2Table16FamilyTest')
 
 # ---- B5 loader + snapshot tools + guard batch ----
 & "$J\javac.exe" -encoding UTF-8 -cp 'out\classes;libs\asm-9.7.jar' -d "$O\b5out" `
@@ -145,10 +145,13 @@ foreach ($cls in @("com.mcworldagent.agent.A2Table1401Test",
 }
 # b1.6 trio (2026-11-28 转正批: builtin build16()+TARGETS_16 in, InjectSmoke added;
 # A2Table16Test keeps injectTable as anchor-regression leg after builtin cross-check)
+# + family test (2026-11-28 全覆盖批产试点转正批: derive16 x6 vs draft JSONs +
+# TARGETS_16 reuse + per-version transform smoke)
 $cp16 = "$O\a2out16;out\classes;libs\asm-9.7.jar"
 foreach ($cls in @("com.mcworldagent.agent.A2Table16Test",
                    "com.mcworldagent.agent.FakeOps16Test",
-                   "com.mcworldagent.agent.InjectSmoke16Test")) {
+                   "com.mcworldagent.agent.InjectSmoke16Test",
+                   "com.mcworldagent.agent.A2Table16FamilyTest")) {
   Invoke-Test $cls $cp16 $cls @()
 }
 # b1.9-pre3-1402 minimal promotion (potion batch 2026-11-28): standalone single test

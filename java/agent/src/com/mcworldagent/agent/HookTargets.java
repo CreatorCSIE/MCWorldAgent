@@ -493,6 +493,17 @@ public final class HookTargets {
         GROUPS.put("b1.5_01", TARGETS_1501);
         GROUPS.put("b1.4_01", TARGETS_1401);
         GROUPS.put("b1.6", TARGETS_16);
+        // 全覆盖批产试点转正批（2026-11-28）：b1.6 家族六版复用 TARGETS_16——
+        // SlotVerify v1 已验钩四项 class/method/desc/access 六版全等
+        // （SAVE_WORLD fb.a(ZLxs;)V / LOAD_WORLD Minecraft.a(Lfb;String;gq)V /
+        // RUN_TICK Minecraft.k()V / HUD_RENDER uk.a(FZII)V，1.6.5/1.6.6 断代
+        // 仅实体字段字母不涉及方法面；log=%TEMP%\mcaut\exp\fullcov\）。
+        GROUPS.put("b1.6.1", TARGETS_16);
+        GROUPS.put("b1.6.2", TARGETS_16);
+        GROUPS.put("b1.6.3", TARGETS_16);
+        GROUPS.put("b1.6.4", TARGETS_16);
+        GROUPS.put("b1.6.5", TARGETS_16);
+        GROUPS.put("b1.6.6", TARGETS_16);
     }
 
     private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);
