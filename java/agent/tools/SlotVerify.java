@@ -8,6 +8,12 @@
 //   InventoryPlayer=EntityPlayer.invF 字段类型；ItemStack=InventoryPlayer.addStackM
 //   参数类型；EnumStatus=EntityPlayer.sleepInBedM 返回类型。
 // v1 纪律：只验「继承字母是否仍成立」，不自动搜索新字母（断代=MISS 人工重取证）。
+// v2（b1.6.5 活体翻案批）：pos DLOAD 语义腿+mot 声明序布局腿。
+// v2.1（b1.7 带批产批 2026-11-28）：setMetaSilentM 返回型假红修复——
+// setBlockMetadataWithNotify 自 b1.7 系起 (IIII)V（b1.6=e(IIII)Z 断代带），
+// 而 WorldOps 消费=getMethod(name,int×4) 不校验返回型且调用侧丢弃返回值
+// （grow 已 UNSUPPORTED、clone metaFace 仅 invoke），故校验放宽为 Z|V 任一
+// （b1.7.3 锚 d 真 jar javap 实锤 void，原判 (IIII)Z 对锚自件也假红）。
 package mca.tools;
 
 import org.objectweb.asm.ClassReader;
@@ -424,7 +430,9 @@ public class SlotVerify {
         check("setBlockM", hasMethod(w, s(ops, "setBlockM"), "(IIII)Z"), "");
         check("getBlockM", hasMethod(w, s(ops, "getBlockM"), "(III)I"), "");
         check("getMetaM", hasMethod(w, s(ops, "getMetaM"), "(III)I"), "");
-        check("setMetaSilentM", hasMethod(w, s(ops, "setMetaSilentM"), "(IIII)Z"), "");
+        // v2.1：返回型放宽 Z|V（见头注——WorldOps getMethod 不校验返回型）
+        check("setMetaSilentM", hasMethod(w, s(ops, "setMetaSilentM"), "(IIII)Z")
+                || hasMethod(w, s(ops, "setMetaSilentM"), "(IIII)V"), "");
         check("getLightM", hasMethod(w, s(ops, "getLightM"), "(III)I"), "");
         check("teGetM", hasMethod(w, s(ops, "teGetM"), "(III)L" + te + ";"), "TE=" + te);
         check("getWorldInfoM", hasMethod(w, s(ops, "getWorldInfoM"), "()L" + wi + ";"), "WI=" + wi);
@@ -564,7 +572,7 @@ public class SlotVerify {
         sb.append("  \"family\": \"").append(base.get("family")).append("\",\n");
         sb.append("  \"jar\": \"%APPDATA%/.betacraft/versions/").append(a[2]).append(".jar\",\n");
         sb.append("  \"jarSha1\": \"").append(sha1).append("\",\n");
-        sb.append("  \"provenance\": {\n    \"evidence\": \"SlotVerify v1 自动继承校验（base=")
+        sb.append("  \"provenance\": {\n    \"evidence\": \"SlotVerify v2.1 自动继承校验（base=")
                 .append(base.get("versionId")).append("），PASS=").append(pass)
                 .append(" MISS=").append(fail).append("\",\n");
         sb.append("    \"mode\": \"slotverify-auto\",\n");
