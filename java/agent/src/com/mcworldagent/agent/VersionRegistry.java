@@ -115,6 +115,7 @@ public final class VersionRegistry {
     private static VersionTable build0327() {
         VersionTable t = new VersionTable();
         t.versionId = "inf-20100327";
+        t.blockClassG = "net.minecraft.a.a.b.x"; // Block 类（static x[] 字段=c，54 实例字段，取证批）
         t.family = "G2"; // 包路径混淆 net.minecraft.a.*
         t.jarSha1 = "47b1b32430a211520993552ba0a5e00c1af44724"; // HookTargets 头注同源
 
@@ -226,6 +227,7 @@ public final class VersionRegistry {
     private static VersionTable build0618() {
         VersionTable t = new VersionTable();
         t.versionId = "inf-20100618";
+        t.blockClassG = "net.minecraft.a.a.b.aa"; // Block 类（static aa[] 字段=b，57 实例字段；0618 无 itemClassG 锚，靠 final 性+256/1024 长度闭合）
         t.family = "G2";
         t.jarSha1 = "89eab2c1a353707cc00f074dffba9cb7a4f5e304"; // 主卷 §0 对榫表
 
@@ -319,6 +321,7 @@ public final class VersionRegistry {
     private static VersionTable build0629() {
         VersionTable t = new VersionTable();
         t.versionId = "inf-20100629";
+        t.blockClassG = "gk"; // Block 类（static gk[] 字段=b，45 实例字段=老 infdev 注册数；⚠️ 撞车：gk 在 b1.6=Item，禁跨代复用）
         t.family = "G3"; // 扁平散件混淆（根类单/双字母）
         t.jarSha1 = "eb50bce3cb542488b3039aa0f4c3c0ec7595ab24"; // 主卷 §0 对榫表
 
@@ -415,6 +418,7 @@ public final class VersionRegistry {
     private static VersionTable build1121() {
         VersionTable t = new VersionTable();
         t.versionId = "a1.1.2_01";
+        t.blockClassG = "ly"; // Block 类（static ly[] 字段=n，78 实例字段，姊妹仓交叉对榫）
         t.family = "G3"; // 扁平散件+未混淆主类（G3 家族 alpha 变体）
         t.jarSha1 = "daa4b9f192d2c260837d3b98c39432324da28e86"; // 索引 L317 对榫（897164B）
 
@@ -525,6 +529,7 @@ public final class VersionRegistry {
     private static VersionTable build120() {
         VersionTable t = new VersionTable();
         t.versionId = "a1.2.0";
+        t.blockClassG = "ne"; // Block 类（static ne[] 字段=n，83 实例字段，姊妹仓交叉对榫）
         t.family = "G3"; // 扁平散件+未混淆主类（G3-alpha，a1.1.2_01 同族）
         t.jarSha1 = "8632ea716fd083c2975f16d612306fd80bee46db"; // 官方 manifest a1.2.0 分发件=内嵌 stamp v1.2.0_02（duplicate 陷阱，详表 §0；原始 2057 候选件签名级零 diff，本表两件通用）
 
@@ -630,6 +635,7 @@ public final class VersionRegistry {
     private static VersionTable build1202() {
         VersionTable t = new VersionTable();
         t.versionId = "b1.2_02";
+        t.blockClassG = "pj"; // Block 类（static pj[] 字段=m，84 实例字段；姊妹仓 dev 无 Block.java，jar 侧三判据+锚 eo 排除闭合）
         t.family = "G3"; // 扁平散件+未混淆主类（G3-beta，a1.2.0 同族）
         t.jarSha1 = "551be32655e81a410d81e76259502dde83ebe525"; // 纯独立构建件（内嵌 stamp=Minecraft Beta 1.2_02；LW manifest 件 093f371e=BY_SHA1 别名，详表 §0）
 
@@ -739,6 +745,7 @@ public final class VersionRegistry {
     private static VersionTable build173() {
         VersionTable t = new VersionTable();
         t.versionId = "b1.7.3";
+        t.blockClassG = "uu"; // Block 类（static uu[] 字段=m，84 实例字段，姊妹仓交叉对榫）
         t.family = "G3"; // 扁平散件+未混淆主类（G3-beta，b1.2_02 同族）
         t.jarSha1 = "43db9b498cb67058d2e12d394e6507722e71bb45"; // 纯独立件（内嵌 stamp=Minecraft Beta 1.7.3，详表 §0）
 
@@ -894,6 +901,7 @@ public final class VersionRegistry {
     private static VersionTable build181() {
         VersionTable t = new VersionTable();
         t.versionId = "b1.8.1";
+        t.blockClassG = "lr"; // Block 类（static lr[] 字段=m，97 实例字段，姊妹仓交叉对榫）
         t.family = "G3"; // 扁平散件+未混淆主类（G3-beta，b1.7.3 同族）
         t.jarSha1 = "6b562463ccc2c7ff12ff350a2b04a67b3adcd37b"; // 纯独立件（stamp=Minecraft Beta 1.8.1，详表 §0）
 
@@ -1122,6 +1130,7 @@ public final class VersionRegistry {
     private static VersionTable build19pre2() {
         VersionTable t = new VersionTable();
         t.versionId = "b1.9-pre2";
+        t.blockClassG = "mq"; // Block 类（static mq[] 字段=m，102 实例字段，姊妹仓交叉对榫）
         t.family = "G3"; // 扁平散件+未混淆主类（G3-beta，b1.7.3/b1.8.1 同族）
         t.jarSha1 = "b0d40cf43b625631af65e2a645c34b533251da0e"; // 索引对榫件（锚库主 sha）
 
@@ -1353,6 +1362,7 @@ public final class VersionRegistry {
     private static VersionTable build19pre3() {
         VersionTable t = new VersionTable();
         t.versionId = "b1.9-pre3-1402";   // launcher id 对齐（attic 文件名同源）
+        t.blockClassG = "nd"; // Block 类（static nd[] 字段=m，107 实例字段；nd@4045 锅注册面同族件）
         t.family = "G3";
         t.jarSha1 = "5b7fe76a602b7511c97740e36dc25040ccb6e76b"; // Get-FileHash 实算
 
@@ -1454,6 +1464,7 @@ public final class VersionRegistry {
     private static VersionTable build1501() {
         VersionTable t = new VersionTable();
         t.versionId = "b1.5_01";
+        t.blockClassG = "to"; // Block 类（static to[] 字段=m，87 实例字段，姊妹仓交叉对榫；⚠️ 撞车：to 在 pre2=BlockCauldron 死代码件，跨 JVM 无碍禁复用）
         t.family = "G3"; // 扁平散件+未混淆主类（G3-beta，173 同族）
         t.jarSha1 = "e2a692e5e8160c84b29c834ecbf398618db9749c"; // 对榫版本索引 L362
 
@@ -1625,6 +1636,7 @@ public final class VersionRegistry {
     private static VersionTable build1401() {
         VersionTable t = new VersionTable();
         t.versionId = "b1.4_01";
+        t.blockClassG = "ra"; // Block 类（static ra[] 字段=m，87 实例字段，姊妹仓交叉对榫）
         t.family = "G3"; // 扁平散件+未混淆主类（G3-beta，1501/173 同族）
         t.jarSha1 = "6f157f26955c35006c1afa8b0479e0ce785fb864"; // 对榫版本索引 L360
 
@@ -1826,6 +1838,7 @@ public final class VersionRegistry {
     private static VersionTable build16() {
         VersionTable t = new VersionTable();
         t.versionId = "b1.6";
+        t.blockClassG = "un"; // Block 类（static un[] 字段=m，86 实例字段；⚠️ 撞车：gk 在 0629=Block 在本代=Item，逐代钉死禁复用）
         t.family = "G3"; // 扁平散件+未混淆主类（G3-beta，1501/1401/173 同族）
         t.jarSha1 = "ecc0288d218fd7479027a17c150cbf283fa950a1"; // 对榫版本索引 L363
 

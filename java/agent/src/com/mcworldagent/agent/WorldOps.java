@@ -2523,9 +2523,10 @@ public final class WorldOps {
     /** 放置/挖除（blockId=0 即挖除——与游戏自身删除路径同入口，PlayerController L27 实锤）。
      *  未注册方块守卫（缺陷一修复 2026-11-28，pre2 锅腿崩溃实锤：blocksList[id]=null 的
      *  垃圾 ID 写进 chunk → 游戏线程渲染/tick 引用 null 方块 → 崩，命令侧捕获救不了）。
-     *  导出零新槽：beta Item extends Block → itemClassG.getSuperclass()=Block 类，
-     *  其唯一 static Block[] 字段=blocksList；id=0 空气 blocksList[0]=null 为常态特判合法；
-     *  itemClassG 未钉代（inf 老代）=不守卫维持原行为。 */
+     *  导出走 blockClassG 直查（2026-11-28 取证批实锤：beta Item/Block 为**兄弟类**，
+     *  首版 itemClassG.getSuperclass() 恒得 Object=守卫死代码，锅腿二次崩溃根因）；
+     *  Block 类唯一 static self[]（length>64）字段=blocksList；
+     *  id=0 空气 blocksList[0]=null 为常态特判合法；blockClassG 未钉代=不守卫维持原行为。 */
     public static boolean setBlock(Object world, int x, int y, int z, int blockId) throws Exception {
         requireRegisteredBlock(blockId);
         return ((Boolean) setBlock.invoke(world, x, y, z, blockId)).booleanValue();
@@ -2535,12 +2536,17 @@ public final class WorldOps {
 
     static void requireRegisteredBlock(int blockId) throws Rejected, UnsupportedOp,
             ClassNotFoundException, IllegalAccessException {
-        if (blockId == 0 || T.itemClassG == null) {
+        if (blockId == 0 || T.blockClassG == null) {
             return;
         }
         Object[] list = cachedBlockList;
         if (list == null) {
-            Class<?> block = Class.forName(T.itemClassG).getSuperclass();
+            Class<?> block;
+            try {
+                block = Class.forName(T.blockClassG);
+            } catch (ClassNotFoundException e) {
+                return; // 假件/无头测试 classpath 无游戏 Block 类=降级不守卫
+            }
             Class<?> arrType = java.lang.reflect.Array.newInstance(block, 0).getClass();
             Object[] found = null;
             for (java.lang.reflect.Field f : block.getDeclaredFields()) {

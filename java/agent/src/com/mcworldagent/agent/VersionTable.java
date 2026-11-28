@@ -78,6 +78,10 @@ public final class VersionTable {
     public String isCountF, isIdF, isDmgF; // ItemStack 三字段
     public String addStackM;        // addStack (ItemStack)Z
     public String itemClassG;       // Item 注册表类（按 id 索引）
+    public String blockClassG;      // Block 类（static Block[] blocksList 宿主；place
+                                    // 未注册 ID 守卫，2026-11-28 13 代取证批。⚠️ beta
+                                    // Item/Block 为兄弟类，不可从 itemClassG 导出——
+                                    // 首版守卫死代码根因，锅腿二次崩溃实锤）
     public String itemsF;           // public static Item[] 字段
     public String itemEntityG;      // EntityItem 类名
 
