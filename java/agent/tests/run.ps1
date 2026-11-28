@@ -68,7 +68,7 @@ Compile-Trio '181' @('A2Table181Test', 'FakeOps181Test', 'InjectSmoke181Test')
 Compile-Trio '19pre2' @('A2Table19pre2Test', 'FakeOps19pre2Test', 'InjectSmoke19pre2Test')
 Compile-Trio '1501' @('A2Table1501Test', 'FakeOps1501Test', 'InjectSmoke1501Test')
 Compile-Trio '1401' @('A2Table1401Test', 'FakeOps1401Test', 'InjectSmoke1401Test')
-Compile-Trio '16' @('A2Table16Test', 'FakeOps16Test')
+Compile-Trio '16' @('A2Table16Test', 'FakeOps16Test', 'InjectSmoke16Test')
 
 # ---- B5 loader + snapshot tools + guard batch ----
 & "$J\javac.exe" -encoding UTF-8 -cp 'out\classes;libs\asm-9.7.jar' -d "$O\b5out" `
@@ -140,10 +140,12 @@ foreach ($cls in @("com.mcworldagent.agent.A2Table1401Test",
                    "com.mcworldagent.agent.InjectSmoke1401Test")) {
   Invoke-Test $cls $cp1401 $cls @()
 }
-# b1.6 pair (JSON-only draft anchor, V-7 batch: weather/getbiome OK legs + 3 loud)
+# b1.6 trio (2026-11-28 转正批: builtin build16()+TARGETS_16 in, InjectSmoke added;
+# A2Table16Test keeps injectTable as anchor-regression leg after builtin cross-check)
 $cp16 = "$O\a2out16;out\classes;libs\asm-9.7.jar"
 foreach ($cls in @("com.mcworldagent.agent.A2Table16Test",
-                   "com.mcworldagent.agent.FakeOps16Test")) {
+                   "com.mcworldagent.agent.FakeOps16Test",
+                   "com.mcworldagent.agent.InjectSmoke16Test")) {
   Invoke-Test $cls $cp16 $cls @()
 }
 # B5 loader: dir branch + jar branch

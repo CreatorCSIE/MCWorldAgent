@@ -415,6 +415,38 @@ public final class HookTargets {
                 0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
     };
 
+    /**
+     * b1.6 钩组（Beta 1.6，转正批 2026-11-28）。
+     * 锚库 java/agent/registry/fingerprints/b1.6.json hooks 段四节对榫
+     * （A2Table16Test 六元组断言在案）；取证=%TEMP%\mcaut\exp\b16\。
+     * SAVE_WORLD：fb.a(ZLxs;)V public **双参实体**（断代带 b1.4→b1.6 延续：
+     * xs null 守卫 @14/@30 与 1401 逐位同形；前置 v:Lcj; 旗；a(Z)Z=
+     * TickUpdates 禁钩同形预避）。WorldOps save (false,null) 双参分支直触本钩。
+     * LOAD_WORLD：Minecraft.a(Lfb;Ljava/lang/String;Lgq;)V public 0x0001——
+     * 3 参实体（判决 B：2 参壳 @3 aconst_null 委托 3 参实锤 mc_c，三径全汇
+     * 超集）；注入位=EXIT，3 参头 @16 i:Llo;=null renderViewEntity+@105
+     * h:Lda;=null thePlayer 复位，slot1=活体 World。
+     * RUN_TICK：Minecraft.**k()V** public（⚠️ 1401/1501=j 断代——**j→k 翻面
+     * 下界提前至 b1.6 实锤**，173/181/pre2=k 同字母；fb.l()V=World.tick 调用点
+     * mc_c @1260 实锤）。
+     * HUD_RENDER：uk.a(FZII)V public EXIT（GuiIngame 1501 tl→1401 qv→16 uk
+     * 断代；kr.B=showDebugInfo @1142/kr.A=thirdPersonView @117——偏移三版逐位
+     * 同形；≥a1.2.3 边界线=XYZ 注入免做，onHud 观测单点）。
+     * 省略：WORLD_CTOR（锚库未直钉 fb 构造族形，dir 面走 cmd=，173/1501/1401
+     * 先例）、LOAD_CHUNK/GEN_HEIGHT/GIANT_CTOR（同族判决，np=EntityGiant 构造
+     * 健在（tiny 类级直钉+ctor (Lfb;)V 全中）无复活需求）。
+     */
+    public static final Target[] TARGETS_16 = {
+        new Target("fb", "a", "(ZLxs;)V",
+                0x0001, 1, ENTRY, SAVE_WORLD, "World.saveWorld(boolean,IProgressUpdate) two-arg entity"),
+        new Target("net/minecraft/client/Minecraft", "a", "(Lfb;Ljava/lang/String;Lgq;)V",
+                0x0001, 1, EXIT, LOAD_WORLD, "Minecraft.changeWorld(World,String,Entity)"),
+        new Target("net/minecraft/client/Minecraft", "k", "()V",
+                0x0001, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
+        new Target("uk", "a", "(FZII)V",
+                0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
+    };
+
     private static final Map<String, Target[]> GROUPS = new HashMap<String, Target[]>();
 
     static {
@@ -429,6 +461,7 @@ public final class HookTargets {
         GROUPS.put("b1.9-pre2", TARGETS_19pre2);
         GROUPS.put("b1.5_01", TARGETS_1501);
         GROUPS.put("b1.4_01", TARGETS_1401);
+        GROUPS.put("b1.6", TARGETS_16);
     }
 
     private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);

@@ -74,6 +74,69 @@ public class A2Table16Test {
 
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
+        // ---- 转正对榫段（2026-11-28 转正批，注入前取内建表）----
+        VersionTable builtin = VersionRegistry.byJarSha1("ecc0288d218fd7479027a17c150cbf283fa950a1");
+        ok(builtin != null && "b1.6".equals(builtin.versionId), "builtin registered");
+        Map opsJ = A2TableTest.obj(A2TableTest.obj(A2TableTest.parseJson(new String(
+                java.nio.file.Files.readAllBytes(new java.io.File(
+                "E:/4k/github-projects/MCWorldAgent/java/agent/registry/fingerprints/b1.6.json").toPath()),
+                "UTF-8"))).get("ops"));
+        int bc = 0;
+        for (Object ko : opsJ.keySet()) {
+            String key = (String) ko;
+            if ("mobClasses".equals(key)) { continue; }
+            Object jv = opsJ.get(key);
+            ok(jv == null ? A2TableTest.slot(builtin, key) == null
+                    : jv.equals(A2TableTest.slot(builtin, key)), "builtin ops " + key);
+            bc++;
+        }
+        ok(bc == 76, "builtin 76 slots got " + bc);
+        Map mobJ = A2TableTest.obj(opsJ.get("mobClasses"));
+        for (Object mk : mobJ.keySet()) {
+            String jv = A2TableTest.str(mobJ.get(mk));
+            Object bv = builtin.mobClasses.get(mk);
+            ok(jv == null ? bv == null : jv.equals(bv), "builtin mob " + mk);
+        }
+        ok(builtin.mobClasses.size() == 9, "builtin mobClasses 9");
+        ok(Boolean.FALSE.equals(builtin.hudXyzPaint), "builtin hudXyzPaint=false（≥a1.2.3 边界线）");
+        ok(Boolean.TRUE.equals(builtin.capWeather), "builtin capWeather=true（判决①翻面=天气键在位世代）");
+        ok(Boolean.TRUE.equals(builtin.capSleep), "builtin capSleep=true（睡眠面三版同形）");
+        ok(builtin.biomeWcmM != null && builtin.biomeNameF != null, "builtin biome 三锚在位（判决②翻面）");
+        ok("np".equals(builtin.mobClasses.get("giant")), "builtin giant=np 已到世（判决③翻面）");
+        // hooks 六元组 vs TARGETS_16 硬编码组（激活=GROUPS 命中，非 hookSpecs）
+        HookTargets.activate("b1.6");
+        Map hooksJ = A2TableTest.obj(A2TableTest.obj(A2TableTest.parseJson(new String(
+                java.nio.file.Files.readAllBytes(new java.io.File(
+                "E:/4k/github-projects/MCWorldAgent/java/agent/registry/fingerprints/b1.6.json").toPath()),
+                "UTF-8"))).get("hooks"));
+        String[][] ids = {
+            {"SAVE_WORLD", HookTargets.SAVE_WORLD, "fb"},
+            {"LOAD_WORLD", HookTargets.LOAD_WORLD, "net/minecraft/client/Minecraft"},
+            {"RUN_TICK", HookTargets.RUN_TICK, "net/minecraft/client/Minecraft"},
+            {"HUD_RENDER", HookTargets.HUD_RENDER, "uk"},
+        };
+        for (int i = 0; i < ids.length; i++) {
+            Map h = A2TableTest.obj(hooksJ.get(ids[i][0]));
+            HookTargets.Target tg = null;
+            HookTargets.Target[] all = HookTargets.forClass(ids[i][2]);
+            for (int k = 0; k < all.length; k++) {
+                if (ids[i][1].equals(all[k].hookId)) { tg = all[k]; }
+            }
+            ok(tg != null, "TARGETS_16 has " + ids[i][0]);
+            ok(A2TableTest.str(h.get("class")).equals(tg.className), "builtin hook " + ids[i][0] + " class");
+            ok(A2TableTest.str(h.get("method")).equals(tg.methodName), "builtin hook " + ids[i][0] + " method");
+            ok(A2TableTest.str(h.get("desc")).equals(tg.desc), "builtin hook " + ids[i][0] + " desc");
+            ok(Integer.parseInt(A2TableTest.str(h.get("access")).substring(2), 16) == tg.access,
+                    "builtin hook " + ids[i][0] + " access");
+            ok(((Double) h.get("expectedHits")).intValue() == tg.expectedHits,
+                    "builtin hook " + ids[i][0] + " hits");
+            String mode = A2TableTest.str(h.get("injectMode"));
+            ok("ENTRY".equals(mode) ? tg.injectMode == HookTargets.ENTRY
+                    : "EXIT".equals(mode) && tg.injectMode == HookTargets.EXIT,
+                    "builtin hook " + ids[i][0] + " mode");
+        }
+        ok(HookTargets.forClass("fb").length == 1, "TARGETS_16 fb 单钩");
+        // ---- 原 JSON-only 对榫段（injectTable 转写注入=锚库回归面，后置执行）----
         VersionTable t = injectTable();
         // ---- 身份三锚 ----
         VersionTable bySha = VersionRegistry.byJarSha1("ecc0288d218fd7479027a17c150cbf283fa950a1");
