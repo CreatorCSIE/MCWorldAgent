@@ -388,6 +388,33 @@ public final class HookTargets {
                 0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
     };
 
+    /**
+     * b1.4_01 钩组（Beta 1.4_01，活体批转正 2026-11-28）。
+     * 锚库 java/agent/registry/fingerprints/b1.4_01.json hooks 段四节对榫
+     * （A2Table1401Test 六元组断言在案）；取证=%TEMP%\mcaut\exp\b1401\。
+     * SAVE_WORLD：eb.a(ZLtw;)V public **双参实体**（断代带与 1501 同形：
+     * tw null 守卫 @14/@30；a(Z)Z=TickUpdates 禁钩同形预避）。
+     * LOAD_WORLD：Minecraft.a(Leb;Ljava/lang/String;Lfm;)V public EXIT
+     * （2 参壳 aconst_null 委托 3 参实锤 mc_c@3 同 173/1501 判决 B；
+     * 3 参头 putfield h aconst_null=thePlayer 复位）。
+     * RUN_TICK：Minecraft.j()V public（eb.l:()V 调用点 @1209 实锤；
+     * ⚠️173=k 断代同 1501 字母——j→k 翻面下界=b1.6）。
+     * HUD_RENDER：qv.a(FZII)V public EXIT（GuiIngame.renderGameOverlay；
+     * is.A=showDebugInfo 门字母 A 非 1501 B——hudDebugGateF 断代）。
+     * 省略：WORLD_CTOR（eb 构造族=(dj,String,Z) 系，dir 面走 cmd=，173 先例）、
+     * LOAD_CHUNK/GEN_HEIGHT/GIANT_CTOR（判决③ giant 未到世）。
+     */
+    public static final Target[] TARGETS_1401 = {
+        new Target("eb", "a", "(ZLtw;)V",
+                0x0001, 1, ENTRY, SAVE_WORLD, "World.saveWorld(boolean,IProgressUpdate) two-arg entity"),
+        new Target("net/minecraft/client/Minecraft", "a", "(Leb;Ljava/lang/String;Lfm;)V",
+                0x0001, 1, EXIT, LOAD_WORLD, "Minecraft.changeWorld(World,String,Entity)"),
+        new Target("net/minecraft/client/Minecraft", "j", "()V",
+                0x0001, 1, ENTRY, RUN_TICK, "Minecraft.runTick()"),
+        new Target("qv", "a", "(FZII)V",
+                0x0001, 1, EXIT, HUD_RENDER, "GuiIngame.renderGameOverlay(float,boolean,int,int)"),
+    };
+
     private static final Map<String, Target[]> GROUPS = new HashMap<String, Target[]>();
 
     static {
@@ -401,6 +428,7 @@ public final class HookTargets {
         GROUPS.put("b1.8.1", TARGETS_181);
         GROUPS.put("b1.9-pre2", TARGETS_19pre2);
         GROUPS.put("b1.5_01", TARGETS_1501);
+        GROUPS.put("b1.4_01", TARGETS_1401);
     }
 
     private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);

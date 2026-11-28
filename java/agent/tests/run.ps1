@@ -67,7 +67,7 @@ Compile-Trio '173' @('A2Table173Test', 'FakeOps173Test', 'InjectSmoke173Test')
 Compile-Trio '181' @('A2Table181Test', 'FakeOps181Test', 'InjectSmoke181Test')
 Compile-Trio '19pre2' @('A2Table19pre2Test', 'FakeOps19pre2Test', 'InjectSmoke19pre2Test')
 Compile-Trio '1501' @('A2Table1501Test', 'FakeOps1501Test', 'InjectSmoke1501Test')
-Compile-Trio '1401' @('A2Table1401Test', 'FakeOps1401Test')
+Compile-Trio '1401' @('A2Table1401Test', 'FakeOps1401Test', 'InjectSmoke1401Test')
 Compile-Trio '16' @('A2Table16Test', 'FakeOps16Test')
 
 # ---- B5 loader + snapshot tools + guard batch ----
@@ -132,10 +132,12 @@ foreach ($cls in @("com.mcworldagent.agent.A2Table1501Test",
                    "com.mcworldagent.agent.InjectSmoke1501Test")) {
   Invoke-Test $cls $cp1501 $cls @()
 }
-# b1.4_01 pair (JSON-only draft anchor, V-2 batch: same recipe as 1501)
+# b1.4_01 trio (2026-11-28 转正批: builtin build1401()+TARGETS_1401 in, InjectSmoke added;
+# A2Table1401Test keeps injectTable as anchor-regression leg after builtin cross-check)
 $cp1401 = "$O\a2out1401;out\classes;libs\asm-9.7.jar"
 foreach ($cls in @("com.mcworldagent.agent.A2Table1401Test",
-                   "com.mcworldagent.agent.FakeOps1401Test")) {
+                   "com.mcworldagent.agent.FakeOps1401Test",
+                   "com.mcworldagent.agent.InjectSmoke1401Test")) {
   Invoke-Test $cls $cp1401 $cls @()
 }
 # b1.6 pair (JSON-only draft anchor, V-7 batch: weather/getbiome OK legs + 3 loud)
