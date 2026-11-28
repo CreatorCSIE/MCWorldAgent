@@ -75,13 +75,30 @@ public final class VersionRegistry {
     private static final VersionTable T_17 = derive17("b1.7", "ad7960853437bcab86bd72c4a1b95f6fe19f4258");
     private static final VersionTable T_17_01 = derive17("b1.7_01", "b0f67f3105e32b1a905d934f1e56117ef45d7148");
     private static final VersionTable T_172 = derive17("b1.7.2", "7dc50cc5e2ff204a7283f0c7d38cd0370b49875b");
+    // 全覆盖批产 b1.8 带批转正（2026-11-28，L-14）：b1.8/b1.8-pre2 两版=
+    // SlotVerify v2.1 自动继承校验草稿锚（registry/fingerprints/b1.8.json 替换
+    // 旧 F6 转写 draft+b1.8-pre2.json 新增）转写转正。两版 **74/74 零断代**
+    // （vs 基准锚 b1.8.1=T_181 转正件+el181-* 活体判决在案）：hooks 四项六元组
+    // 全等（TARGETS_181 复用）+派生链全同形（World=rv/EP=sz/Entity=kj/
+    // EntityLiving=wd/WI=rl/TE=ij…）。旁证腿=b1.8.1 取证批「117 类 javap dump
+    // 116/117 字节级全同」零漂移判决（唯一漂移=cf(Container) 返回值 V→boolean，
+    // 不在 ops 消费链）。旧 F6 draft 漂移面（itemClassG=gb/entityListClassG=hy/
+    // difficultyF=q/hudFontF=p/hudSettingsF=y）由本批真 jar 校验终裁=b1.8.1 表
+    // 值成立（sv/um/v/q/z）。钉版=version-index L377-378（b1.8-pre2-131225 构建
+    // 在库、121559 不在库不收；**pre1 两件=独立混淆映射带**：对 b1.8.1/b1.7.3
+    // 两锚派生链均即崩，tiny 反查 World ru/Entity ki/EntityLiving wc/WorldInfo rk/
+    // GuiIngame abi/Item su/IProgressUpdate nx，两件互查 12/12 同形=单取证锚可
+    // 覆盖对件，留案后续独立取证批不收）。单源=derive18 继承 build181()
+    // 覆写 id/sha 两键，零槽位改动；对榫=A2Table18FamilyTest。
+    private static final VersionTable T_18 = derive18("b1.8", "3139e9c29b2c74f59ea04de760ac2af5bc21b410");
+    private static final VersionTable T_18pre2 = derive18("b1.8-pre2", "44191f2895bf1e064269c9279778f2e3e9c3c9c7");
 
     private static final Map<String, VersionTable> BY_ID = new HashMap<String, VersionTable>();
     private static final Map<String, VersionTable> BY_SHA1 = new HashMap<String, VersionTable>();
 
     static {
         VersionTable[] tables = { T_0327, T_0618, T_0629, T_1121, T_120, T_1202, T_173, T_181, T_19pre2, T_19pre3, T_1501, T_1401, T_16,
-                T_161, T_162, T_163, T_164, T_165, T_166, T_17, T_17_01, T_172 };
+                T_161, T_162, T_163, T_164, T_165, T_166, T_17, T_17_01, T_172, T_18, T_18pre2 };
         for (VersionTable t : tables) {
             BY_ID.put(t.versionId, t);
             BY_SHA1.put(t.jarSha1, t);
@@ -2071,6 +2088,16 @@ public final class VersionRegistry {
      *  +hooks 六元组全等），仅覆写 id/sha 两键——同 b1.6.1-4 零断代案。 */
     private static VersionTable derive17(String versionId, String jarSha1) {
         VersionTable t = build173();
+        t.versionId = versionId;
+        t.jarSha1 = jarSha1;
+        return t;
+    }
+
+    /** b1.8 带单源派生（全覆盖批产 L-14 批 2026-11-28）：b1.8/b1.8-pre2 两版
+     *  vs 基准锚 b1.8.1=74 槽零断代（SlotVerify v2.1 全绿+派生链同形
+     *  +hooks 六元组全等），仅覆写 id/sha 两键——同 derive16/17 零断代案。 */
+    private static VersionTable derive18(String versionId, String jarSha1) {
+        VersionTable t = build181();
         t.versionId = versionId;
         t.jarSha1 = jarSha1;
         return t;

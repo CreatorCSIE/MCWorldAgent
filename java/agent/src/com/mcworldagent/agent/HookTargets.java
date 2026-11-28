@@ -510,6 +510,12 @@ public final class HookTargets {
         GROUPS.put("b1.7", TARGETS_173);
         GROUPS.put("b1.7_01", TARGETS_173);
         GROUPS.put("b1.7.2", TARGETS_173);
+        // 全覆盖批产 b1.8 带批（L-14 2026-11-28）：b1.8/b1.8-pre2 钩四项
+        // class/method/desc/access 六元组与 b1.8.1 全等（SlotVerify v2.1 hooks
+        // 腿两版全绿+「117 类 dump 116/117 字节级全同」旁证），复用 TARGETS_181
+        // 锚数组（同 TARGETS_173 家族先例）。pre1 两件=独立映射带未入组。
+        GROUPS.put("b1.8", TARGETS_181);
+        GROUPS.put("b1.8-pre2", TARGETS_181);
     }
 
     private static volatile Map<String, List<Target>> BY_CLASS = index(TARGETS_0327);
